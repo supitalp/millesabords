@@ -1,7 +1,7 @@
-from .model import Face, NUM_DICE, COMBO_SCORE
+from .model import Face, COMBO_SCORE, TurnConfig, DEFAULT_CONFIG
 
 
-def score(n_skulls: int, held: tuple) -> int:
+def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> int:
     """
     Compute the score for a completed turn.
     Returns 0 if n_skulls >= 3 (should not normally be called in that case).
@@ -17,10 +17,9 @@ def score(n_skulls: int, held: tuple) -> int:
         if face in (Face.COIN, Face.DIAMOND):
             total += 100 * count
 
-    # Full treasure chest bonus: all 8 dice must individually contribute to the score.
+    # Full treasure chest bonus: all dice must individually contribute, no skulls.
     # A die contributes if it is a coin/diamond (always +100 each) or part of a combo (count >= 3).
-    # Swords, monkeys, and parrots with count 1 or 2 score nothing and forfeit the bonus.
-    if n_skulls == 0 and sum(held) == NUM_DICE:
+    if n_skulls == 0 and sum(held) == config.total_dice:
         all_contribute = all(
             held[f] == 0
             or held[f] >= 3

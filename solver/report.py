@@ -1,4 +1,4 @@
-from .model import State, Face, NUM_FACES, NUM_DICE
+from .model import State, Face, NUM_FACES, NUM_DICE, TurnConfig, DEFAULT_CONFIG
 from .actions import valid_actions
 from .scoring import score
 from .stats import compute_stats, ActionStats
@@ -14,20 +14,23 @@ FACE_NAMES = {
 }
 
 
-def dice_to_state(dice: list[Face]) -> State:
-    """Convert a list of 8 Face values into a State."""
+def dice_to_state(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> State:
+    """
+    Convert a list of NUM_DICE rolled Face values into a State, merging any
+    pre-set dice and skulls from the card config.
+    """
     assert len(dice) == NUM_DICE
-    counts = [0] * NUM_FACES
+    counts = list(config.initial_held)
     for f in dice:
         counts[f] += 1
-    n_skulls = counts[Face.SKULL]
+    n_skulls = config.initial_n_skulls + counts[Face.SKULL]
     counts[Face.SKULL] = 0
     return State(n_skulls=n_skulls, held=tuple(counts))
 
 
 def _describe_kept(kept: tuple) -> str:
     parts = []
-    for face_val in range(1, NUM_FACES):  # skip skull
+    for face_val in range(1, NUM_FACES):
         c = kept[face_val]
         if c > 0:
             parts.append(f"{c}×{FACE_NAMES[Face(face_val)]}")
@@ -41,15 +44,19 @@ def _describe_dice(dice: list[Face]) -> str:
     return ", ".join(parts)
 
 
-def report(dice: list[Face]) -> str:
-    state = dice_to_state(dice)
-    current_score = score(state.n_skulls, state.held)
+def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
+    state = dice_to_state(dice, config)
+    current_score = score(state.n_skulls, state.held, config)
 
     lines = []
     lines.append("=" * 70)
     lines.append("MILLE SABORDS — TURN SOLVER")
     lines.append("=" * 70)
     lines.append(f"Dice rolled : {_describe_dice(dice)}")
+    if config.initial_n_skulls:
+        lines.append(f"Card skulls : {config.initial_n_skulls} (pre-locked)")
+    if any(config.initial_held):
+        lines.append(f"Card dice   : {_describe_kept(config.initial_held)}")
     lines.append(f"Skulls locked: {state.n_skulls}")
     lines.append(f"Score if stopping now: {current_score} pts")
 
@@ -57,12 +64,13 @@ def report(dice: list[Face]) -> str:
         lines.append("\n💀 Three skulls — turn is lost (0 points).")
         return "\n".join(lines)
 
-    actions = valid_actions(state)
-    all_stats: list[ActionStats] = [compute_stats(state, kept) for kept in actions]
+    actions = valid_actions(state, config)
+    all_stats: list[ActionStats] = [compute_stats(state, kept, config) for kept in actions]
     all_stats.sort(key=lambda s: s.ev, reverse=True)
 
     lines.append("")
-    header = f"{'#':>3}  {'Action':<40}  {'P(lose)':>8}  {'EV':>7}  {'EV|safe':>8}  {'Min':>6}  {'Max':>6}  {'ΔvsStop':>8}"
+    header = (f"{'#':>3}  {'Action':<40}  {'P(lose)':>8}  {'EV':>7}  "
+              f"{'EV|safe':>8}  {'Min':>6}  {'Max':>6}  {'ΔvsStop':>8}")
     lines.append(header)
     lines.append("-" * len(header))
 
@@ -88,7 +96,7 @@ def report(dice: list[Face]) -> str:
     lines.append("")
     lines.append("★ = recommended action (highest expected value)")
     lines.append("EV|safe = expected score conditioned on not losing")
-    lines.append("Min/Max = range of reachable scores under optimal play (excl. loss)")
+    lines.append("Min/Max = range of reachable scores (excl. loss)")
     lines.append("ΔvsStop = EV gain vs stopping right now")
     lines.append("=" * 70)
 
