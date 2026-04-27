@@ -61,7 +61,8 @@ class Solution:
     states: list[State]
     state_to_idx: dict
     stop_values: np.ndarray  # shape (n_states,)
-    V: np.ndarray            # shape (n_states,) — optimal expected score
+    V: np.ndarray            # shape (n_states,) — optimal expected score (WIN_SCORE for win states)
+    V_normal: np.ndarray     # shape (n_states,) — expected normal points (win → 0, not WIN_SCORE)
     max_score: np.ndarray    # shape (n_states,) — best achievable score (best-case dice)
     actions: list[_Action]
 
@@ -108,6 +109,20 @@ def _solve(config: TurnConfig) -> Solution:
             break
         V = V_new
 
+    # V_normal: expected points excluding instant-win (win states contribute 0)
+    from .model import WIN_SCORE
+    stop_values_normal = np.where(stop_values >= WIN_SCORE, 0.0, stop_values)
+    V_normal = stop_values_normal.copy()
+    while True:
+        V_normal_new = stop_values_normal.copy()
+        for a in actions:
+            ev = float(np.dot(a.next_probs, V_normal[a.next_idxs]))
+            if ev > V_normal_new[a.state_idx]:
+                V_normal_new[a.state_idx] = ev
+        if np.max(np.abs(V_normal_new - V_normal)) < 1e-9:
+            break
+        V_normal = V_normal_new
+
     # Max-score DP (best-case dice, optimal play)
     max_score = stop_values.copy()
     while True:
@@ -120,7 +135,7 @@ def _solve(config: TurnConfig) -> Solution:
             break
         max_score = max_new
 
-    return Solution(config, states, state_to_idx, stop_values, V, max_score, actions)
+    return Solution(config, states, state_to_idx, stop_values, V, V_normal, max_score, actions)
 
 
 def get_solution(config: TurnConfig = DEFAULT_CONFIG) -> Solution:

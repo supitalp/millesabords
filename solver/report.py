@@ -1,4 +1,4 @@
-from .model import State, Face, NUM_FACES, NUM_DICE, TurnConfig, DEFAULT_CONFIG
+from .model import State, Face, NUM_FACES, NUM_DICE, TurnConfig, DEFAULT_CONFIG, WIN_SCORE
 from .actions import valid_actions
 from .scoring import score
 from .stats import compute_stats, ActionStats
@@ -64,13 +64,20 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
         lines.append("\n💀 Three skulls — turn is lost (0 points).")
         return "\n".join(lines)
 
+    if current_score == WIN_SCORE:
+        lines.append("\n🏆 9 identical dice — INSTANT WIN (Magie pirate)!")
+        return "\n".join(lines)
+
     actions = valid_actions(state, config)
     all_stats: list[ActionStats] = [compute_stats(state, kept, config) for kept in actions]
     all_stats.sort(key=lambda s: s.ev, reverse=True)
 
+    any_win_possible = any(s.p_win > 0 for s in all_stats)
+
     lines.append("")
-    header = (f"{'#':>3}  {'Action':<40}  {'P(lose)':>8}  {'EV':>7}  "
-              f"{'EV|safe':>8}  {'Min':>6}  {'Max':>6}  {'ΔvsStop':>8}")
+    header = (f"{'#':>3}  {'Action':<40}  {'P(lose)':>8}  "
+              + (f"{'P(win)':>7}  " if any_win_possible else "")
+              + f"{'EV':>7}  {'EV|safe':>8}  {'Min':>6}  {'Max':>6}  {'ΔvsStop':>8}")
     lines.append(header)
     lines.append("-" * len(header))
 
@@ -80,15 +87,18 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
         else:
             action_desc = f"keep {_describe_kept(s.kept)}, reroll {s.n_reroll}"
 
+        max_str = "WIN" if s.max_score == WIN_SCORE else f"{s.max_score:>6}"
+
         marker = "★" if i == 0 else " "
         row = (
             f"{marker}{i+1:>2}  "
             f"{action_desc:<40}  "
             f"{s.p_lose:>7.1%}  "
-            f"{s.ev:>7.1f}  "
+            + (f"{s.p_win:>6.2%}  " if any_win_possible else "")
+            + f"{s.ev:>7.1f}  "
             f"{s.ev_no_lose:>8.1f}  "
             f"{s.min_score:>6}  "
-            f"{s.max_score:>6}  "
+            f"{max_str}  "
             f"{s.delta_vs_stop:>+8.1f}"
         )
         lines.append(row)
@@ -97,6 +107,8 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
     lines.append("★ = recommended action (highest expected value)")
     lines.append("EV|safe = expected score conditioned on not losing")
     lines.append("Min/Max = range of reachable scores (excl. loss)")
+    if any_win_possible:
+        lines.append("P(win) = probability of 9 identical dice (instant game win)")
     lines.append("ΔvsStop = EV gain vs stopping right now")
     lines.append("=" * 70)
 

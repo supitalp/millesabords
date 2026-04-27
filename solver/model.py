@@ -19,6 +19,10 @@ DIE_FACES = tuple(Face)
 # Points for a combo of N identical dice (N < 3 → 0)
 COMBO_SCORE: dict[int, int] = {3: 100, 4: 200, 5: 500, 6: 1000, 7: 2000, 8: 4000}
 
+# Sentinel for the "9 identical dice" instant-win (Magie pirate rule).
+# Large enough to dominate all normal scores; finite so numpy value iteration stays stable.
+WIN_SCORE = 1_000_000
+
 _EMPTY_HELD = tuple([0] * NUM_FACES)
 
 
@@ -39,9 +43,17 @@ class TurnConfig(NamedTuple):
 DEFAULT_CONFIG = TurnConfig()
 
 # Named configs for each card
+def _held_with(face: "Face", count: int = 1) -> tuple:
+    counts = [0] * NUM_FACES
+    counts[face] = count
+    return tuple(counts)
+
+
 CARD_CONFIGS: dict[str, TurnConfig] = {
     "tete-de-mort-1": TurnConfig(total_dice=9,  initial_n_skulls=1),
     "tete-de-mort-2": TurnConfig(total_dice=10, initial_n_skulls=2),
+    "piece-d-or":     TurnConfig(total_dice=9,  initial_held=_held_with(Face.COIN)),
+    "diamant":        TurnConfig(total_dice=9,  initial_held=_held_with(Face.DIAMOND)),
 }
 
 

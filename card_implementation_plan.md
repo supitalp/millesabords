@@ -118,8 +118,8 @@ The solution cache is keyed by `TurnConfig` so each distinct config is solved on
 |---|---|---|---|
 | 1 | Tête de Mort (1 skull) | `tete-de-mort-1` | ✅ Done |
 | 2 | Tête de Mort (2 skulls) | `tete-de-mort-2` | ✅ Done |
-| 3 | Pièce d'or | `piece-d-or` | pending |
-| 4 | Diamant | `diamant` | pending |
+| 3 | Pièce d'or | `piece-d-or` | ✅ Done |
+| 4 | Diamant | `diamant` | ✅ Done |
 | 5 | Animaux | `animaux` | pending |
 | 6 | Pirate | `pirate` | pending |
 | 7 | Gardienne | `gardienne` | pending |
