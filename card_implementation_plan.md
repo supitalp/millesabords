@@ -120,8 +120,8 @@ The solution cache is keyed by `TurnConfig` so each distinct config is solved on
 | 2 | Tête de Mort (2 skulls) | `tete-de-mort-2` | ✅ Done |
 | 3 | Pièce d'or | `piece-d-or` | ✅ Done |
 | 4 | Diamant | `diamant` | ✅ Done |
-| 5 | Animaux | `animaux` | pending |
-| 6 | Pirate | `pirate` | pending |
+| 5 | Animaux | `animaux` | ✅ Done |
+| 6 | Pirate | `pirate` | ✅ Done |
 | 7 | Gardienne | `gardienne` | pending |
-| 8 | Bateau pirate | `bateau-pirate-*` | pending |
+| 8 | Bateau pirate | `bateau-pirate-*` | ✅ Done |
 | 9 | L'île au Trésor | `ile-au-tresor` | pending |
