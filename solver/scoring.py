@@ -19,21 +19,40 @@ def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> in
 
     total = 0
 
-    for face in range(1, 6):  # skip SKULL (index 0)
-        count = held[face]
-        total += COMBO_SCORE.get(count, 0)
-        if face in (Face.COIN, Face.DIAMOND):
-            total += 100 * count
+    if config.merge_animals:
+        animal_count = held[Face.MONKEY] + held[Face.PARROT]
+        for face in range(1, 6):  # skip SKULL
+            if face in (Face.MONKEY, Face.PARROT):
+                continue
+            count = held[face]
+            total += COMBO_SCORE.get(count, 0)
+            if face in (Face.COIN, Face.DIAMOND):
+                total += 100 * count
+        total += COMBO_SCORE.get(animal_count, 0)
+    else:
+        animal_count = None
+        for face in range(1, 6):  # skip SKULL (index 0)
+            count = held[face]
+            total += COMBO_SCORE.get(count, 0)
+            if face in (Face.COIN, Face.DIAMOND):
+                total += 100 * count
 
     # Full treasure chest bonus: all dice must individually contribute, no skulls.
     # A die contributes if it is a coin/diamond (always +100 each) or part of a combo (count >= 3).
+    # With merge_animals, monkey+parrot together must form a combo of >= 3.
     if n_skulls == 0 and sum(held) == config.total_dice:
-        all_contribute = all(
-            held[f] == 0
-            or held[f] >= 3
-            or f in (Face.COIN, Face.DIAMOND)
-            for f in range(1, 6)
-        )
+        if config.merge_animals:
+            all_contribute = all(
+                held[f] == 0 or held[f] >= 3 or f in (Face.COIN, Face.DIAMOND)
+                for f in (Face.SWORD,)
+            ) and (animal_count == 0 or animal_count >= 3)
+        else:
+            all_contribute = all(
+                held[f] == 0
+                or held[f] >= 3
+                or f in (Face.COIN, Face.DIAMOND)
+                for f in range(1, 6)
+            )
         if all_contribute:
             total += 500
 

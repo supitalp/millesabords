@@ -34,10 +34,12 @@ class TurnConfig(NamedTuple):
     initial_n_skulls: skulls pre-locked at turn start (Tête de Mort card).
     initial_held    : non-skull dice pre-set at turn start (Pièce d'or / Diamant card).
                       Length-NUM_FACES count vector; index 0 (SKULL) must be 0.
+    merge_animals   : monkeys and parrots count as the same symbol for combos (Animaux card).
     """
     total_dice: int = NUM_DICE
     initial_n_skulls: int = 0
     initial_held: tuple = _EMPTY_HELD
+    merge_animals: bool = False
 
 
 DEFAULT_CONFIG = TurnConfig()
@@ -54,6 +56,7 @@ CARD_CONFIGS: dict[str, TurnConfig] = {
     "tete-de-mort-2": TurnConfig(total_dice=10, initial_n_skulls=2),
     "piece-d-or":     TurnConfig(total_dice=9,  initial_held=_held_with(Face.COIN)),
     "diamant":        TurnConfig(total_dice=9,  initial_held=_held_with(Face.DIAMOND)),
+    "animaux":        TurnConfig(merge_animals=True),
 }
 
 
