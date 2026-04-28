@@ -2,6 +2,8 @@ from .model import State, Face, NUM_FACES, NUM_DICE, TurnConfig, DEFAULT_CONFIG,
 from .actions import valid_actions
 from .scoring import score
 from .stats import compute_stats, ActionStats
+from .roll import roll_outcomes
+from .dp import get_solution, _add_outcome
 
 
 FACE_NAMES = {
@@ -112,4 +114,32 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
     lines.append("ΔvsStop = EV gain vs stopping right now")
     lines.append("=" * 70)
 
+    return "\n".join(lines)
+
+
+def turn_ev(config: TurnConfig = DEFAULT_CONFIG) -> float:
+    """Expected score for a fresh turn (before any dice are rolled), using optimal play."""
+    sol = get_solution(config)
+    n_roll = config.total_dice - config.initial_n_skulls - sum(config.initial_held)
+    ev = 0.0
+    for outcome, prob in roll_outcomes(n_roll):
+        new_skulls = config.initial_n_skulls + outcome[Face.SKULL]
+        if new_skulls >= 3:
+            continue  # 0 score
+        new_held = _add_outcome(config.initial_held, outcome)
+        state = State(new_skulls, new_held)
+        idx = sol.state_to_idx[state]
+        ev += prob * float(sol.V_normal[idx])
+    return ev
+
+
+def report_turn_start(config: TurnConfig = DEFAULT_CONFIG) -> str:
+    ev = turn_ev(config)
+    lines = ["=" * 70, "MILLE SABORDS — TURN SOLVER", "=" * 70]
+    if config.initial_n_skulls:
+        lines.append(f"Card skulls : {config.initial_n_skulls} (pre-locked)")
+    if any(config.initial_held):
+        lines.append(f"Card dice   : {_describe_kept(config.initial_held)}")
+    lines.append(f"\nExpected score this turn (optimal play): {ev:.1f} pts")
+    lines.append("=" * 70)
     return "\n".join(lines)
