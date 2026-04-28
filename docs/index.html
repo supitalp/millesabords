@@ -31,9 +31,15 @@
 
       <!-- Dice panel -->
       <section class="section dice-section">
-        <h2 class="section-title">Your Dice
-          <span class="section-hint">(click to cycle faces)</span>
-        </h2>
+        <div class="dice-section-header">
+          <h2 class="section-title">Your Dice</h2>
+          <div class="mode-toggle">
+            <button :class="['mode-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')">🎮 Play</button>
+            <button :class="['mode-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')">✏️ Edit</button>
+          </div>
+        </div>
+        <p class="section-hint mode-hint" v-if="mode === 'play'">Click dice to select them, then roll</p>
+        <p class="section-hint mode-hint" v-else>Click a die to cycle its face</p>
 
         <div class="dice-area">
           <!-- Fixed card dice (not clickable) -->
@@ -57,9 +63,9 @@
             <button
               v-for="(face, i) in dice"
               :key="i"
-              class="die die-interactive"
-              @click="cycleDie(i)"
-              :title="'Click to change (currently: ' + FACE_NAMES[face] + ')'"
+              :class="['die', 'die-interactive', mode === 'play' && selectedDice[i] ? 'die-selected' : '', mode === 'play' && !isDieSelectable(i) ? 'die-skull-locked' : '']"
+              @click="interactDie(i)"
+              :title="mode === 'play' ? (selectedDice[i] ? 'Selected — will be re-rolled' : isDieSelectable(i) ? 'Click to select for re-roll' : (selectedCard === 'guardian' ? 'Only one skull can be re-rolled with the Guardian' : 'Skulls cannot be re-rolled')) : 'Click to change (currently: ' + FACE_NAMES[face] + ')'"
             >
               <span class="die-emoji">{{ FACE_EMOJI[face] }}</span>
               <span class="die-name">{{ FACE_NAMES[face] }}</span>
@@ -79,6 +85,15 @@
       <!-- Action buttons -->
       <section class="section action-section">
         <div class="action-buttons">
+          <button
+            v-if="mode === 'play'"
+            class="roll-btn"
+            @click="rollSelected"
+            :disabled="!anySelected || loading"
+            :title="anySelected ? 'Re-roll ' + selectedCount + ' selected ' + (selectedCount === 1 ? 'die' : 'dice') : 'Select dice above to re-roll'"
+          >
+            🎲 Roll Selected{{ anySelected ? ' (' + selectedCount + ')' : '' }}
+          </button>
           <button
             class="solve-btn"
             @click="showResults"

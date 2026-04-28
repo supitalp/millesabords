@@ -117,6 +117,56 @@ body {
 }
 
 /* ─── Dice ──────────────────────────────────────────────────────────────────── */
+.dice-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.dice-section-header .section-title { margin-bottom: 0; }
+
+.mode-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 3px;
+}
+
+.mode-btn {
+  padding: 0.3rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font);
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.mode-btn:hover { color: var(--text); }
+
+.mode-btn-active {
+  background: var(--accent);
+  color: #0f1117;
+}
+
+.mode-btn-active:hover { background: #f8b800; color: #0f1117; }
+
 .dice-area { display: flex; flex-direction: column; gap: 1rem; }
 
 .dice-row {
@@ -180,6 +230,33 @@ body {
 .die-interactive:active {
   transform: translateY(0);
   box-shadow: none;
+}
+
+/* Selected die (play mode) */
+.die-selected {
+  background: rgba(240,165,0,0.15) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(240,165,0,0.35), 0 4px 16px rgba(240,165,0,0.2);
+  transform: translateY(-2px);
+}
+
+.die-selected:hover {
+  background: rgba(240,165,0,0.22) !important;
+  box-shadow: 0 0 0 2px rgba(240,165,0,0.5), 0 6px 20px rgba(240,165,0,0.3);
+  transform: translateY(-4px);
+}
+
+/* Skull die locked in play mode */
+.die-skull-locked {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+}
+
+.die-skull-locked:hover {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* Fixed/locked die */
@@ -269,6 +346,36 @@ body {
 
 .solve-btn:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.roll-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.8rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: var(--font);
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.15s, background 0.15s, color 0.15s;
+  letter-spacing: 0.02em;
+}
+
+.roll-btn:hover:not(:disabled) {
+  background: rgba(240,165,0,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(240,165,0,0.25);
+}
+
+.roll-btn:active:not(:disabled) { transform: translateY(0); }
+
+.roll-btn:disabled {
+  opacity: 0.35;
   cursor: not-allowed;
 }
 

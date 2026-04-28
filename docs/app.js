@@ -368,11 +368,45 @@ const app = createApp({
     const error = ref(null);
     const results = ref(null);  // null = not computed yet
 
-    // Config for the currently selected card (from loaded data)
-    const currentConfig = ref(null);
+    const mode = ref('play'); // 'play' | 'select'
+    const selectedDice = ref(Array(8).fill(false));
+    const anySelected = computed(() => selectedDice.value.some(Boolean));
+    const selectedCount = computed(() => selectedDice.value.filter(Boolean).length);
 
-    function cycleDie(i) {
-      dice.value[i] = (dice.value[i] + 1) % NUM_FACES;
+    function setMode(m) {
+      mode.value = m;
+      selectedDice.value = Array(8).fill(false);
+    }
+
+    // Returns true if die i can be toggled for re-roll in play mode.
+    // Skulls are locked unless the guardian card is active (then at most one skull).
+    function isDieSelectable(i) {
+      if (mode.value !== 'play') return true;
+      if (dice.value[i] !== FACE.SKULL) return true;
+      if (selectedCard.value !== 'guardian') return false;
+      // Guardian: this skull is selectable only if it is already selected,
+      // or no other skull die is currently selected.
+      if (selectedDice.value[i]) return true;
+      return !dice.value.some((f, j) => f === FACE.SKULL && selectedDice.value[j]);
+    }
+
+    function interactDie(i) {
+      if (mode.value === 'play') {
+        if (!isDieSelectable(i)) return;
+        selectedDice.value[i] = !selectedDice.value[i];
+      } else {
+        dice.value[i] = (dice.value[i] + 1) % NUM_FACES;
+        results.value = null;
+      }
+    }
+
+    function rollSelected() {
+      const newDice = [...dice.value];
+      for (let i = 0; i < newDice.length; i++) {
+        if (selectedDice.value[i]) newDice[i] = Math.floor(Math.random() * NUM_FACES);
+      }
+      dice.value = newDice;
+      selectedDice.value = Array(8).fill(false);
       results.value = null;
     }
 
@@ -383,6 +417,7 @@ const app = createApp({
     function randomize() {
       dice.value = randomDice();
       selectedCard.value = randomCard();
+      selectedDice.value = Array(8).fill(false);
       results.value = null;
     }
 
@@ -489,7 +524,9 @@ const app = createApp({
     return {
       dice, selectedCard, loading, error, results,
       FACE_EMOJI, FACE_NAMES, CARD_OPTIONS,
-      cycleDie, onCardChange, showResults, randomize,
+      mode, selectedDice, anySelected, selectedCount,
+      setMode, interactDie, rollSelected, isDieSelectable,
+      onCardChange, showResults, randomize,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
       fixedCardDice, currentScore, WIN_SCORE, FACE,
