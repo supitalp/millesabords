@@ -53,6 +53,7 @@ class _Action:
     state_idx: int
     next_idxs: np.ndarray   # shape (k,)
     next_probs: np.ndarray  # shape (k,)
+    bust_ev: float = 0.0    # fixed EV contribution from skull-bust outcomes (non-zero for bateau pirate)
 
 
 @dataclass
@@ -69,6 +70,7 @@ class Solution:
 
 def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> list[_Action]:
     """Build sparse transition arrays for every (state, reroll-action) pair."""
+    bust_score = -config.sword_penalty if config.sword_penalty else 0.0
     result = []
     for i, s in enumerate(states):
         for kept in valid_actions(s, config):
@@ -76,9 +78,11 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
             if n_reroll == 0:
                 continue
             acc: dict[int, float] = {}
+            bust_ev = 0.0
             for outcome, prob in roll_outcomes(n_reroll):
                 new_skulls = s.n_skulls + outcome[Face.SKULL]
                 if new_skulls >= 3:
+                    bust_ev += prob * bust_score
                     continue
                 new_held = _add_outcome(kept, outcome)
                 j = state_to_idx[State(new_skulls, new_held)]
@@ -86,7 +90,7 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
             if acc:
                 idxs = np.array(list(acc.keys()), dtype=np.int32)
                 probs = np.array(list(acc.values()), dtype=np.float64)
-                result.append(_Action(i, idxs, probs))
+                result.append(_Action(i, idxs, probs, bust_ev))
     return result
 
 
@@ -102,7 +106,7 @@ def _solve(config: TurnConfig) -> Solution:
     while True:
         V_new = stop_values.copy()
         for a in actions:
-            ev = float(np.dot(a.next_probs, V[a.next_idxs]))
+            ev = float(np.dot(a.next_probs, V[a.next_idxs])) + a.bust_ev
             if ev > V_new[a.state_idx]:
                 V_new[a.state_idx] = ev
         if np.max(np.abs(V_new - V)) < 1e-9:
@@ -116,7 +120,7 @@ def _solve(config: TurnConfig) -> Solution:
     while True:
         V_normal_new = stop_values_normal.copy()
         for a in actions:
-            ev = float(np.dot(a.next_probs, V_normal[a.next_idxs]))
+            ev = float(np.dot(a.next_probs, V_normal[a.next_idxs])) + a.bust_ev
             if ev > V_normal_new[a.state_idx]:
                 V_normal_new[a.state_idx] = ev
         if np.max(np.abs(V_normal_new - V_normal)) < 1e-9:
@@ -124,11 +128,12 @@ def _solve(config: TurnConfig) -> Solution:
         V_normal = V_normal_new
 
     # Max-score DP (best-case dice, optimal play)
+    bust_max = float(-config.sword_penalty) if config.sword_penalty else 0.0
     max_score = stop_values.copy()
     while True:
         max_new = stop_values.copy()
         for a in actions:
-            best_next = float(np.max(max_score[a.next_idxs]))
+            best_next = max(float(np.max(max_score[a.next_idxs])), bust_max) if len(a.next_idxs) else bust_max
             if best_next > max_new[a.state_idx]:
                 max_new[a.state_idx] = best_next
         if np.max(np.abs(max_new - max_score)) < 1e-9:

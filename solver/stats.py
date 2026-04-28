@@ -41,10 +41,12 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
     min_score = None
     max_score = None
 
+    bust_score = -config.sword_penalty if config.sword_penalty else 0
     for outcome, prob in roll_outcomes(n_reroll):
         new_skulls = state.n_skulls + outcome[Face.SKULL]
         if new_skulls >= 3:
             p_lose += prob
+            ev += prob * bust_score
         else:
             new_held = _add_outcome(kept, outcome)
             next_state = State(new_skulls, new_held)

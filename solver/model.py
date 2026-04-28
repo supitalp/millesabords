@@ -36,12 +36,19 @@ class TurnConfig(NamedTuple):
                       Length-NUM_FACES count vector; index 0 (SKULL) must be 0.
     merge_animals   : monkeys and parrots count as the same symbol for combos (Animaux card).
     score_multiplier: final score is multiplied by this (Pirate card uses 2).
+    required_swords : minimum swords needed to score (Bateau pirate card).
+    sword_bonus     : points added on top of normal score when sword requirement is met.
+    sword_penalty   : points subtracted from game score when requirement is NOT met;
+                      turn contribution becomes −sword_penalty (skull busts still give 0).
     """
     total_dice: int = NUM_DICE
     initial_n_skulls: int = 0
     initial_held: tuple = _EMPTY_HELD
     merge_animals: bool = False
     score_multiplier: int = 1
+    required_swords: int = 0
+    sword_bonus: int = 0
+    sword_penalty: int = 0
 
 
 DEFAULT_CONFIG = TurnConfig()
@@ -58,8 +65,11 @@ CARD_CONFIGS: dict[str, TurnConfig] = {
     "tete-de-mort-2": TurnConfig(total_dice=10, initial_n_skulls=2),
     "piece-d-or":     TurnConfig(total_dice=9,  initial_held=_held_with(Face.COIN)),
     "diamant":        TurnConfig(total_dice=9,  initial_held=_held_with(Face.DIAMOND)),
-    "animaux":        TurnConfig(merge_animals=True),
-    "pirate":         TurnConfig(score_multiplier=2),
+    "animaux":          TurnConfig(merge_animals=True),
+    "pirate":           TurnConfig(score_multiplier=2),
+    "bateau-pirate-2":  TurnConfig(required_swords=2, sword_bonus=300,  sword_penalty=300),
+    "bateau-pirate-3":  TurnConfig(required_swords=3, sword_bonus=500,  sword_penalty=500),
+    "bateau-pirate-4":  TurnConfig(required_swords=4, sword_bonus=1000, sword_penalty=1000),
 }
 
 
