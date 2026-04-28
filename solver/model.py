@@ -35,11 +35,13 @@ class TurnConfig(NamedTuple):
     initial_held    : non-skull dice pre-set at turn start (Pièce d'or / Diamant card).
                       Length-NUM_FACES count vector; index 0 (SKULL) must be 0.
     merge_animals   : monkeys and parrots count as the same symbol for combos (Animaux card).
+    score_multiplier: final score is multiplied by this (Pirate card uses 2).
     """
     total_dice: int = NUM_DICE
     initial_n_skulls: int = 0
     initial_held: tuple = _EMPTY_HELD
     merge_animals: bool = False
+    score_multiplier: int = 1
 
 
 DEFAULT_CONFIG = TurnConfig()
@@ -57,6 +59,7 @@ CARD_CONFIGS: dict[str, TurnConfig] = {
     "piece-d-or":     TurnConfig(total_dice=9,  initial_held=_held_with(Face.COIN)),
     "diamant":        TurnConfig(total_dice=9,  initial_held=_held_with(Face.DIAMOND)),
     "animaux":        TurnConfig(merge_animals=True),
+    "pirate":         TurnConfig(score_multiplier=2),
 }
 
 

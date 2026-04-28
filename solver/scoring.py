@@ -56,4 +56,4 @@ def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> in
         if all_contribute:
             total += 500
 
-    return total
+    return total * config.score_multiplier
