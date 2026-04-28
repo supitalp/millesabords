@@ -33,9 +33,12 @@
       <section class="section dice-section">
         <div class="dice-section-header">
           <h2 class="section-title">Your Dice</h2>
-          <div class="mode-toggle">
-            <button :class="['mode-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')">🎮 Play</button>
-            <button :class="['mode-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')">✏️ Edit</button>
+          <div class="dice-header-controls">
+            <button class="reorder-btn" @click="reorderDice" title="Group same faces together">↕ Reorder</button>
+            <div class="mode-toggle">
+              <button :class="['mode-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')">🎮 Play</button>
+              <button :class="['mode-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')">✏️ Edit</button>
+            </div>
           </div>
         </div>
         <p class="section-hint mode-hint" v-if="mode === 'play'">Click dice to select them, then roll</p>
@@ -102,8 +105,8 @@
             <span v-if="loading" class="spinner"></span>
             <span v-else>⚡ Show Optimal Strategy</span>
           </button>
-          <button class="randomize-btn" @click="randomize" :disabled="loading" title="Pick random dice and card">
-            🎲 Randomize
+          <button class="randomize-btn" @click="randomize" :disabled="loading" :title="mode === 'play' ? 'Start a new turn with random dice and card' : 'Pick random dice and card'">
+            {{ mode === 'play' ? '🎲 New Turn' : '🎲 Randomize' }}
           </button>
         </div>
         <p v-if="error" class="error-msg">⚠️ {{ error }}</p>

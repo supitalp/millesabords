@@ -382,6 +382,7 @@ const app = createApp({
     // Skulls are locked unless the guardian card is active (then at most one skull).
     function isDieSelectable(i) {
       if (mode.value !== 'play') return true;
+      if (currentScore.value.busted) return false;
       if (dice.value[i] !== FACE.SKULL) return true;
       if (selectedCard.value !== 'guardian') return false;
       // Guardian: this skull is selectable only if it is already selected,
@@ -408,6 +409,16 @@ const app = createApp({
       dice.value = newDice;
       selectedDice.value = Array(8).fill(false);
       results.value = null;
+    }
+
+    // Sort priority per face: skull, coin, diamond, sword, monkey, parrot
+    const _REORDER_PRIORITY = [0, 3, 1, 2, 4, 5]; // index = FACE value
+
+    function reorderDice() {
+      const pairs = dice.value.map((face, i) => ({ face, selected: selectedDice.value[i] }));
+      pairs.sort((a, b) => _REORDER_PRIORITY[a.face] - _REORDER_PRIORITY[b.face]);
+      dice.value = pairs.map(p => p.face);
+      selectedDice.value = pairs.map(p => p.selected);
     }
 
     function onCardChange() {
@@ -525,7 +536,7 @@ const app = createApp({
       dice, selectedCard, loading, error, results,
       FACE_EMOJI, FACE_NAMES, CARD_OPTIONS,
       mode, selectedDice, anySelected, selectedCount,
-      setMode, interactDie, rollSelected, isDieSelectable,
+      setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, showResults, randomize,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
