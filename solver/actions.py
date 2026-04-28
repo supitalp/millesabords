@@ -14,7 +14,7 @@ def valid_actions(state: State, config: TurnConfig = DEFAULT_CONFIG) -> list[tup
     Each tuple is a length-NUM_FACES count vector of non-skull dice to keep.
 
     Includes the stop action (keep everything, n_reroll=0).
-    Excludes actions where n_reroll == 1 (not allowed by rules).
+    Excludes n_reroll==1 and n_reroll==total_held (must keep at least 1 die when rerolling).
     """
     actions = []
     held_non_skull = list(state.held)
@@ -24,10 +24,10 @@ def valid_actions(state: State, config: TurnConfig = DEFAULT_CONFIG) -> list[tup
         n_kept = sum(kept)
         n_reroll = config.total_dice - state.n_skulls - n_kept
 
-        if state.n_skulls + n_kept < 1:
-            continue
         if n_reroll < 0 or n_reroll == 1:
             continue
+        if n_reroll > 0 and n_kept == 0:
+            continue  # must keep at least 1 die when rerolling
 
         actions.append(kept)
 

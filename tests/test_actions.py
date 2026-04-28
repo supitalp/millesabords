@@ -38,18 +38,18 @@ def test_reroll_all_dice_never_valid_with_zero_skulls():
     assert empty not in valid_actions(s)
 
 
-def test_2_skulls_can_reroll_all_non_skull():
-    # 2 skulls count as the mandatory kept die, so all 6 non-skull dice can be rerolled
+def test_2_skulls_cannot_reroll_all_non_skull():
+    # must keep at least 1 non-skull die when rerolling, even with 2 skull safety net
     s = valid_state(2, (Face.SWORD, 6))
     empty = tuple([0] * NUM_FACES)
-    assert empty in valid_actions(s)
+    assert empty not in valid_actions(s)
 
 
-def test_1_skull_can_reroll_all_non_skull():
-    # 1 skull counts as kept die; can reroll all 7 non-skull dice
+def test_1_skull_cannot_reroll_all_non_skull():
+    # must keep at least 1 non-skull die when rerolling
     s = valid_state(1, (Face.SWORD, 7))
     empty = tuple([0] * NUM_FACES)
-    assert empty in valid_actions(s)
+    assert empty not in valid_actions(s)
 
 
 def test_all_actions_satisfy_constraints():
