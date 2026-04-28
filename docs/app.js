@@ -176,10 +176,14 @@ function subMultisets(held) {
 
 function validActions(state, config) {
   const actions = [];
-  const heldNonSkull = [...state.held];
-  heldNonSkull[FACE.SKULL] = 0;
+  // Variable dice: held minus the card's locked initial_held dice (skulls always 0).
+  const heldVariable = state.held.map((v, f) =>
+    f === FACE.SKULL ? 0 : Math.max(0, v - config.initial_held[f])
+  );
 
-  for (const kept of subMultisets(heldNonSkull)) {
+  for (const keptVariable of subMultisets(heldVariable)) {
+    // Card's initial dice are always included on top of the chosen variable kept.
+    const kept = keptVariable.map((kv, f) => kv + config.initial_held[f]);
     const n_kept = kept.reduce((a, b) => a + b, 0);
     const n_reroll = config.total_dice - state.n_skulls - n_kept;
     if (n_reroll < 0 || n_reroll === 1) continue;
@@ -346,9 +350,11 @@ function fmtCounts(held, includeSkull = false) {
   return parts.join(' ') || '—';
 }
 
-function keepStr(state, s) {
-  if (s.n_reroll === 0) return fmtCounts(state.held);
-  return s.kept.some(v => v > 0) ? fmtCounts(s.kept) : '—';
+function keepStr(state, s, config) {
+  const initial = config ? config.initial_held : _EMPTY_HELD;
+  const base = s.n_reroll === 0 ? state.held : s.kept;
+  const shown = base.map((v, f) => Math.max(0, v - initial[f]));
+  return shown.some(v => v > 0) ? fmtCounts(shown) : '—';
 }
 
 function rerollStr(state, s) {

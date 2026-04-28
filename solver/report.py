@@ -55,10 +55,10 @@ def _describe_dice(dice: list[Face]) -> str:
     return "  ".join(parts)
 
 
-def _keep_str(state: State, s: ActionStats) -> str:
-    if s.n_reroll == 0:
-        return _fmt_counts(state.held)
-    return _fmt_counts(s.kept) if any(s.kept) else "—"
+def _keep_str(state: State, s: ActionStats, config: TurnConfig = DEFAULT_CONFIG) -> str:
+    base = state.held if s.n_reroll == 0 else s.kept
+    shown = tuple(max(0, base[f] - config.initial_held[f]) for f in range(NUM_FACES))
+    return _fmt_counts(shown) if any(shown) else "—"
 
 
 def _reroll_str(state: State, s: ActionStats) -> str:
@@ -130,7 +130,7 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
         else:
             marker = f"{i + 1}"
         max_str = "WIN" if s.max_score == WIN_SCORE else str(s.max_score)
-        row = [marker, _keep_str(state, s), _reroll_str(state, s),
+        row = [marker, _keep_str(state, s, config), _reroll_str(state, s),
                f"{s.p_lose:.1%}", f"{s.ev:.1f}", f"{s.delta_vs_stop:+.1f}"]
         if verbose:
             extras = ([f"{s.p_win:.2%}"] if any_win_possible else []) + \

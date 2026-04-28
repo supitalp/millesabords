@@ -13,14 +13,20 @@ def valid_actions(state: State, config: TurnConfig = DEFAULT_CONFIG) -> list[tup
     Return all valid kept_counts tuples for the given state.
     Each tuple is a length-NUM_FACES count vector of non-skull dice to keep.
 
+    The card's initial_held dice are always kept (they are locked and cannot be rerolled).
     Includes the stop action (keep everything, n_reroll=0).
     Excludes n_reroll==1 and n_reroll==total_held (must keep at least 1 die when rerolling).
     """
     actions = []
-    held_non_skull = list(state.held)
-    held_non_skull[Face.SKULL] = 0
+    # Variable dice: held minus the card's locked initial_held dice (skulls always 0).
+    held_variable = tuple(
+        max(0, state.held[f] - config.initial_held[f]) if f != Face.SKULL else 0
+        for f in range(NUM_FACES)
+    )
 
-    for kept in _sub_multisets(tuple(held_non_skull)):
+    for kept_variable in _sub_multisets(held_variable):
+        # Card's initial dice are always included on top of the chosen variable kept.
+        kept = tuple(kv + ih for kv, ih in zip(kept_variable, config.initial_held))
         n_kept = sum(kept)
         n_reroll = config.total_dice - state.n_skulls - n_kept
 

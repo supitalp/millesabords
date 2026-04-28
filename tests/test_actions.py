@@ -1,5 +1,5 @@
 import pytest
-from solver.model import Face, NUM_FACES, NUM_DICE, State
+from solver.model import Face, NUM_FACES, NUM_DICE, State, CARD_CONFIGS
 from solver.actions import valid_actions
 
 
@@ -73,3 +73,39 @@ def test_2_skulls_always_has_reroll_options():
     s = valid_state(2, (Face.SWORD, 6))
     non_stop = [k for k in valid_actions(s) if sum(k) != sum(s.held)]
     assert len(non_stop) > 0
+
+
+# ── Coin / Diamond card: initial_held dice must never appear in reroll column ──
+
+def test_coin_card_locked_die_never_rerolled():
+    """The coin from the coin card must always stay in 'kept', never be rerolled."""
+    config = CARD_CONFIGS["coin"]
+    # State with 1 skull, coin card die + 3 swords + 4 monkeys held (total_dice=9)
+    h = held((Face.COIN, 1), (Face.SWORD, 3), (Face.MONKEY, 4))
+    state = State(n_skulls=1, held=h)
+    for kept in valid_actions(state, config):
+        assert kept[Face.COIN] >= 1, (
+            f"Coin card's locked die appeared in reroll for kept={kept}"
+        )
+
+
+def test_diamond_card_locked_die_never_rerolled():
+    """The diamond from the diamond card must always stay in 'kept', never be rerolled."""
+    config = CARD_CONFIGS["diamond"]
+    h = held((Face.DIAMOND, 1), (Face.SWORD, 3), (Face.MONKEY, 4))
+    state = State(n_skulls=1, held=h)
+    for kept in valid_actions(state, config):
+        assert kept[Face.DIAMOND] >= 1, (
+            f"Diamond card's locked die appeared in reroll for kept={kept}"
+        )
+
+
+def test_coin_card_stop_action_has_correct_coin_count():
+    """Stop action for coin card should preserve all coins including the locked card die."""
+    config = CARD_CONFIGS["coin"]
+    h = held((Face.COIN, 2), (Face.SWORD, 2), (Face.MONKEY, 4))
+    state = State(n_skulls=1, held=h)
+    actions = valid_actions(state, config)
+    stop = next((k for k in actions if k == state.held), None)
+    assert stop is not None, "Stop action (keep all) must always be present"
+    assert stop[Face.COIN] == 2

@@ -165,7 +165,7 @@
                   :class="rowClass(i, s)"
                 >
                   <td class="col-marker">{{ rowMarker(i, s) }}</td>
-                  <td class="col-emoji">{{ keepStr(results.state, s) }}</td>
+                  <td class="col-emoji">{{ keepStr(results.state, s, results.config) }}</td>
                   <td class="col-emoji">{{ rerollStr(results.state, s) }}</td>
                   <td class="col-num">{{ pct(s.p_lose) }}</td>
                   <td class="col-num col-ev">{{ evFmt(s.ev) }}</td>
