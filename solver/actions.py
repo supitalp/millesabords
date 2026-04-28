@@ -37,8 +37,9 @@ def valid_actions(state: State, config: TurnConfig = DEFAULT_CONFIG) -> list[tup
 def guardian_kept_options(state: State) -> list[tuple]:
     """
     Valid 'kept' tuples when using the Guardian skull-reroll ability.
-    The freed skull die is always rerolled, so any sub-multiset of held is valid —
-    n_guardian_reroll = (sum(held) - sum(kept)) + 1, always >= 1.
+    Total rerolled = (sum(held) - sum(kept)) + 1 skull; must be >= 2,
+    so at least 1 non-skull die must also be rerolled.
     Only call when skull_reroll_available and not skull_reroll_used and n_skulls >= 1.
     """
-    return _sub_multisets(state.held)
+    total_held = sum(state.held)
+    return [k for k in _sub_multisets(state.held) if sum(k) <= total_held - 1]

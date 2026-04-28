@@ -119,7 +119,16 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
 
     rows = []
     for i, s in enumerate(all_stats):
-        marker  = "★" if i == 0 else f"{i + 1}"
+        is_stop = s.n_reroll == 0
+        is_best = i == 0
+        if is_stop and is_best:
+            marker = "🛑⭐"
+        elif is_stop:
+            marker = "🛑"
+        elif is_best:
+            marker = "⭐"
+        else:
+            marker = f"{i + 1}"
         max_str = "WIN" if s.max_score == WIN_SCORE else str(s.max_score)
         row = [marker, _keep_str(state, s), _reroll_str(state, s),
                f"{s.p_lose:.1%}", f"{s.ev:.1f}", f"{s.delta_vs_stop:+.1f}"]
@@ -132,7 +141,7 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
     lines.append("")
     lines.append(tabulate(rows, headers=headers, colalign=col_align, tablefmt="simple"))
     lines.append("")
-    lines.append("★ = recommended action  |  ΔvsStop = EV gain vs stopping now")
+    lines.append("⭐ = recommended action  |  🛑 = stop  |  ΔvsStop = EV gain vs stopping now")
     if verbose:
         lines.append("EV|safe = expected score if no bust  |  Min/Max = score range")
         if any_win_possible:
