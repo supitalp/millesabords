@@ -25,6 +25,27 @@ const CARD_OPTIONS = [
   { value: 'pirate-ship-4', label: 'Pirate Ship (≥4 ⚔️, +1000/−1000)', icon: '⚓' },
 ];
 
+const _EMPTY_HELD = [0, 0, 0, 0, 0, 0];
+function _held(face, count = 1) {
+  const h = [0, 0, 0, 0, 0, 0];
+  h[face] = count;
+  return h;
+}
+
+const CARD_CONFIGS = {
+  'default':        { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false },
+  'skull-1':        { total_dice: 9,  initial_n_skulls: 1, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false },
+  'skull-2':        { total_dice: 10, initial_n_skulls: 2, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false },
+  'coin':           { total_dice: 9,  initial_n_skulls: 0, initial_held: _held(FACE.COIN),           merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false },
+  'diamond':        { total_dice: 9,  initial_n_skulls: 0, initial_held: _held(FACE.DIAMOND),        merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false },
+  'animals':        { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: true,  score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false },
+  'pirate':         { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 2, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false },
+  'guardian':       { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: true  },
+  'pirate-ship-2':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 2, sword_bonus: 300,  sword_penalty: 300,  skull_reroll_available: false },
+  'pirate-ship-3':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 3, sword_bonus: 500,  sword_penalty: 500,  skull_reroll_available: false },
+  'pirate-ship-4':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 4, sword_bonus: 1000, sword_penalty: 1000, skull_reroll_available: false },
+};
+
 function randomDice() {
   return Array.from({ length: 8 }, () => Math.floor(Math.random() * NUM_FACES));
 }
@@ -365,6 +386,15 @@ const app = createApp({
       results.value = null;
     }
 
+    const currentScore = computed(() => {
+      const config = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+      const state = diceToState(dice.value, config);
+      if (state.n_skulls >= 3) return { busted: true };
+      const score = scoreFunc(state.n_skulls, state.held, config);
+      if (score === WIN_SCORE) return { win: true };
+      return { score };
+    });
+
     // Fixed card dice to display alongside the 8 interactive dice
     const fixedCardDice = computed(() => {
       const card = selectedCard.value;
@@ -462,7 +492,7 @@ const app = createApp({
       cycleDie, onCardChange, showResults, randomize,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
-      fixedCardDice, WIN_SCORE, FACE,
+      fixedCardDice, currentScore, WIN_SCORE, FACE,
     };
   },
 });

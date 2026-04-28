@@ -189,6 +189,37 @@ body {
   cursor: default;
 }
 
+/* ─── Score block ───────────────────────────────────────────────────────────── */
+.score-section { padding: 1rem 1.5rem; }
+
+.score-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.score-unit {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+
+.score-bust {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fca5a5;
+}
+
+.score-win {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #86efac;
+}
+
 /* ─── Solve button ──────────────────────────────────────────────────────────── */
 .action-section {
   display: flex;

@@ -68,6 +68,14 @@
         </div>
       </section>
 
+      <!-- Current score -->
+      <section class="section score-section">
+        <h2 class="section-title">Current Score</h2>
+        <div v-if="currentScore.busted" class="score-bust">💀 Busted — no points</div>
+        <div v-else-if="currentScore.win" class="score-win">🏆 Pirate's Magic!</div>
+        <div v-else class="score-value">{{ currentScore.score }} <span class="score-unit">pts</span></div>
+      </section>
+
       <!-- Action buttons -->
       <section class="section action-section">
         <div class="action-buttons">
