@@ -14,6 +14,7 @@ Solutions are cached per TurnConfig so each distinct card situation is solved on
 
 from itertools import combinations_with_replacement
 from dataclasses import dataclass
+from pathlib import Path
 import numpy as np
 
 from .model import State, NUM_FACES, Face, TurnConfig, DEFAULT_CONFIG
@@ -22,6 +23,16 @@ from .actions import valid_actions, gardienne_kept_options
 from .roll import roll_outcomes
 
 _cache: dict[TurnConfig, "Solution"] = {}
+
+_DISK_CACHE_DIR = Path(__file__).parent / ".dp_cache"
+
+
+def _config_key(config: TurnConfig) -> str:
+    held = "".join(str(x) for x in config.initial_held)
+    return (f"d{config.total_dice}_sk{config.initial_n_skulls}_h{held}"
+            f"_ma{int(config.merge_animals)}_sm{config.score_multiplier}"
+            f"_rs{config.required_swords}_sb{config.sword_bonus}_sp{config.sword_penalty}"
+            f"_sr{int(config.skull_reroll_available)}")
 
 
 def _add_outcome(kept: tuple, outcome: tuple) -> tuple:
@@ -176,10 +187,44 @@ def _solve(config: TurnConfig) -> Solution:
     return Solution(config, states, state_to_idx, stop_values, V, V_normal, max_score, actions)
 
 
+def _save_solution(sol: Solution) -> None:
+    _DISK_CACHE_DIR.mkdir(exist_ok=True)
+    path = _DISK_CACHE_DIR / f"{_config_key(sol.config)}.npz"
+    np.savez_compressed(path,
+                        V=sol.V,
+                        V_normal=sol.V_normal,
+                        max_score=sol.max_score,
+                        stop_values=sol.stop_values)
+
+
+def _load_solution(config: TurnConfig) -> Solution | None:
+    path = _DISK_CACHE_DIR / f"{_config_key(config)}.npz"
+    if not path.exists():
+        return None
+    data = np.load(path)
+    states = _all_states(config)
+    state_to_idx = {s: i for i, s in enumerate(states)}
+    return Solution(
+        config=config,
+        states=states,
+        state_to_idx=state_to_idx,
+        stop_values=data["stop_values"],
+        V=data["V"],
+        V_normal=data["V_normal"],
+        max_score=data["max_score"],
+        actions=[],
+    )
+
+
 def get_solution(config: TurnConfig = DEFAULT_CONFIG) -> Solution:
-    if config not in _cache:
-        _cache[config] = _solve(config)
-    return _cache[config]
+    if config in _cache:
+        return _cache[config]
+    sol = _load_solution(config)
+    if sol is None:
+        sol = _solve(config)
+        _save_solution(sol)
+    _cache[config] = sol
+    return sol
 
 
 def V(state: State, config: TurnConfig = DEFAULT_CONFIG) -> float:
