@@ -1,5 +1,5 @@
 from .model import State, Face, NUM_FACES, NUM_DICE, TurnConfig, DEFAULT_CONFIG, WIN_SCORE
-from .actions import valid_actions
+from .actions import valid_actions, gardienne_kept_options
 from .scoring import score
 from .stats import compute_stats, ActionStats
 from .roll import roll_outcomes
@@ -18,10 +18,10 @@ FACE_NAMES = {
 
 def dice_to_state(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> State:
     """
-    Convert a list of NUM_DICE rolled Face values into a State, merging any
+    Convert a list of rolled Face values into a State, merging any
     pre-set dice and skulls from the card config.
     """
-    assert len(dice) == NUM_DICE
+    assert len(dice) == config.total_dice - config.initial_n_skulls - sum(config.initial_held)
     counts = list(config.initial_held)
     for f in dice:
         counts[f] += 1
@@ -70,8 +70,14 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
         lines.append("\n🏆 9 identical dice — INSTANT WIN (Magie pirate)!")
         return "\n".join(lines)
 
-    actions = valid_actions(state, config)
-    all_stats: list[ActionStats] = [compute_stats(state, kept, config) for kept in actions]
+    all_stats: list[ActionStats] = [
+        compute_stats(state, kept, config) for kept in valid_actions(state, config)
+    ]
+    if config.skull_reroll_available and not state.skull_reroll_used and state.n_skulls >= 1:
+        all_stats += [
+            compute_stats(state, kept, config, use_gardienne=True)
+            for kept in gardienne_kept_options(state)
+        ]
     all_stats.sort(key=lambda s: s.ev, reverse=True)
 
     any_win_possible = any(s.p_win > 0 for s in all_stats)
@@ -86,6 +92,8 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
     for i, s in enumerate(all_stats):
         if s.n_reroll == 0:
             action_desc = "STOP"
+        elif s.use_gardienne:
+            action_desc = f"Gardienne: keep {_describe_kept(s.kept)}, reroll {s.n_reroll}"
         else:
             action_desc = f"keep {_describe_kept(s.kept)}, reroll {s.n_reroll}"
 
@@ -125,9 +133,17 @@ def turn_ev(config: TurnConfig = DEFAULT_CONFIG) -> float:
     for outcome, prob in roll_outcomes(n_roll):
         new_skulls = config.initial_n_skulls + outcome[Face.SKULL]
         if new_skulls >= 3:
-            continue  # 0 score
+            if config.skull_reroll_available and new_skulls == 3:
+                base_held = _add_outcome(config.initial_held, outcome)
+                for rescue_outcome, rescue_prob in roll_outcomes(1):
+                    if rescue_outcome[Face.SKULL] == 0:
+                        rescue_held = _add_outcome(base_held, rescue_outcome)
+                        state = State(2, rescue_held, True)
+                        idx = sol.state_to_idx[state]
+                        ev += prob * rescue_prob * float(sol.V_normal[idx])
+            continue
         new_held = _add_outcome(config.initial_held, outcome)
-        state = State(new_skulls, new_held)
+        state = State(new_skulls, new_held, False)
         idx = sol.state_to_idx[state]
         ev += prob * float(sol.V_normal[idx])
     return ev

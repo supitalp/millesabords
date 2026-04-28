@@ -9,23 +9,32 @@ from .dp import get_solution, _add_outcome
 class ActionStats:
     kept: tuple
     n_reroll: int
+    use_gardienne: bool    # True when this action uses the Gardienne skull-reroll ability
     stop_score: int
     p_lose: float
-    p_win: float         # probability of instant win (9 identical dice)
+    p_win: float           # probability of instant win (9 identical dice)
     ev: float
     ev_no_lose: float
-    min_score: int       # worst stop-score across non-losing, non-winning outcomes
-    max_score: int       # best achievable score; WIN_SCORE if instant win is reachable
+    min_score: int         # worst stop-score across non-losing, non-winning outcomes
+    max_score: int         # best achievable score; WIN_SCORE if instant win is reachable
     delta_vs_stop: float
 
 
-def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG) -> ActionStats:
-    n_reroll = config.total_dice - state.n_skulls - sum(kept)
+def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG,
+                  use_gardienne: bool = False) -> ActionStats:
+    if use_gardienne:
+        # Free 1 skull into reroll pool; n_skulls_base decreases by 1
+        n_reroll = (sum(state.held) - sum(kept)) + 1
+        n_skulls_base = state.n_skulls - 1
+    else:
+        n_reroll = config.total_dice - state.n_skulls - sum(kept)
+        n_skulls_base = state.n_skulls
+
     stop_score = score(state.n_skulls, state.held, config)
 
     if n_reroll == 0:
         return ActionStats(
-            kept=kept, n_reroll=0, stop_score=stop_score,
+            kept=kept, n_reroll=0, use_gardienne=False, stop_score=stop_score,
             p_lose=0.0, p_win=float(stop_score == WIN_SCORE),
             ev=float(stop_score), ev_no_lose=float(stop_score),
             min_score=stop_score, max_score=stop_score, delta_vs_stop=0.0,
@@ -43,13 +52,37 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
 
     bust_score = -config.sword_penalty if config.sword_penalty else 0
     for outcome, prob in roll_outcomes(n_reroll):
-        new_skulls = state.n_skulls + outcome[Face.SKULL]
+        new_skulls = n_skulls_base + outcome[Face.SKULL]
         if new_skulls >= 3:
-            p_lose += prob
-            ev += prob * bust_score
+            if config.skull_reroll_available and not state.skull_reroll_used and not use_gardienne and new_skulls == 3:
+                base_held = _add_outcome(kept, outcome)
+                for rescue_outcome, rescue_prob in roll_outcomes(1):
+                    if rescue_outcome[Face.SKULL] > 0:
+                        p_lose += prob * rescue_prob
+                        ev += prob * rescue_prob * bust_score
+                    else:
+                        rescue_held = _add_outcome(base_held, rescue_outcome)
+                        next_state = State(2, rescue_held, True)
+                        idx = sol.state_to_idx[next_state]
+                        val = float(sol.V_normal[idx])
+                        ev += prob * rescue_prob * val
+                        p_survive += prob * rescue_prob
+                        ev_survive += prob * rescue_prob * val
+                        next_max = int(sol.max_score[idx])
+                        if max_score is None or next_max > max_score:
+                            max_score = next_max
+                        next_stop = score(2, rescue_held, config)
+                        if next_stop == WIN_SCORE:
+                            p_win += prob * rescue_prob
+                        elif min_score is None or next_stop < min_score:
+                            min_score = next_stop
+            else:
+                p_lose += prob
+                ev += prob * bust_score
         else:
             new_held = _add_outcome(kept, outcome)
-            next_state = State(new_skulls, new_held)
+            new_skull_reroll_used = True if use_gardienne else state.skull_reroll_used
+            next_state = State(new_skulls, new_held, new_skull_reroll_used)
             idx = sol.state_to_idx[next_state]
 
             val = float(sol.V_normal[idx])
@@ -61,7 +94,6 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
             if max_score is None or next_max > max_score:
                 max_score = next_max
 
-            # Track instant-win probability and exclude win states from min/max normal score
             next_stop = score(new_skulls, new_held, config)
             if next_stop == WIN_SCORE:
                 p_win += prob
@@ -72,8 +104,8 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
     ev_no_lose = (ev_survive / p_survive) if p_survive > 0 else 0.0
 
     return ActionStats(
-        kept=kept, n_reroll=n_reroll, stop_score=stop_score,
-        p_lose=p_lose, p_win=p_win,
+        kept=kept, n_reroll=n_reroll, use_gardienne=use_gardienne,
+        stop_score=stop_score, p_lose=p_lose, p_win=p_win,
         ev=ev, ev_no_lose=ev_no_lose,
         min_score=min_score if min_score is not None else 0,
         max_score=max_score if max_score is not None else 0,

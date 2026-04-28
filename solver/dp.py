@@ -18,7 +18,7 @@ import numpy as np
 
 from .model import State, NUM_FACES, Face, TurnConfig, DEFAULT_CONFIG
 from .scoring import score
-from .actions import valid_actions
+from .actions import valid_actions, gardienne_kept_options
 from .roll import roll_outcomes
 
 _cache: dict[TurnConfig, "Solution"] = {}
@@ -35,6 +35,7 @@ def _add_outcome(kept: tuple, outcome: tuple) -> tuple:
 def _all_states(config: TurnConfig) -> list[State]:
     """All valid game states for this config: n_skulls + sum(held) == config.total_dice."""
     states = []
+    skull_reroll_variants = [False, True] if config.skull_reroll_available else [False]
     for n_skulls in range(3):
         n_held = config.total_dice - n_skulls
         if n_held < 0:
@@ -43,7 +44,8 @@ def _all_states(config: TurnConfig) -> list[State]:
             counts = [0] * NUM_FACES
             for face in combo:
                 counts[face] += 1
-            states.append(State(n_skulls, tuple(counts)))
+            for used in skull_reroll_variants:
+                states.append(State(n_skulls, tuple(counts), used))
     return states
 
 
@@ -73,6 +75,7 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
     bust_score = -config.sword_penalty if config.sword_penalty else 0.0
     result = []
     for i, s in enumerate(states):
+        # Normal reroll actions
         for kept in valid_actions(s, config):
             n_reroll = config.total_dice - s.n_skulls - sum(kept)
             if n_reroll == 0:
@@ -82,15 +85,45 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
             for outcome, prob in roll_outcomes(n_reroll):
                 new_skulls = s.n_skulls + outcome[Face.SKULL]
                 if new_skulls >= 3:
-                    bust_ev += prob * bust_score
+                    if config.skull_reroll_available and not s.skull_reroll_used and new_skulls == 3:
+                        base_held = _add_outcome(kept, outcome)
+                        for rescue_outcome, rescue_prob in roll_outcomes(1):
+                            if rescue_outcome[Face.SKULL] > 0:
+                                bust_ev += prob * rescue_prob * bust_score
+                            else:
+                                rescue_held = _add_outcome(base_held, rescue_outcome)
+                                j = state_to_idx[State(2, rescue_held, True)]
+                                acc[j] = acc.get(j, 0.0) + prob * rescue_prob
+                    else:
+                        bust_ev += prob * bust_score
                     continue
                 new_held = _add_outcome(kept, outcome)
-                j = state_to_idx[State(new_skulls, new_held)]
+                j = state_to_idx[State(new_skulls, new_held, s.skull_reroll_used)]
                 acc[j] = acc.get(j, 0.0) + prob
             if acc:
                 idxs = np.array(list(acc.keys()), dtype=np.int32)
                 probs = np.array(list(acc.values()), dtype=np.float64)
                 result.append(_Action(i, idxs, probs, bust_ev))
+
+        # Gardienne actions: free 1 skull die into the reroll pool (one-time ability)
+        if config.skull_reroll_available and not s.skull_reroll_used and s.n_skulls >= 1:
+            for kept in gardienne_kept_options(s):
+                n_reroll = (sum(s.held) - sum(kept)) + 1  # +1 for the freed skull
+                acc: dict[int, float] = {}
+                bust_ev = 0.0
+                for outcome, prob in roll_outcomes(n_reroll):
+                    new_skulls = (s.n_skulls - 1) + outcome[Face.SKULL]
+                    if new_skulls >= 3:
+                        bust_ev += prob * bust_score
+                        continue
+                    new_held = _add_outcome(kept, outcome)
+                    j = state_to_idx[State(new_skulls, new_held, True)]
+                    acc[j] = acc.get(j, 0.0) + prob
+                if acc:
+                    idxs = np.array(list(acc.keys()), dtype=np.int32)
+                    probs = np.array(list(acc.values()), dtype=np.float64)
+                    result.append(_Action(i, idxs, probs, bust_ev))
+
     return result
 
 

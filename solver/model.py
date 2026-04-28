@@ -35,11 +35,12 @@ class TurnConfig(NamedTuple):
     initial_held    : non-skull dice pre-set at turn start (Pièce d'or / Diamant card).
                       Length-NUM_FACES count vector; index 0 (SKULL) must be 0.
     merge_animals   : monkeys and parrots count as the same symbol for combos (Animaux card).
-    score_multiplier: final score is multiplied by this (Pirate card uses 2).
-    required_swords : minimum swords needed to score (Bateau pirate card).
-    sword_bonus     : points added on top of normal score when sword requirement is met.
-    sword_penalty   : points subtracted from game score when requirement is NOT met;
-                      turn contribution becomes −sword_penalty (skull busts still give 0).
+    score_multiplier       : final score is multiplied by this (Pirate card uses 2).
+    required_swords        : minimum swords needed to score (Bateau pirate card).
+    sword_bonus            : points added on top of normal score when sword requirement is met.
+    sword_penalty          : points subtracted from game score when requirement is NOT met;
+                             turn contribution becomes −sword_penalty (skull busts also give −penalty).
+    skull_reroll_available : once per turn the player may reroll one skull die (Gardienne card).
     """
     total_dice: int = NUM_DICE
     initial_n_skulls: int = 0
@@ -49,6 +50,7 @@ class TurnConfig(NamedTuple):
     required_swords: int = 0
     sword_bonus: int = 0
     sword_penalty: int = 0
+    skull_reroll_available: bool = False
 
 
 DEFAULT_CONFIG = TurnConfig()
@@ -67,6 +69,7 @@ CARD_CONFIGS: dict[str, TurnConfig] = {
     "diamant":        TurnConfig(total_dice=9,  initial_held=_held_with(Face.DIAMOND)),
     "animaux":          TurnConfig(merge_animals=True),
     "pirate":           TurnConfig(score_multiplier=2),
+    "gardienne":        TurnConfig(skull_reroll_available=True),
     "bateau-pirate-2":  TurnConfig(required_swords=2, sword_bonus=300,  sword_penalty=300),
     "bateau-pirate-3":  TurnConfig(required_swords=3, sword_bonus=500,  sword_penalty=500),
     "bateau-pirate-4":  TurnConfig(required_swords=4, sword_bonus=1000, sword_penalty=1000),
@@ -77,8 +80,10 @@ class State(NamedTuple):
     """
     n_skulls: accumulated locked skulls (0–2; hitting 3 ends the turn immediately)
     held: length-NUM_FACES count vector; held[SKULL] is always 0.
+    skull_reroll_used: True once the Gardienne one-time skull-reroll ability has been used.
 
     Invariant: n_skulls + sum(held) == config.total_dice at every decision point.
     """
     n_skulls: int
     held: tuple  # length NUM_FACES, index = Face value
+    skull_reroll_used: bool = False
