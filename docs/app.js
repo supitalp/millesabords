@@ -25,8 +25,13 @@ const CARD_OPTIONS = [
   { value: 'pirate-ship-4', label: 'Pirate Ship (≥4 ⚔️, +1000/−1000)', icon: '⚓' },
 ];
 
-// Default initial dice: skull skull monkey monkey sword sword coin diamond
-const DEFAULT_DICE = [0, 0, 4, 4, 1, 1, 2, 3];
+function randomDice() {
+  return Array.from({ length: 8 }, () => Math.floor(Math.random() * NUM_FACES));
+}
+
+function randomCard() {
+  return CARD_OPTIONS[Math.floor(Math.random() * CARD_OPTIONS.length)].value;
+}
 
 // ─── Solver logic (ported from Python) ────────────────────────────────────────
 
@@ -336,8 +341,8 @@ function rerollStr(state, s) {
 
 const app = createApp({
   setup() {
-    const dice = ref([...DEFAULT_DICE]);
-    const selectedCard = ref('default');
+    const dice = ref(randomDice());
+    const selectedCard = ref(randomCard());
     const loading = ref(false);
     const error = ref(null);
     const results = ref(null);  // null = not computed yet
@@ -347,10 +352,16 @@ const app = createApp({
 
     function cycleDie(i) {
       dice.value[i] = (dice.value[i] + 1) % NUM_FACES;
-      results.value = null; // clear results when dice change
+      results.value = null;
     }
 
     function onCardChange() {
+      results.value = null;
+    }
+
+    function randomize() {
+      dice.value = randomDice();
+      selectedCard.value = randomCard();
       results.value = null;
     }
 
@@ -448,7 +459,7 @@ const app = createApp({
     return {
       dice, selectedCard, loading, error, results,
       FACE_EMOJI, FACE_NAMES, CARD_OPTIONS,
-      cycleDie, onCardChange, showResults,
+      cycleDie, onCardChange, showResults, randomize,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
       fixedCardDice, WIN_SCORE, FACE,

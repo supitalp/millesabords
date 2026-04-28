@@ -68,16 +68,21 @@
         </div>
       </section>
 
-      <!-- Action button -->
+      <!-- Action buttons -->
       <section class="section action-section">
-        <button
-          class="solve-btn"
-          @click="showResults"
-          :disabled="loading"
-        >
-          <span v-if="loading" class="spinner"></span>
-          <span v-else>⚡ Show Optimal Strategy</span>
-        </button>
+        <div class="action-buttons">
+          <button
+            class="solve-btn"
+            @click="showResults"
+            :disabled="loading"
+          >
+            <span v-if="loading" class="spinner"></span>
+            <span v-else>⚡ Show Optimal Strategy</span>
+          </button>
+          <button class="randomize-btn" @click="randomize" :disabled="loading" title="Pick random dice and card">
+            🎲 Randomize
+          </button>
+        </div>
         <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
       </section>
 
