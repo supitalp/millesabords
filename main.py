@@ -6,6 +6,8 @@ Pass dice to analyse a specific roll, or omit dice to see the expected score
 for a fresh turn under optimal play.
 
 Each die value is one of: skull, sword, coin, diamond, monkey, parrot
+You may also use shorthand letters: k=skull x=sword c=coin d=diamond m=monkey p=parrot
+Shorthands can be combined into a single string, e.g. "kkxxxcdp" expands to 8 dice.
 Optional --card selects the active Pirate card (default: none).
 Optional --verbose shows additional columns (EV|safe, Min, Max, P(win)).
 
@@ -26,12 +28,33 @@ Examples:
   python main.py skull sword coin coin diamond monkey parrot sword --card skull-1
   python main.py --card coin
   python main.py coin coin coin sword sword sword monkey parrot --card guardian --verbose
+  python main.py --card pirate kkxxxcdp   # shorthand: kk=skull skull, xxx=sword*3, c=coin, d=diamond, p=parrot
 """
 import sys
 from solver.model import Face, CARD_CONFIGS, DEFAULT_CONFIG
 from solver.report import report, report_turn_start
 
 FACE_MAP = {f.name.lower(): f for f in Face}
+
+SHORTHAND_MAP = {
+    "k": "skull",
+    "d": "diamond",
+    "c": "coin",
+    "p": "parrot",
+    "m": "monkey",
+    "x": "sword",
+}
+
+
+def expand_shorthands(args: list[str]) -> list[str]:
+    """Expand shorthand strings (e.g. 'kkxcd') into individual die names."""
+    expanded = []
+    for arg in args:
+        if all(ch in SHORTHAND_MAP for ch in arg.lower()):
+            expanded.extend(SHORTHAND_MAP[ch] for ch in arg.lower())
+        else:
+            expanded.append(arg)
+    return expanded
 
 
 def main():
@@ -61,6 +84,8 @@ def main():
     if len(args) == 0:
         print(report_turn_start(config))
         return
+
+    args = expand_shorthands(args)
 
     n_dice = config.total_dice - config.initial_n_skulls - sum(config.initial_held)
     if len(args) != n_dice:
