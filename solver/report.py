@@ -1,3 +1,7 @@
+import tabulate as _tabulate_mod
+_tabulate_mod.WIDE_CHARS_MODE = True
+from tabulate import tabulate
+
 from .model import State, Face, NUM_FACES, NUM_DICE, TurnConfig, DEFAULT_CONFIG, WIN_SCORE
 from .actions import valid_actions, guardian_kept_options
 from .scoring import score
@@ -6,13 +10,13 @@ from .roll import roll_outcomes
 from .dp import get_solution, _add_outcome
 
 
-FACE_NAMES = {
-    Face.SKULL:   "Skull",
-    Face.SWORD:   "Sword",
-    Face.COIN:    "Coin",
-    Face.DIAMOND: "Diamond",
-    Face.MONKEY:  "Monkey",
-    Face.PARROT:  "Parrot",
+FACE_EMOJI = {
+    Face.SKULL:   "💀",
+    Face.SWORD:   "⚔️",
+    Face.COIN:    "🪙",
+    Face.DIAMOND: "💎",
+    Face.MONKEY:  "🐒",
+    Face.PARROT:  "🦜",
 }
 
 
@@ -30,32 +34,40 @@ def dice_to_state(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> Stat
     return State(n_skulls=n_skulls, held=tuple(counts))
 
 
-def _describe_kept(kept: tuple) -> str:
+def _fmt_counts(counts: tuple, include_skull: bool = False) -> str:
+    """Render a count vector as repeated emojis: 3 monkeys → 🐒🐒🐒."""
     parts = []
-    for face_val in range(1, NUM_FACES):
-        c = kept[face_val]
+    start = 0 if include_skull else 1
+    for face_val in range(start, NUM_FACES):
+        c = counts[face_val]
         if c > 0:
-            parts.append(f"{c}×{FACE_NAMES[Face(face_val)]}")
-    return ", ".join(parts) if parts else "nothing"
-
-
-def _describe_rerolled(state: State, s) -> str:
-    rerolled = [state.held[f] - s.kept[f] for f in range(NUM_FACES)]
-    if s.use_guardian:
-        rerolled[Face.SKULL] += 1
-    parts = []
-    for face_val in range(NUM_FACES):
-        c = rerolled[face_val]
-        if c > 0:
-            parts.append(f"{c}×{FACE_NAMES[Face(face_val)]}")
-    return ", ".join(parts) if parts else "nothing"
+            parts.append(FACE_EMOJI[Face(face_val)] * c)
+    return " ".join(parts) if parts else "—"
 
 
 def _describe_dice(dice: list[Face]) -> str:
+    """Show each rolled die as an emoji (one per die, in order by face)."""
     from collections import Counter
     counts = Counter(dice)
-    parts = [f"{counts[f]}×{FACE_NAMES[f]}" for f in Face if counts[f] > 0]
-    return ", ".join(parts)
+    parts = []
+    for f in Face:
+        parts.extend([FACE_EMOJI[f]] * counts[f])
+    return "  ".join(parts)
+
+
+def _keep_str(state: State, s: ActionStats) -> str:
+    if s.n_reroll == 0:
+        return _fmt_counts(state.held)
+    return _fmt_counts(s.kept) if any(s.kept) else "—"
+
+
+def _reroll_str(state: State, s: ActionStats) -> str:
+    if s.n_reroll == 0:
+        return "—"
+    rerolled = [state.held[f] - s.kept[f] for f in range(NUM_FACES)]
+    if s.use_guardian:
+        rerolled[Face.SKULL] += 1
+    return _fmt_counts(tuple(rerolled), include_skull=True)
 
 
 def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool = False) -> str:
@@ -63,19 +75,20 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
     current_score = score(state.n_skulls, state.held, config)
 
     lines = []
-    lines.append("=" * 70)
+    lines.append("=" * 60)
     lines.append("MILLE SABORDS — TURN SOLVER")
-    lines.append("=" * 70)
-    lines.append(f"Dice rolled : {_describe_dice(dice)}")
+    lines.append("=" * 60)
+    lines.append(f"Dice rolled  : {_describe_dice(dice)}")
     if config.initial_n_skulls:
-        lines.append(f"Card skulls : {config.initial_n_skulls} (pre-locked)")
+        lines.append(f"Card skulls  : {'💀' * config.initial_n_skulls} (pre-locked)")
     if any(config.initial_held):
-        lines.append(f"Card dice   : {_describe_kept(config.initial_held)}")
-    lines.append(f"Skulls locked: {state.n_skulls}")
-    lines.append(f"Score if stopping now: {current_score} pts")
+        lines.append(f"Card die     : {_fmt_counts(config.initial_held)}")
+    if state.n_skulls:
+        lines.append(f"Skulls locked: {'💀' * state.n_skulls}")
+    lines.append(f"Stop score   : {current_score} pts")
 
     if state.n_skulls >= 3:
-        lines.append("\n💀 Three skulls — turn is lost (0 points).")
+        lines.append("\n💀💀💀 Three skulls — turn is lost.")
         return "\n".join(lines)
 
     if current_score == WIN_SCORE:
@@ -94,49 +107,37 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
 
     any_win_possible = any(s.p_win > 0 for s in all_stats)
 
-    ACTION_W = 55
-    lines.append("")
-    header = f"{'#':>3}  {'Action':<{ACTION_W}}  {'P(lose)':>8}  "
-    if verbose and any_win_possible:
-        header += f"{'P(win)':>7}  "
-    header += f"{'EV':>7}  "
+    base_headers = ["", "Keep", "Reroll", "P(lose)", "EV", "ΔvsStop"]
+    base_align   = ("right", "left", "left", "right", "right", "right")
     if verbose:
-        header += f"{'EV|safe':>8}  {'Min':>6}  {'Max':>6}  "
-    header += f"{'ΔvsStop':>8}"
-    lines.append(header)
-    lines.append("-" * len(header))
+        extra_h = ["P(win)", "EV|safe", "Min", "Max"] if any_win_possible else ["EV|safe", "Min", "Max"]
+        extra_a = ("right",) * len(extra_h)
+        headers   = base_headers[:5] + list(extra_h) + [base_headers[-1]]
+        col_align = base_align[:5]   + extra_a        + (base_align[-1],)
+    else:
+        headers, col_align = base_headers, base_align
 
+    rows = []
     for i, s in enumerate(all_stats):
-        if s.n_reroll == 0:
-            action_desc = "STOP"
-        elif s.use_guardian:
-            action_desc = (f"Guardian: keep {_describe_kept(s.kept)}, "
-                           f"reroll {_describe_rerolled(state, s)}")
-        else:
-            action_desc = (f"keep {_describe_kept(s.kept)}, "
-                           f"reroll {_describe_rerolled(state, s)}")
-
-        max_str = "WIN" if s.max_score == WIN_SCORE else f"{s.max_score:>6}"
-        marker = "★" if i == 0 else " "
-
-        row = f"{marker}{i+1:>2}  {action_desc:<{ACTION_W}}  {s.p_lose:>7.1%}  "
-        if verbose and any_win_possible:
-            row += f"{s.p_win:>6.2%}  "
-        row += f"{s.ev:>7.1f}  "
+        marker  = "★" if i == 0 else f"{i + 1}"
+        max_str = "WIN" if s.max_score == WIN_SCORE else str(s.max_score)
+        row = [marker, _keep_str(state, s), _reroll_str(state, s),
+               f"{s.p_lose:.1%}", f"{s.ev:.1f}", f"{s.delta_vs_stop:+.1f}"]
         if verbose:
-            row += f"{s.ev_no_lose:>8.1f}  {s.min_score:>6}  {max_str}  "
-        row += f"{s.delta_vs_stop:>+8.1f}"
-        lines.append(row)
+            extras = ([f"{s.p_win:.2%}"] if any_win_possible else []) + \
+                     [f"{s.ev_no_lose:.1f}", str(s.min_score), max_str]
+            row = row[:-1] + extras + [row[-1]]
+        rows.append(row)
 
     lines.append("")
-    lines.append("★ = recommended action (highest expected value)")
+    lines.append(tabulate(rows, headers=headers, colalign=col_align, tablefmt="simple"))
+    lines.append("")
+    lines.append("★ = recommended action  |  ΔvsStop = EV gain vs stopping now")
     if verbose:
-        lines.append("EV|safe = expected score conditioned on not losing")
-        lines.append("Min/Max = range of reachable scores (excl. loss)")
+        lines.append("EV|safe = expected score if no bust  |  Min/Max = score range")
         if any_win_possible:
             lines.append("P(win) = probability of 9 identical dice (instant game win)")
-    lines.append("ΔvsStop = EV gain vs stopping right now")
-    lines.append("=" * 70)
+    lines.append("=" * 60)
 
     return "\n".join(lines)
 
@@ -167,11 +168,11 @@ def turn_ev(config: TurnConfig = DEFAULT_CONFIG) -> float:
 
 def report_turn_start(config: TurnConfig = DEFAULT_CONFIG) -> str:
     ev = turn_ev(config)
-    lines = ["=" * 70, "MILLE SABORDS — TURN SOLVER", "=" * 70]
+    lines = ["=" * 60, "MILLE SABORDS — TURN SOLVER", "=" * 60]
     if config.initial_n_skulls:
-        lines.append(f"Card skulls : {config.initial_n_skulls} (pre-locked)")
+        lines.append(f"Card skulls : {'💀' * config.initial_n_skulls} (pre-locked)")
     if any(config.initial_held):
-        lines.append(f"Card dice   : {_describe_kept(config.initial_held)}")
+        lines.append(f"Card die    : {_fmt_counts(config.initial_held)}")
     lines.append(f"\nExpected score this turn (optimal play): {ev:.1f} pts")
-    lines.append("=" * 70)
+    lines.append("=" * 60)
     return "\n".join(lines)

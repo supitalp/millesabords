@@ -1,0 +1,15 @@
+[project]
+name = "mille-sabords"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.4.4",
+    "tabulate>=0.10.0",
+    "wcwidth>=0.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
