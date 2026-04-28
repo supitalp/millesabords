@@ -5,12 +5,12 @@ def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> in
     """
     Compute the score for a completed turn.
     Returns 0 if n_skulls >= 3 (should not normally be called in that case).
-    Returns WIN_SCORE if 9 identical dice are achieved (Magie pirate instant win).
+    Returns WIN_SCORE if 9 identical dice are achieved (Pirate's Magic instant win).
     """
     if n_skulls >= 3:
         return -config.sword_penalty if config.sword_penalty else 0
 
-    # Magie pirate: exactly 9 identical dice = instant game win.
+    # Pirate's Magic: exactly 9 identical dice = instant game win.
     # The rule requires specifically 9 — 8 identical in the base game is not a win.
     if n_skulls == 0:
         for f in range(1, 6):
@@ -56,7 +56,7 @@ def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> in
         if all_contribute:
             total += 500
 
-    # Bateau pirate: sword requirement not met → fixed penalty, no multiplier.
+    # Pirate Ship: sword requirement not met → fixed penalty, no multiplier.
     if config.required_swords > 0 and held[Face.SWORD] < config.required_swords:
         return -config.sword_penalty
 

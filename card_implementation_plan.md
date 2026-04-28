@@ -14,7 +14,7 @@ using Tête de Mort as the vehicle.
 A `TurnConfig` NamedTuple is introduced in `model.py` and threaded through all modules.
 The solution cache is keyed by `TurnConfig` so each distinct config is solved once.
 
-### 1. Tête de Mort — 1 skull (`tete-de-mort-1`)
+### 1. Skull — 1 skull (`skull-1`)
 - **Effect:** player starts with 1 skull pre-locked; rolls 8 dice as usual.
   Total dice pool = 9. A 3rd skull ends the turn (card skull counts).
 - **Config:** `TurnConfig(total_dice=9, initial_n_skulls=1)`
@@ -26,7 +26,7 @@ The solution cache is keyed by `TurnConfig` so each distinct config is solved on
   - `stats.py`, `report.py`: thread config through
   - `main.py`: add optional `--card` flag
 
-### 2. Tête de Mort — 2 skulls (`tete-de-mort-2`)
+### 2. Skull — 2 skulls (`skull-2`)
 - **Effect:** player starts with 2 skulls pre-locked; any skull on first roll ends the turn.
   Total dice = 10.
 - **Config:** `TurnConfig(total_dice=10, initial_n_skulls=2)`
@@ -36,14 +36,14 @@ The solution cache is keyed by `TurnConfig` so each distinct config is solved on
 
 ## Group B — Pre-set held dice (trivial once Group A is done)
 
-### 3. Pièce d'or (`piece-d-or`)
+### 3. Gold Coin (`coin`)
 - **Effect:** player starts with 1 coin already in hand (card counts as extra die).
   Total dice = 9. Coin always contributes to scoring.
 - **Config:** `TurnConfig(total_dice=9, initial_held=(0,0,1,0,0,0))`
 - **Code changes:** new config entry; `dice_to_state` already merges `initial_held` into state.
 
-### 4. Diamant (`diamant`)
-- **Effect:** same as Pièce d'or but with diamond.
+### 4. Diamond (`diamond`)
+- **Effect:** same as Gold Coin but with diamond.
 - **Config:** `TurnConfig(total_dice=9, initial_held=(0,0,0,1,0,0))`
 - **Code changes:** zero — just a new config entry.
 
@@ -51,7 +51,7 @@ The solution cache is keyed by `TurnConfig` so each distinct config is solved on
 
 ## Group C — Scoring modifiers (independent of state/DP structure)
 
-### 5. Animaux (`animaux`)
+### 5. Animals (`animals`)
 - **Effect:** monkey and parrot count as the same symbol for combos.
 - **Config:** `TurnConfig(merge_animals=True)`
 - **Code changes:**
@@ -71,7 +71,7 @@ The solution cache is keyed by `TurnConfig` so each distinct config is solved on
 
 ## Group D — New state dimensions (moderate complexity)
 
-### 7. Gardienne (`gardienne`)
+### 7. Guardian (`guardian`)
 - **Effect:** once per turn, the player may reroll one skull die.
 - **Config:** `TurnConfig(skull_reroll_available=True)`
 - **Code changes:**
@@ -80,14 +80,13 @@ The solution cache is keyed by `TurnConfig` so each distinct config is solved on
     add actions that reroll 1 skull (combined with any normal reroll of non-skull dice).
   - `dp.py`: state space change, otherwise same value iteration.
 
-### 8. Bateau pirate (`bateau-pirate-N-B-P`)
+### 8. Pirate Ship (`pirate-ship-N`)
 - **Effect:** player must accumulate at least N swords by end of turn.
   - If swords >= N at stop: +B bonus points.
   - If swords < N at stop: score = 0, -P points subtracted from player's total.
   - Skull Island is disabled (4+ skulls on first roll = immediate turn loss, not island mode).
 - **Config:** `TurnConfig(required_swords=N, sword_bonus=B, sword_penalty=P)`
-- **Multiple variants** in the deck (different N/B/P values — e.g. 2 swords/+300/-500,
-  4 swords/+600/-1000, etc.). Each is a distinct config.
+- **Multiple variants** in the deck (different N/B/P values). Each is a distinct config.
 - **Code changes:**
   - `scoring.py`: apply bonus/penalty based on final sword count vs requirement.
   - `report.py`: display sword requirement and current sword count prominently.
@@ -96,11 +95,11 @@ The solution cache is keyed by `TurnConfig` so each distinct config is solved on
 
 ## Group E — New state multiset (hardest)
 
-### 9. L'île au Trésor (`ile-au-tresor`)
+### 9. Treasure Island (`treasure-island`)
 - **Effect:** after each roll, the player may "freeze" any number of dice on the card.
   Frozen dice contribute to the final score even if the player later gets 3 skulls.
   Frozen dice can be taken back and rerolled on subsequent turns.
-- **Config:** `TurnConfig(treasure_island=True)`
+- **Config:** `TurnConfig(treasure_island=True)` (`ile-au-tresor` renamed to `treasure-island`)
 - **Code changes:**
   - `model.py`: state gains a `frozen: tuple` field (same count-vector format as `held`).
     Score = score(held + frozen) but frozen are safe from skull-bust.
@@ -116,12 +115,12 @@ The solution cache is keyed by `TurnConfig` so each distinct config is solved on
 
 | # | Card | Config key | Status |
 |---|---|---|---|
-| 1 | Tête de Mort (1 skull) | `tete-de-mort-1` | ✅ Done |
-| 2 | Tête de Mort (2 skulls) | `tete-de-mort-2` | ✅ Done |
-| 3 | Pièce d'or | `piece-d-or` | ✅ Done |
-| 4 | Diamant | `diamant` | ✅ Done |
-| 5 | Animaux | `animaux` | ✅ Done |
+| 1 | Skull (1 skull) | `skull-1` | ✅ Done |
+| 2 | Skull (2 skulls) | `skull-2` | ✅ Done |
+| 3 | Gold Coin | `coin` | ✅ Done |
+| 4 | Diamond | `diamond` | ✅ Done |
+| 5 | Animals | `animals` | ✅ Done |
 | 6 | Pirate | `pirate` | ✅ Done |
-| 7 | Gardienne | `gardienne` | ✅ Done |
-| 8 | Bateau pirate | `bateau-pirate-*` | ✅ Done |
-| 9 | L'île au Trésor | `ile-au-tresor` | pending |
+| 7 | Guardian | `guardian` | ✅ Done |
+| 8 | Pirate Ship | `pirate-ship-*` | ✅ Done |
+| 9 | Treasure Island | `treasure-island` | pending |

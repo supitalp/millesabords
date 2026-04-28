@@ -92,14 +92,14 @@ Each card modifies the solver as follows:
 
 | Card | Effect on solver |
 |---|---|
-| **Tête de Mort** (1 or 2 skulls) | Initial state starts with n_skulls = 1 or 2 |
-| **Pièce d'or** | Initial held_dice includes one extra coin; treated as a 9th die for scoring (can contribute to combos, gives 100 pts) |
-| **Diamant** | Same as Pièce d'or but with diamond |
+| **Skull** (1 or 2 skulls) | Initial state starts with n_skulls = 1 or 2 |
+| **Gold Coin** | Initial held_dice includes one extra coin; treated as a 9th die for scoring (can contribute to combos, gives 100 pts) |
+| **Diamond** | Same as Gold Coin but with diamond |
 | **Pirate** | Final score × 2; Skull Island damage × 2 |
-| **Animaux** | Monkeys and parrots are treated as the same symbol in combos |
-| **Gardienne** | Allows re-rolling one skull die once during the turn |
-| **L'île au Trésor** | Dice placed on this card are "frozen" — they score at end of turn regardless of later skulls (up to 2 skulls); solver must track which dice are island-frozen vs in play |
-| **Bateau pirate** (N sabres required) | If final sabre count < N: score = 0 and -penalty pts applied; if ≥ N: bonus pts added. Skull Island mechanic disabled. |
+| **Animals** | Monkeys and parrots are treated as the same symbol in combos |
+| **Guardian** | Allows re-rolling one skull die once during the turn |
+| **Treasure Island** | Dice placed on this card are "frozen" — they score at end of turn regardless of later skulls (up to 2 skulls); solver must track which dice are island-frozen vs in play |
+| **Pirate Ship** (N sabres required) | If final sabre count < N: score = 0 and -penalty pts applied; if ≥ N: bonus pts added. Skull Island mechanic disabled. |
 
 ### FR-6: Per-Action Statistics
 

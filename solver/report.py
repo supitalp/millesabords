@@ -1,5 +1,5 @@
 from .model import State, Face, NUM_FACES, NUM_DICE, TurnConfig, DEFAULT_CONFIG, WIN_SCORE
-from .actions import valid_actions, gardienne_kept_options
+from .actions import valid_actions, guardian_kept_options
 from .scoring import score
 from .stats import compute_stats, ActionStats
 from .roll import roll_outcomes
@@ -39,6 +39,18 @@ def _describe_kept(kept: tuple) -> str:
     return ", ".join(parts) if parts else "nothing"
 
 
+def _describe_rerolled(state: State, s) -> str:
+    rerolled = [state.held[f] - s.kept[f] for f in range(NUM_FACES)]
+    if s.use_guardian:
+        rerolled[Face.SKULL] += 1
+    parts = []
+    for face_val in range(NUM_FACES):
+        c = rerolled[face_val]
+        if c > 0:
+            parts.append(f"{c}×{FACE_NAMES[Face(face_val)]}")
+    return ", ".join(parts) if parts else "nothing"
+
+
 def _describe_dice(dice: list[Face]) -> str:
     from collections import Counter
     counts = Counter(dice)
@@ -46,7 +58,7 @@ def _describe_dice(dice: list[Face]) -> str:
     return ", ".join(parts)
 
 
-def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
+def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool = False) -> str:
     state = dice_to_state(dice, config)
     current_score = score(state.n_skulls, state.held, config)
 
@@ -67,7 +79,7 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
         return "\n".join(lines)
 
     if current_score == WIN_SCORE:
-        lines.append("\n🏆 9 identical dice — INSTANT WIN (Magie pirate)!")
+        lines.append("\n🏆 9 identical dice — INSTANT WIN (Pirate's Magic)!")
         return "\n".join(lines)
 
     all_stats: list[ActionStats] = [
@@ -75,50 +87,54 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG) -> str:
     ]
     if config.skull_reroll_available and not state.skull_reroll_used and state.n_skulls >= 1:
         all_stats += [
-            compute_stats(state, kept, config, use_gardienne=True)
-            for kept in gardienne_kept_options(state)
+            compute_stats(state, kept, config, use_guardian=True)
+            for kept in guardian_kept_options(state)
         ]
     all_stats.sort(key=lambda s: s.ev, reverse=True)
 
     any_win_possible = any(s.p_win > 0 for s in all_stats)
 
+    ACTION_W = 55
     lines.append("")
-    header = (f"{'#':>3}  {'Action':<40}  {'P(lose)':>8}  "
-              + (f"{'P(win)':>7}  " if any_win_possible else "")
-              + f"{'EV':>7}  {'EV|safe':>8}  {'Min':>6}  {'Max':>6}  {'ΔvsStop':>8}")
+    header = f"{'#':>3}  {'Action':<{ACTION_W}}  {'P(lose)':>8}  "
+    if verbose and any_win_possible:
+        header += f"{'P(win)':>7}  "
+    header += f"{'EV':>7}  "
+    if verbose:
+        header += f"{'EV|safe':>8}  {'Min':>6}  {'Max':>6}  "
+    header += f"{'ΔvsStop':>8}"
     lines.append(header)
     lines.append("-" * len(header))
 
     for i, s in enumerate(all_stats):
         if s.n_reroll == 0:
             action_desc = "STOP"
-        elif s.use_gardienne:
-            action_desc = f"Gardienne: keep {_describe_kept(s.kept)}, reroll {s.n_reroll}"
+        elif s.use_guardian:
+            action_desc = (f"Guardian: keep {_describe_kept(s.kept)}, "
+                           f"reroll {_describe_rerolled(state, s)}")
         else:
-            action_desc = f"keep {_describe_kept(s.kept)}, reroll {s.n_reroll}"
+            action_desc = (f"keep {_describe_kept(s.kept)}, "
+                           f"reroll {_describe_rerolled(state, s)}")
 
         max_str = "WIN" if s.max_score == WIN_SCORE else f"{s.max_score:>6}"
-
         marker = "★" if i == 0 else " "
-        row = (
-            f"{marker}{i+1:>2}  "
-            f"{action_desc:<40}  "
-            f"{s.p_lose:>7.1%}  "
-            + (f"{s.p_win:>6.2%}  " if any_win_possible else "")
-            + f"{s.ev:>7.1f}  "
-            f"{s.ev_no_lose:>8.1f}  "
-            f"{s.min_score:>6}  "
-            f"{max_str}  "
-            f"{s.delta_vs_stop:>+8.1f}"
-        )
+
+        row = f"{marker}{i+1:>2}  {action_desc:<{ACTION_W}}  {s.p_lose:>7.1%}  "
+        if verbose and any_win_possible:
+            row += f"{s.p_win:>6.2%}  "
+        row += f"{s.ev:>7.1f}  "
+        if verbose:
+            row += f"{s.ev_no_lose:>8.1f}  {s.min_score:>6}  {max_str}  "
+        row += f"{s.delta_vs_stop:>+8.1f}"
         lines.append(row)
 
     lines.append("")
     lines.append("★ = recommended action (highest expected value)")
-    lines.append("EV|safe = expected score conditioned on not losing")
-    lines.append("Min/Max = range of reachable scores (excl. loss)")
-    if any_win_possible:
-        lines.append("P(win) = probability of 9 identical dice (instant game win)")
+    if verbose:
+        lines.append("EV|safe = expected score conditioned on not losing")
+        lines.append("Min/Max = range of reachable scores (excl. loss)")
+        if any_win_possible:
+            lines.append("P(win) = probability of 9 identical dice (instant game win)")
     lines.append("ΔvsStop = EV gain vs stopping right now")
     lines.append("=" * 70)
 

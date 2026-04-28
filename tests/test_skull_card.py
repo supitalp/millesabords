@@ -1,4 +1,4 @@
-"""Tests for Tête de Mort card (1 and 2 pre-locked skulls)."""
+"""Tests for Skull card (1 and 2 pre-locked skulls)."""
 import pytest
 from solver.model import Face, NUM_FACES, NUM_DICE, State, TurnConfig, CARD_CONFIGS, DEFAULT_CONFIG
 from solver.scoring import score
@@ -7,8 +7,8 @@ from solver.dp import get_solution
 from solver.report import dice_to_state
 
 
-CARD_1 = CARD_CONFIGS["tete-de-mort-1"]
-CARD_2 = CARD_CONFIGS["tete-de-mort-2"]
+CARD_1 = CARD_CONFIGS["skull-1"]
+CARD_2 = CARD_CONFIGS["skull-2"]
 
 
 def held(*pairs):
@@ -23,16 +23,16 @@ def held(*pairs):
 # ---------------------------------------------------------------------------
 
 def test_card_configs_exist():
-    assert "tete-de-mort-1" in CARD_CONFIGS
-    assert "tete-de-mort-2" in CARD_CONFIGS
+    assert "skull-1" in CARD_CONFIGS
+    assert "skull-2" in CARD_CONFIGS
 
 
-def test_tete_de_mort_1_config():
+def test_skull_card_1_config():
     assert CARD_1.total_dice == 9
     assert CARD_1.initial_n_skulls == 1
 
 
-def test_tete_de_mort_2_config():
+def test_skull_card_2_config():
     assert CARD_2.total_dice == 10
     assert CARD_2.initial_n_skulls == 2
 
@@ -49,7 +49,7 @@ def test_dice_to_state_no_card():
     assert sum(s.held) == 7
 
 
-def test_dice_to_state_tete_de_mort_1():
+def test_dice_to_state_skull_card_1():
     # Roll with 0 skulls → total skulls = 0 + 1 card = 1
     dice = [Face.SWORD] * 8
     s = dice_to_state(dice, CARD_1)
@@ -59,7 +59,7 @@ def test_dice_to_state_tete_de_mort_1():
     assert s.n_skulls + sum(s.held) == CARD_1.total_dice
 
 
-def test_dice_to_state_tete_de_mort_1_with_rolled_skull():
+def test_dice_to_state_skull_card_1_with_rolled_skull():
     # Roll with 1 skull → total = 1 + 1 card = 2
     dice = [Face.SKULL] + [Face.SWORD] * 7
     s = dice_to_state(dice, CARD_1)
@@ -68,7 +68,7 @@ def test_dice_to_state_tete_de_mort_1_with_rolled_skull():
     assert s.n_skulls + sum(s.held) == CARD_1.total_dice
 
 
-def test_dice_to_state_tete_de_mort_2():
+def test_dice_to_state_skull_card_2():
     # Roll with 0 skulls → total = 0 + 2 card = 2
     dice = [Face.COIN] * 8
     s = dice_to_state(dice, CARD_2)
@@ -77,7 +77,7 @@ def test_dice_to_state_tete_de_mort_2():
     assert s.n_skulls + sum(s.held) == CARD_2.total_dice
 
 
-def test_dice_to_state_tete_de_mort_2_one_rolled_skull_means_loss():
+def test_dice_to_state_skull_card_2_one_rolled_skull_means_loss():
     # Roll 1 skull → 1 + 2 card = 3 → bust
     dice = [Face.SKULL] + [Face.SWORD] * 7
     s = dice_to_state(dice, CARD_2)

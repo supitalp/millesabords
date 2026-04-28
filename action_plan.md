@@ -232,6 +232,6 @@ Each step is independently testable. Suggested order: 1 → 2 → 3 → 4 → 5 
 
 1. **Die face distribution**: ✅ Confirmed — each die is a standard fair die with one face per symbol (uniform 1/6 probability each).
 
-2. **Monkey/parrot combo without Animaux card**: the rules only merge monkey+parrot counts when the Animaux card is active. Without it, monkeys and parrots are distinct symbols. Confirm this understanding.
+2. **Monkey/parrot combo without Animals card**: the rules only merge monkey+parrot counts when the Animals card is active. Without it, monkeys and parrots are distinct symbols. Confirm this understanding.
 
-3. **Full treasure chest with forced skulls (Tête de Mort card)**: if the card adds 1 skull at the start, can the player ever achieve the full-board bonus? Per the rules, skulls from the card count as dice, so with n_skulls ≥ 1 the bonus is impossible. Relevant only for Phase 3.
+3. **Full treasure chest with forced skulls (Skull card)**: if the card adds 1 skull at the start, can the player ever achieve the full-board bonus? Per the rules, skulls from the card count as dice, so with n_skulls ≥ 1 the bonus is impossible. Relevant only for Phase 3.

@@ -1,183 +1,181 @@
-# Mille Sabords — Règles du jeu
+# Mille Sabords — Game Rules
 
-*Un jeu de Haim Shafir — Pour 2 à 5 joueurs — À partir de 8 ans — Environ 30 minutes*
-
----
-
-## Idée du jeu
-
-Avis aux flibustiers ! Glissez-vous dans la peau d'un pirate et soyez aussi rusé qu'un vieux loup de mer pour défier la chance et réaliser la meilleure combinaison de dés possible. Plus cette combinaison comporte de dés identiques, plus elle vous rapporte de points. Mais attention, chaque lancer peut tout vous faire perdre. Sans oublier les cartes spéciales qui viennent influencer votre tirage.
-
-**Le premier pirate à atteindre 6000 points remporte la partie.**
+*A game by Haim Shafir — For 2 to 5 players — Ages 8 and up — Approx. 30 minutes*
 
 ---
 
-## Contenu
+## Objective
 
-- 35 cartes Pirates
-- 5 cartes Résumé
-- 8 dés Corsaires
+Ahoy, buccaneers! Step into the boots of a pirate and outsmart fate to roll the best dice combination you can. The more identical dice in your combination, the more points it earns. But every roll could cost you everything — and special Pirate cards may shake things up further.
 
----
-
-## Préparation
-
-Un joueur est désigné **Capitaine du bateau pirate** : il prend une feuille de papier et y inscrit le nom de chaque joueur. Durant la partie, il y notera également les points obtenus pendant les différents tours de jeu.
-
-Le Capitaine mélange les cartes Pirate et forme une pioche qu'il place, face cachée, au centre de la table. Chaque joueur reçoit ensuite une **carte Résumé** sur laquelle sont indiqués les combinaisons possibles de dés ainsi que le nombre de points qu'elles rapportent.
-
-Le plus jeune à bord a l'honneur de commencer, puis les autres joueurs tenteront leur chance, à leur tour, dans le sens horaire.
+**The first pirate to reach 6,000 points wins the game.**
 
 ---
 
-## Déroulement de la partie
+## Contents
 
-À son tour, le joueur révèle la carte Pirate du dessus de la pioche, la pose face visible sur la pile et lance les dés. Cette carte Pirate va influer sur le résultat des dés du joueur pendant son tour (voir chapitre « Les cartes Pirate »).
-
-Le **premier lancer doit toujours se faire avec les huit dés**. Ensuite, le joueur choisit le nombre de dés qu'il souhaite relancer. Les diamants et les pièces d'or sont particulièrement intéressants car ils rapportent des points supplémentaires.
-
-Quand le joueur termine son tour, il défausse sa carte Pirate face visible et donne les dés à son voisin de gauche. Le Capitaine note alors les points obtenus par le joueur.
-
-Si la pioche est épuisée, la défausse est mélangée pour en former une nouvelle.
+- 35 Pirate cards
+- 5 Summary cards
+- 8 Corsair dice
 
 ---
 
-## Lancer les dés Corsaire
+## Setup
 
-Après son lancer de dés, et selon la carte Pirate qu'il a révélée, le joueur peut choisir :
-- **d'arrêter son tour**, et marquer les points correspondant à son tirage de dés, ou
-- **de relancer les dés**.
+One player is designated **Ship Captain**: they take a sheet of paper and write down each player's name. During the game, they also record each player's points after their turn.
 
-**Relancer les dés :** le joueur met de côté les dés qu'il souhaite conserver en prenant soin de ne pas modifier leur face supérieure, puis jette les dés restants. Le joueur peut, s'il le souhaite, relancer des dés précédemment mis de côté.
+The Captain shuffles the Pirate cards and forms a face-down draw pile at the centre of the table. Each player then receives a **Summary card** listing the possible dice combinations and their point values.
 
-### Conditions pour relancer
-
-Pour effectuer un nouveau lancer, il y a certaines conditions à respecter :
-
-- Il n'est **pas possible de relancer l'intégralité de ses dés**. Le joueur doit toujours réserver au moins un dé.
-- Un nouveau lancer doit se faire avec **au moins deux dés** ; un dé seul ne peut pas être relancé.
-- Les dés affichant une **tête de mort ne peuvent pas être relancés**. Ils sont maudits jusqu'à la fin du tour du joueur.
-
-> **Attention :** dès qu'un joueur obtient une **troisième tête de mort**, son tour prend fin et il ne reçoit **aucun point** pour ce tour — même s'il avait réalisé d'autres combinaisons de dés.
+The youngest player goes first; the others follow clockwise.
 
 ---
 
-## Points obtenus à la fin d'un tour
+## Turn Structure
 
-Pour marquer des points, le joueur doit stopper volontairement son tour avant que n'apparaisse une troisième tête de mort. Les points obtenus pour les dés isolés et pour les combinaisons sont additionnés et notés.
+On their turn, a player reveals the top Pirate card, places it face-up on the discard pile, and rolls the dice. The Pirate card affects the player's dice for that turn (see "Pirate Cards" below).
 
-### Combinaisons de dés
+**The first roll must always use all eight dice.** Afterwards, the player chooses how many dice to reroll. Diamonds and gold coins are especially valuable because they earn bonus points.
 
-| Combinaison          | Points |
-|----------------------|--------|
-| 3 dés identiques     | 100    |
-| 4 dés identiques     | 200    |
-| 5 dés identiques     | 500    |
-| 6 dés identiques     | 1000   |
-| 7 dés identiques     | 2000   |
-| 8 dés identiques     | 4000   |
+When the player ends their turn, they discard their Pirate card face-up and pass the dice to the player on their left. The Captain records the points scored.
 
-### Diamants et pièces d'or
-
-Les symboles **diamant** et **pièce d'or** sont très avantageux : ils rapportent **100 points chacun**, en plus des combinaisons dont ils font éventuellement partie.
-
-*Exemple : 4 pièces d'or = 200 points (combinaison) + 400 points (4 × 100) = 600 points.*
-
-### Bonus « Coffre au trésor plein »
-
-Quand un joueur marque des points avec ses **huit dés** (tous les dés contribuent au score), il reçoit, en plus des points habituels, un **bonus de 500 points**.
-
-> Note : si la combinaison finale du joueur contient au moins une tête de mort, il ne pourra **pas** bénéficier du bonus « Coffre au trésor plein ».
+If the draw pile runs out, shuffle the discard pile to form a new one.
 
 ---
 
-## L'île de la Tête-de-Mort
+## Rolling the Corsair Dice
 
-Si lors de son **premier lancer**, un joueur obtient **quatre têtes de mort ou plus**, il est envoyé sur l'**île de La Tête-de-Mort**.
+After each roll, the player may choose to:
+- **Stop their turn** and score the points shown by their dice, or
+- **Reroll** some or all of their dice.
 
-Il met alors de côté ses têtes de mort et relance les dés restants. Tant que le joueur obtient au moins une tête de mort, il la met de côté et **continue de jouer**. Les autres symboles n'ont, dans ce cas, aucune importance.
+**Rerolling:** the player sets aside the dice they wish to keep (without changing their face) and rolls the remaining dice. Previously kept dice may be picked up and rerolled on a later turn.
 
-Si le joueur **n'obtient aucune tête de mort** lors d'un lancer, son tour prend fin et c'est au tour du joueur suivant.
+### Reroll Constraints
 
-Le joueur ne reçoit pas de point, mais pour **chaque tête de mort** qu'il a révélée durant son tour, on **retire 100 points** au score de chacun de ses adversaires. Ces derniers perdront donc au minimum les 400 points du premier lancer !
+- It is **not possible to reroll all dice at once** — the player must always keep at least one die.
+- A reroll must use **at least two dice**; a single die cannot be rerolled on its own.
+- Dice showing a **skull cannot be rerolled**. They are cursed until the end of the player's turn.
+
+> **Important:** as soon as a player accumulates a **third skull**, their turn ends immediately and they score **zero points** for that turn — even if they had built up other combinations.
 
 ---
 
-## Les cartes Pirate
+## Scoring
 
-Les cartes Pirate influencent le tour du joueur actif et apportent des bonus ou des malus.
+To score points, the player must voluntarily stop their turn before a third skull appears. Points from individual dice and combinations are added together.
 
-### L'île au Trésor
-Après chaque tirage de dés, le joueur peut mettre de côté un ou plusieurs dés sur cette carte. Il peut choisir de les reprendre et les rejouer lors de chaque lancer. Si durant son tour le joueur obtient une troisième tête de mort, il ne peut plus placer de dés sur la carte et son tour se termine. Les points obtenus grâce aux dés réservés sur l'Île au Trésor sont cependant comptabilisés.
+### Combinations
+
+| Combination         | Points |
+|---------------------|--------|
+| 3 identical dice    | 100    |
+| 4 identical dice    | 200    |
+| 5 identical dice    | 500    |
+| 6 identical dice    | 1,000  |
+| 7 identical dice    | 2,000  |
+| 8 identical dice    | 4,000  |
+
+### Diamonds and Gold Coins
+
+**Diamond** and **gold coin** symbols are especially valuable: they each earn **100 points individually**, in addition to any combination they contribute to.
+
+*Example: 4 gold coins = 200 points (combination) + 400 points (4 × 100) = 600 points.*
+
+### Full Treasure Chest Bonus
+
+When a player scores with **all eight dice** (every die contributes to their score), they receive an additional **500-point bonus**.
+
+> Note: if the final combination contains at least one skull, the Full Treasure Chest bonus is **not** awarded.
+
+---
+
+## Skull Island
+
+If a player rolls **four or more skulls** on their **very first roll** (all 8 dice), they are sent to **Skull Island**.
+
+They set aside all skulls and reroll the remaining dice. As long as at least one skull appears, they set it aside and **keep rolling**. Other symbols have no value during Skull Island.
+
+If the player rolls **no skull** on a roll, their turn ends and play passes to the next player.
+
+The player scores no points. However, for **each skull** accumulated during their Skull Island turn, **100 points are deducted from every opponent's total score**. Opponents lose at least 400 points from the first roll alone.
+
+---
+
+## Pirate Cards
+
+Pirate cards affect the active player's turn and introduce bonuses or penalties.
+
+### Treasure Island
+After each dice roll, the player may set aside one or more dice on this card. They may take them back and reroll them on any subsequent roll. If the player accumulates a third skull during their turn, they can no longer place dice on the card and their turn ends. However, points from dice reserved on Treasure Island **are still counted**.
 
 ### Pirate
-Les points obtenus pendant ce tour sont **doublés**. Si le joueur doit se rendre sur l'île de La Tête-de-Mort, ses adversaires perdent **200 points** pour chaque tête de mort révélée (au lieu de 100).
+Points scored this turn are **doubled**. If the player is sent to Skull Island, opponents lose **200 points** per skull revealed (instead of 100).
 
-### Tête de Mort
-Le tour du joueur débute avec **une ou deux têtes de mort** (selon le nombre indiqué sur la carte). Celle(s)-ci compte(nt) comme un/des dé(s) supplémentaire(s).
+### Skull (1 or 2 skulls)
+The player begins their turn with **one or two pre-locked skulls** (as indicated on the card). These count as extra dice.
 
-### Gardienne
-Pendant son tour, le joueur peut exceptionnellement **relancer, une fois, un dé affichant une tête de mort**.
+### Guardian
+Once during their turn, the player may **reroll one skull die**.
 
-### Bateau pirate
-Le joueur doit obtenir, au minimum, **autant de sabres avec les dés que le nombre de symboles sabres présents sur la carte**.
-- S'il y parvient : en plus de son résultat aux dés, il reçoit le **bonus** indiqué en bas de la carte.
-- Dans le cas contraire : le joueur obtient **zéro point**, quel que soit son résultat aux dés, et on lui **retire de son score** la valeur indiquée sur la carte.
+### Pirate Ship
+The player must accumulate at least **as many swords as the number shown on the card**.
+- If they succeed: in addition to their dice score, they receive the **bonus** shown on the card.
+- If they fail: they score **zero points** and lose the **penalty** shown on the card from their total score.
 
-> Celui qui découvre un bateau pirate **ne peut pas aller sur l'île de La Tête-de-Mort**. Un joueur qui obtiendrait 4 têtes de mort ou plus lors de son premier lancer perdrait immédiatement son tour.
+> A player who draws a Pirate Ship card **cannot go to Skull Island**. Rolling 4 or more skulls on the first roll is an immediate bust.
 
-### Pièce d'or
-Le joueur commence son tour avec **une pièce d'or**. Cette dernière rapporte des points à la fois dans une combinaison de dés mais aussi comme simple pièce, soit **100 points**. Cette carte est considérée comme étant un **dé supplémentaire**.
+### Gold Coin
+The player starts their turn with **one gold coin**. It earns points both as part of a combination and as an individual coin (**100 points**). This card is treated as an **extra die**.
 
-### Diamant
-Le joueur commence son tour avec **un diamant**. Ce dernier rapporte des points à la fois dans une combinaison de dés mais aussi comme simple diamant, soit **100 points**. Cette carte est considérée comme étant un **dé supplémentaire**.
+### Diamond
+The player starts their turn with **one diamond**. It earns points both as part of a combination and as an individual diamond (**100 points**). This card is treated as an **extra die**.
 
-### Animaux
-Les **singes et les perroquets** obtenus sur les dés comptent comme **même symbole** dans une combinaison. Par exemple, deux perroquets et trois singes forment une combinaison de 5 dés identiques, soit 500 points.
-
----
-
-## Fin de la partie
-
-Le joueur qui atteint en premier **6000 points ou plus** déclenche la **dernière manche** du jeu. Les autres joueurs entament alors un dernier tour. À l'issue de ce dernier tour, le pirate cumulant le plus de points est déclaré vainqueur.
-
-> **Attention :** si après cette dernière manche, le joueur qui avait obtenu 6000 points en reperd, le jeu se poursuit jusqu'à ce que quelqu'un atteigne à nouveau les 6000 points. Ce joueur remporte alors **immédiatement** la partie sans déclencher de nouvelle manche.
-
-Avant le début de la partie, les joueurs peuvent convenir d'un score plus court **(5000 points)** ou plus long **(8000 points)**.
-
-### Magie pirate
-Si un joueur réalise une combinaison de **9 symboles identiques**, alors il **remporte immédiatement la partie**.
-
-*Exemple : un joueur débute son tour avec une carte Pièce d'or. Avec ses différents lancers de dés, il parvient à obtenir, en plus de la carte, 8 pièces d'or : il a alors réalisé une combinaison de 9 symboles identiques et remporte la partie.*
+### Animals
+**Monkeys and parrots** count as **the same symbol** for combinations. For example, two parrots and three monkeys form a combination of 5 identical dice (500 points).
 
 ---
 
-## Exemple de tour
+## End of Game
 
-Le joueur révèle une carte **Pirate** (les points seront doublés).
+The first player to reach **6,000 points or more** triggers the **final round**. All other players take one last turn. After the final round, the pirate with the most points is declared the winner.
 
-**Premier lancer (8 dés) :**
-Il obtient 1 tête de mort, 3 sabres, 2 pièces d'or, 1 singe, 1 perroquet.
+> **Note:** if the player who triggered the final round loses points and drops below 6,000, the game continues until someone reaches 6,000 again — that player wins **immediately**, with no additional round.
 
-Il met la tête de mort de côté (ne peut pas être relancée), garde les 3 sabres et les 2 pièces d'or, et relance le singe et le perroquet.
+Before the game begins, players may agree on a shorter target **(5,000 points)** or a longer one **(8,000 points)**.
 
-**Deuxième lancer (2 dés) :**
-Il obtient 2 nouvelles pièces d'or.
+### Pirate's Magic
+If a player achieves a combination of **9 identical symbols**, they **win the game immediately**.
 
-Pour recevoir encore plus de points, il dépose les 2 nouvelles pièces d'or avec les 2 autres et relance les 3 sabres.
+*Example: a player starts their turn with a Gold Coin card. Through successive rolls, they manage to roll 8 more gold coins — giving them 9 identical symbols. They win the game instantly.*
 
-**Troisième lancer (3 dés) :**
-Il obtient 1 diamant et 2 têtes de mort.
+---
 
-Avec deux têtes de mort au total, il préfère ne pas prendre de risque et finit son tour.
+## Example Turn
 
-**Résultat final :**
+The player reveals a **Pirate** card (points will be doubled).
 
-| Combinaison                     | Points |
-|---------------------------------|--------|
-| 4 pièces d'or (combinaison)     | 200    |
-| 4 pièces d'or (× 100 chacune)  | 400    |
-| 1 diamant                       | 100    |
-| Sous-total                      | 700    |
-| Carte Pirate (× 2)              | × 2    |
-| **Total du tour**               | **1400** |
+**First roll (8 dice):**
+They roll 1 skull, 3 swords, 2 gold coins, 1 monkey, 1 parrot.
+
+They set aside the skull (cannot be rerolled), keep the 3 swords and 2 gold coins, and reroll the monkey and parrot.
+
+**Second roll (2 dice):**
+They roll 2 more gold coins.
+
+Hoping for even more points, they add the 2 new gold coins to the others and reroll the 3 swords.
+
+**Third roll (3 dice):**
+They roll 1 diamond and 2 skulls.
+
+With two skulls total, they decide not to risk it and end their turn.
+
+**Final result:**
+
+| Combination                      | Points |
+|----------------------------------|--------|
+| 4 gold coins (combination)       | 200    |
+| 4 gold coins (× 100 each)        | 400    |
+| 1 diamond                        | 100    |
+| Subtotal                         | 700    |
+| Pirate card (× 2)                | × 2    |
+| **Turn total**                   | **1,400** |

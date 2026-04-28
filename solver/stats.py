@@ -9,7 +9,7 @@ from .dp import get_solution, _add_outcome
 class ActionStats:
     kept: tuple
     n_reroll: int
-    use_gardienne: bool    # True when this action uses the Gardienne skull-reroll ability
+    use_guardian: bool    # True when this action uses the Guardian skull-reroll ability
     stop_score: int
     p_lose: float
     p_win: float           # probability of instant win (9 identical dice)
@@ -21,8 +21,8 @@ class ActionStats:
 
 
 def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG,
-                  use_gardienne: bool = False) -> ActionStats:
-    if use_gardienne:
+                  use_guardian: bool = False) -> ActionStats:
+    if use_guardian:
         # Free 1 skull into reroll pool; n_skulls_base decreases by 1
         n_reroll = (sum(state.held) - sum(kept)) + 1
         n_skulls_base = state.n_skulls - 1
@@ -34,7 +34,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
 
     if n_reroll == 0:
         return ActionStats(
-            kept=kept, n_reroll=0, use_gardienne=False, stop_score=stop_score,
+            kept=kept, n_reroll=0, use_guardian=False, stop_score=stop_score,
             p_lose=0.0, p_win=float(stop_score == WIN_SCORE),
             ev=float(stop_score), ev_no_lose=float(stop_score),
             min_score=stop_score, max_score=stop_score, delta_vs_stop=0.0,
@@ -54,7 +54,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
     for outcome, prob in roll_outcomes(n_reroll):
         new_skulls = n_skulls_base + outcome[Face.SKULL]
         if new_skulls >= 3:
-            if config.skull_reroll_available and not state.skull_reroll_used and not use_gardienne and new_skulls == 3:
+            if config.skull_reroll_available and not state.skull_reroll_used and not use_guardian and new_skulls == 3:
                 base_held = _add_outcome(kept, outcome)
                 for rescue_outcome, rescue_prob in roll_outcomes(1):
                     if rescue_outcome[Face.SKULL] > 0:
@@ -81,7 +81,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
                 ev += prob * bust_score
         else:
             new_held = _add_outcome(kept, outcome)
-            new_skull_reroll_used = True if use_gardienne else state.skull_reroll_used
+            new_skull_reroll_used = True if use_guardian else state.skull_reroll_used
             next_state = State(new_skulls, new_held, new_skull_reroll_used)
             idx = sol.state_to_idx[next_state]
 
@@ -104,7 +104,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
     ev_no_lose = (ev_survive / p_survive) if p_survive > 0 else 0.0
 
     return ActionStats(
-        kept=kept, n_reroll=n_reroll, use_gardienne=use_gardienne,
+        kept=kept, n_reroll=n_reroll, use_guardian=use_guardian,
         stop_score=stop_score, p_lose=p_lose, p_win=p_win,
         ev=ev, ev_no_lose=ev_no_lose,
         min_score=min_score if min_score is not None else 0,

@@ -1,13 +1,13 @@
-"""Tests for Bateau pirate cards (sword requirement, bonus on success, penalty on failure)."""
+"""Tests for Pirate Ship cards (sword requirement, bonus on success, penalty on failure)."""
 import pytest
 from solver.model import Face, NUM_FACES, State, CARD_CONFIGS, DEFAULT_CONFIG
 from solver.scoring import score
 from solver.dp import get_solution
 from solver.report import turn_ev
 
-BP2 = CARD_CONFIGS["bateau-pirate-2"]
-BP3 = CARD_CONFIGS["bateau-pirate-3"]
-BP4 = CARD_CONFIGS["bateau-pirate-4"]
+BP2 = CARD_CONFIGS["pirate-ship-2"]
+BP3 = CARD_CONFIGS["pirate-ship-3"]
+BP4 = CARD_CONFIGS["pirate-ship-4"]
 
 
 def held(*pairs):

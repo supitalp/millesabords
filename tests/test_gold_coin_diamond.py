@@ -1,4 +1,4 @@
-"""Tests for Pièce d'or and Diamant cards (pre-set coin/diamond extra die)."""
+"""Tests for Gold Coin and Diamant cards (pre-set coin/diamond extra die)."""
 import pytest
 from solver.model import Face, NUM_FACES, NUM_DICE, State, TurnConfig, CARD_CONFIGS, DEFAULT_CONFIG, WIN_SCORE
 from solver.scoring import score
@@ -6,8 +6,8 @@ from solver.actions import valid_actions
 from solver.dp import get_solution
 from solver.report import dice_to_state
 
-COIN_CARD = CARD_CONFIGS["piece-d-or"]
-DIAMOND_CARD = CARD_CONFIGS["diamant"]
+COIN_CARD = CARD_CONFIGS["coin"]
+DIAMOND_CARD = CARD_CONFIGS["diamond"]
 
 
 def held(*pairs):
@@ -22,8 +22,8 @@ def held(*pairs):
 # ---------------------------------------------------------------------------
 
 def test_card_configs_exist():
-    assert "piece-d-or" in CARD_CONFIGS
-    assert "diamant" in CARD_CONFIGS
+    assert "coin" in CARD_CONFIGS
+    assert "diamond" in CARD_CONFIGS
 
 
 def test_piece_d_or_config():
@@ -33,7 +33,7 @@ def test_piece_d_or_config():
     assert sum(COIN_CARD.initial_held) == 1
 
 
-def test_diamant_config():
+def test_diamond_config():
     assert DIAMOND_CARD.total_dice == 9
     assert DIAMOND_CARD.initial_n_skulls == 0
     assert DIAMOND_CARD.initial_held[Face.DIAMOND] == 1
@@ -54,7 +54,7 @@ def test_dice_to_state_piece_d_or_no_skulls():
     assert s.n_skulls + sum(s.held) == COIN_CARD.total_dice
 
 
-def test_dice_to_state_diamant_with_rolled_skull():
+def test_dice_to_state_diamond_with_rolled_skull():
     # 1 skull + 7 swords rolled → 1 skull, 7 swords, 1 card diamond
     dice = [Face.SKULL] + [Face.SWORD] * 7
     s = dice_to_state(dice, DIAMOND_CARD)
@@ -89,7 +89,7 @@ def test_card_diamond_counts_in_combo():
 # ---------------------------------------------------------------------------
 
 def test_full_board_bonus_9_coins():
-    # 8 rolled coins + 1 card coin = 9 identical → Magie pirate instant win
+    # 8 rolled coins + 1 card coin = 9 identical → Pirate's Magic instant win
     h = held((Face.COIN, 9))
     s = score(0, h, COIN_CARD)
     assert s == WIN_SCORE

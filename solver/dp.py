@@ -19,7 +19,7 @@ import numpy as np
 
 from .model import State, NUM_FACES, Face, TurnConfig, DEFAULT_CONFIG
 from .scoring import score
-from .actions import valid_actions, gardienne_kept_options
+from .actions import valid_actions, guardian_kept_options
 from .roll import roll_outcomes
 
 _cache: dict[TurnConfig, "Solution"] = {}
@@ -116,9 +116,9 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                 probs = np.array(list(acc.values()), dtype=np.float64)
                 result.append(_Action(i, idxs, probs, bust_ev))
 
-        # Gardienne actions: free 1 skull die into the reroll pool (one-time ability)
+        # Guardian actions: free 1 skull die into the reroll pool (one-time ability)
         if config.skull_reroll_available and not s.skull_reroll_used and s.n_skulls >= 1:
-            for kept in gardienne_kept_options(s):
+            for kept in guardian_kept_options(s):
                 n_reroll = (sum(s.held) - sum(kept)) + 1  # +1 for the freed skull
                 acc: dict[int, float] = {}
                 bust_ev = 0.0

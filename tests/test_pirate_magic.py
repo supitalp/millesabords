@@ -1,12 +1,12 @@
-"""Tests for the Magie pirate instant-win rule (9 identical dice)."""
+"""Tests for the Pirate's Magic instant-win rule (9 identical dice)."""
 import pytest
 from solver.model import Face, NUM_FACES, State, CARD_CONFIGS, DEFAULT_CONFIG, WIN_SCORE
 from solver.scoring import score
 from solver.dp import get_solution
 from solver.report import dice_to_state
 
-COIN_CARD = CARD_CONFIGS["piece-d-or"]
-DIAMOND_CARD = CARD_CONFIGS["diamant"]
+COIN_CARD = CARD_CONFIGS["coin"]
+DIAMOND_CARD = CARD_CONFIGS["diamond"]
 
 
 def held(*pairs):
@@ -37,7 +37,7 @@ def test_9_identical_requires_no_skulls():
 
 
 def test_8_identical_no_card_not_a_win():
-    # Base game: 8 identical is NOT a win (only 9 triggers Magie pirate)
+    # Base game: 8 identical is NOT a win (only 9 triggers Pirate's Magic)
     h = held((Face.COIN, 8))
     assert score(0, h, DEFAULT_CONFIG) != WIN_SCORE
     assert score(0, h, DEFAULT_CONFIG) == 5300  # 4000 combo + 800 individual + 500 full board
