@@ -401,6 +401,43 @@ body {
   color: #86efac;
 }
 
+/* A5 + A6: score badges (full chest, pirate ship) */
+.score-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 99px;
+  letter-spacing: 0.02em;
+}
+
+.badge-full-chest {
+  color: #86efac;
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.35);
+}
+
+.badge-ship-met {
+  color: #86efac;
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.35);
+}
+
+.badge-ship-unmet {
+  color: var(--amber);
+  background: rgba(217,119,6,0.12);
+  border: 1px solid rgba(217,119,6,0.35);
+}
+
 /* ─── Solve button ──────────────────────────────────────────────────────────── */
 .action-section {
   display: flex;

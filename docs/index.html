@@ -105,7 +105,22 @@
         <h2 class="section-title">Current Score</h2>
         <div v-if="currentScore.busted" class="score-bust">💀 Busted — no points</div>
         <div v-else-if="currentScore.win" class="score-win">🏆 Pirate's Magic!</div>
-        <div v-else class="score-value">{{ currentScore.score }} <span class="score-unit">pts</span></div>
+        <template v-else>
+          <div class="score-value">{{ currentScore.score }} <span class="score-unit">pts</span></div>
+          <div class="score-badges">
+            <span v-if="currentScore.fullChest" class="score-badge badge-full-chest">
+              ✨ incl. +{{ currentScore.fullChestBonus }} full chest
+            </span>
+            <span
+              v-if="currentScore.pirateShip"
+              class="score-badge"
+              :class="currentScore.pirateShip.met ? 'badge-ship-met' : 'badge-ship-unmet'"
+            >
+              <template v-if="currentScore.pirateShip.met">⚓ Contract fulfilled +{{ currentScore.pirateShip.bonus }} ✓</template>
+              <template v-else>⚓ {{ currentScore.pirateShip.swords }}/{{ currentScore.pirateShip.required }} ⚔️ needed</template>
+            </span>
+          </div>
+        </template>
       </section>
 
       <!-- Action buttons -->

@@ -584,7 +584,37 @@ const app = createApp({
       if (state.n_skulls >= 3) return { busted: true };
       const score = scoreFunc(state.n_skulls, state.held, config);
       if (score === WIN_SCORE) return { win: true };
-      return { score };
+
+      // A5: detect whether the +500 full-chest bonus is active right now.
+      // Mirror the exact condition used in scoreFunc; guard with score > 0
+      // so we never show the badge on pirate-ship penalty states.
+      // The Pirate card doubles the bonus (500 × multiplier).
+      let fullChest = false;
+      const fullChestBonus = 500 * config.score_multiplier;
+      if (score > 0 && state.n_skulls === 0) {
+        const totalHeld = state.held.reduce((a, b) => a + b, 0);
+        if (totalHeld === config.total_dice) {
+          if (config.merge_animals) {
+            const animals = state.held[FACE.MONKEY] + state.held[FACE.PARROT];
+            fullChest = (state.held[FACE.SWORD] === 0 || state.held[FACE.SWORD] >= 3) &&
+                        (animals === 0 || animals >= 3);
+          } else {
+            fullChest = [FACE.SWORD, FACE.COIN, FACE.DIAMOND, FACE.MONKEY, FACE.PARROT]
+              .every(f => state.held[f] === 0 || state.held[f] >= 3
+                       || f === FACE.COIN || f === FACE.DIAMOND);
+          }
+        }
+      }
+
+      // A6: pirate-ship contract status (null when card is not a pirate-ship card).
+      const pirateShip = config.required_swords > 0 ? {
+        met:      state.held[FACE.SWORD] >= config.required_swords,
+        swords:   state.held[FACE.SWORD],
+        required: config.required_swords,
+        bonus:    config.sword_bonus,
+      } : null;
+
+      return { score, fullChest, fullChestBonus, pirateShip };
     });
 
     // Fixed card dice to display alongside the 8 interactive dice
