@@ -563,8 +563,11 @@ const app = createApp({
       guardianUsed.value = false;
       _clearStrategy();
       if (m === 'select') {
-        // Sync visual display with committed values when entering edit mode
-        displayDice.value = [...dice.value];
+        // Sync visual display with committed values when entering edit mode,
+        // but only if dice have been rolled (avoid overwriting blanks with all-skulls).
+        if (!displayDice.value.includes(FACE_BLANK)) {
+          displayDice.value = [...dice.value];
+        }
         displayCard.value = selectedCard.value;
       }
     }
@@ -781,6 +784,7 @@ const app = createApp({
     const _REORDER_PRIORITY = [0, 3, 1, 2, 4, 5]; // index = FACE value
 
     function reorderDice() {
+      if (displayDice.value.includes(FACE_BLANK)) return; // no dice rolled yet
       const pairs = dice.value.map((face, i) => ({ face, selected: selectedDice.value[i] }));
       pairs.sort((a, b) => _REORDER_PRIORITY[a.face] - _REORDER_PRIORITY[b.face]);
       dice.value = pairs.map(p => p.face);
