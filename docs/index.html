@@ -21,7 +21,6 @@
       <section class="section card-section">
         <div class="card-section-header">
           <h2 class="section-title">Pirate Card</h2>
-          <span v-if="cardLocked && mode === 'play'" class="card-locked-badge" title="Start a New Turn to draw a new card">🔒 Locked</span>
         </div>
 
         <!-- Play mode: slot-machine card tile -->
@@ -127,7 +126,9 @@
               🛑 <strong>Stop now</strong> — bank your {{ strategyData.stopScore }} pts
             </template>
             <template v-else>
-              ⭐ <strong>Reroll</strong> the glowing dice for best EV
+              ⭐ <strong>Reroll</strong> the glowing orange dice —
+              <strong>{{ Math.round(strategyData.stats[0].ev) }} pts</strong> on average
+              <span class="banner-delta">({{ strategyData.stats[0].delta_vs_stop >= 0 ? '+' : '' }}{{ Math.round(strategyData.stats[0].delta_vs_stop) }} vs. stopping now)</span>
             </template>
           </div>
         </div>
@@ -136,8 +137,21 @@
       <!-- Current score — only meaningful once dice are settled -->
       <section v-if="turnPhase === 'active'" class="section score-section">
         <h2 class="section-title">Current Score</h2>
-        <div v-if="currentScore.busted" class="score-bust">💀 Busted — no points</div>
+
+        <!-- Score cycling animation during reroll -->
+        <template v-if="scoreAnimating">
+          <div class="score-value score-animating">
+            {{ animatedScoreVal }} <span class="score-unit">pts</span>
+          </div>
+        </template>
+
+        <template v-else-if="currentScore.busted">
+          <div class="score-value score-busted">{{ currentScore.score }} <span class="score-unit">pts</span></div>
+          <div class="score-bust-label">💀 Busted</div>
+        </template>
+
         <div v-else-if="currentScore.win" class="score-win">🏆 Pirate's Magic!</div>
+
         <template v-else>
           <div class="score-value">{{ currentScore.score }} <span class="score-unit">pts</span></div>
           <div class="score-badges">

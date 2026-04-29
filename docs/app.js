@@ -425,8 +425,10 @@ const app = createApp({
     // 'active'        → dice settled, normal play
     const turnPhase   = ref('idle');
     const displayDice = ref(Array(8).fill(FACE_BLANK)); // visually shown faces
-    const isAnimating  = ref(false);
-    const displayCard  = ref(null); // null = card back; string = card value being shown
+    const isAnimating      = ref(false);
+    const displayCard      = ref(null);  // null = card back; string = card value being shown
+    const scoreAnimating   = ref(false); // true while reroll dice are settling
+    const animatedScoreVal = ref(0);     // random number shown during score animation
 
     // ── Strategy state ────────────────────────────────────────────────────────
     const loading      = ref(false);
@@ -717,10 +719,22 @@ const app = createApp({
       _clearStrategy();
 
       isAnimating.value = true;
-      // All selected dice animate simultaneously (staggerMs = 0), ~900 ms each
-      await _animateDiceRoll(diceToRoll, 900, 0);
-      displayDice.value = [...dice.value]; // safety flush
-      isAnimating.value = false;
+      scoreAnimating.value = true;
+
+      // Cycle score display alongside the dice animation
+      const scoreTimer = setInterval(() => {
+        animatedScoreVal.value = Math.floor(Math.random() * 2000);
+      }, 70);
+
+      try {
+        // All selected dice animate simultaneously (staggerMs = 0), ~900 ms each
+        await _animateDiceRoll(diceToRoll, 900, 0);
+      } finally {
+        clearInterval(scoreTimer);
+        scoreAnimating.value = false;
+        displayDice.value = [...dice.value]; // safety flush
+        isAnimating.value = false;
+      }
     }
 
     // Sort priority per face: skull, coin, diamond, sword, monkey, parrot
@@ -753,7 +767,7 @@ const app = createApp({
     const currentScore = computed(() => {
       const config = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
       const state = diceToState(dice.value, config);
-      if (state.n_skulls >= 3) return { busted: true };
+      if (state.n_skulls >= 3) return { busted: true, score: scoreFunc(state.n_skulls, state.held, config) };
       const score = scoreFunc(state.n_skulls, state.held, config);
       if (score === WIN_SCORE) return { win: true };
 
@@ -901,6 +915,7 @@ const app = createApp({
       cardLocked, guardianUsed,
       // A7: animation state
       turnPhase, displayDice, isAnimating, displayCard, displayCardOption,
+      scoreAnimating, animatedScoreVal,
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, toggleStrategy, randomize,
       startNewTurn, rollInitialDice,
