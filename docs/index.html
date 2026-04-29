@@ -41,7 +41,7 @@
               </template>
             </div>
           </div>
-          <p v-if="turnPhase === 'idle'" class="card-idle-hint">Draw a card to begin your turn</p>
+          <p class="card-idle-hint" :style="{ visibility: turnPhase === 'idle' ? 'visible' : 'hidden' }">Draw a card to begin your turn</p>
         </template>
 
         <!-- Edit mode: plain select -->
@@ -58,23 +58,14 @@
       <section class="section dice-section">
         <div class="dice-section-header">
           <h2 class="section-title">Your Dice</h2>
-          <!-- Reserve layout space always; only interactive + visible when active -->
-          <div
-            class="dice-header-controls"
-            :style="{ visibility: turnPhase === 'active' ? 'visible' : 'hidden' }"
-          >
-            <button class="reorder-btn" @click="reorderDice" :disabled="isAnimating" title="Group same faces together">⊞ Group Dice</button>
-            <div class="mode-toggle">
-              <button :class="['mode-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')">🎮 Play</button>
-              <button :class="['mode-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')">✏️ Edit</button>
+          <div class="dice-header-controls">
+            <button class="group-icon-btn" @click="reorderDice" :disabled="isAnimating" title="Group same faces together">⊞</button>
+            <div class="mode-toggle-compact">
+              <button :class="['mode-icon-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')" title="Play mode">🎮</button>
+              <button :class="['mode-icon-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')" title="Edit mode">✏️</button>
             </div>
           </div>
         </div>
-        <!-- Reserve one line of height always so the dice row never shifts -->
-        <p class="section-hint mode-hint"
-           :style="{ visibility: turnPhase === 'active' ? 'visible' : 'hidden' }">
-          {{ mode === 'play' ? 'Click dice to select them, then roll' : 'Click a die to cycle its face' }}
-        </p>
 
         <div class="dice-area">
           <!-- Interactive dice -->
@@ -88,7 +79,6 @@
                 mode === 'play' && selectedDice[i]                                          ? 'die-selected'       : '',
                 mode === 'play' && turnPhase === 'active' && !isDieSelectable(i)            ? 'die-skull-locked'   : '',
                 turnPhase === 'active' && strategyOn && bestStrategyRerollIndices.has(i)    ? 'die-strategy-reroll': '',
-                turnPhase === 'active' && strategyOn && !bestStrategyRerollIndices.has(i) && dice[i] !== FACE.SKULL ? 'die-strategy-keep' : '',
               ]"
               @click="interactDie(i)"
               :title="displayDice[i] === FACE_BLANK ? '' : mode === 'play' ? (selectedDice[i] ? 'Selected — will be re-rolled' : isDieSelectable(i) ? 'Click to select for re-roll' : dice[i] === FACE.SKULL ? (guardianUsed ? 'Guardian reroll already used — skull is now locked' : selectedCard === 'guardian' ? 'Only one skull can be re-rolled with the Guardian' : 'Skulls cannot be re-rolled') : 'Cannot be re-rolled') : 'Click to change (currently: ' + FACE_NAMES[face] + ')'"
@@ -100,57 +90,56 @@
             </button>
           </div>
 
-          <!-- Strategy banner (active phase only) -->
+          <!-- Inline score (active phase only) -->
+          <div v-if="turnPhase === 'active'" class="dice-score-row">
+            <template v-if="scoreAnimating">
+              <span class="dice-score-value score-animating">{{ animatedScoreVal }}<span class="score-unit"> pts</span></span>
+            </template>
+            <template v-else-if="currentScore.busted">
+              <span class="dice-score-value score-busted">{{ currentScore.score }}<span class="score-unit"> pts</span></span>
+              <span class="dice-score-bust-label">💀 Busted</span>
+            </template>
+            <div v-else-if="currentScore.win" class="score-win">🏆 Pirate's Magic!</div>
+            <template v-else>
+              <span class="dice-score-value">{{ currentScore.score }}<span class="score-unit"> pts</span></span>
+              <div class="score-badges">
+                <span v-if="currentScore.fullChest" class="score-badge badge-full-chest">
+                  ✨ +{{ currentScore.fullChestBonus }} full chest
+                </span>
+                <span
+                  v-if="currentScore.pirateShip"
+                  class="score-badge"
+                  :class="currentScore.pirateShip.met ? 'badge-ship-met' : 'badge-ship-unmet'"
+                >
+                  <template v-if="currentScore.pirateShip.met">⚓ Contract fulfilled +{{ currentScore.pirateShip.bonus }} ✓</template>
+                  <template v-else>⚓ {{ currentScore.pirateShip.swords }}/{{ currentScore.pirateShip.required }} ⚔️ needed</template>
+                </span>
+              </div>
+            </template>
+          </div>
+
+          <!-- Strategy banner — always reserves space when active so buttons don't shift -->
           <div
-            v-if="turnPhase === 'active' && strategyOn && strategyData && !strategyData.busted && !strategyData.win"
+            v-if="turnPhase === 'active'"
             class="strategy-banner"
             :class="bestStrategyIsStop ? 'strategy-banner-stop' : 'strategy-banner-reroll'"
+            :style="{
+              visibility: (strategyOn && strategyData && !strategyData.busted && !strategyData.win) ? 'visible' : 'hidden',
+              cursor: (strategyOn && strategyData && !strategyData.busted && !strategyData.win) ? 'pointer' : 'default'
+            }"
+            @click="strategyOn && strategyData && !strategyData.busted && !strategyData.win ? modalOpen = true : null"
+            title="View full strategy table"
           >
-            <template v-if="bestStrategyIsStop">
+            <template v-if="strategyData && bestStrategyIsStop">
               🛑 <strong>Stop now</strong> — bank your {{ strategyData.stopScore }} pts
             </template>
-            <template v-else>
+            <template v-else-if="strategyData">
               ⭐ <strong>Reroll</strong>
               ({{ strategyData.stats[0].delta_vs_stop >= 0 ? '+' : '' }}{{ Math.round(strategyData.stats[0].delta_vs_stop) }} pts exp.)
+              <span class="banner-details-link">→ details</span>
             </template>
           </div>
         </div>
-      </section>
-
-      <!-- Current score — only meaningful once dice are settled -->
-      <section v-if="turnPhase === 'active'" class="section score-section">
-        <h2 class="section-title">Current Score</h2>
-
-        <!-- Score cycling animation during reroll -->
-        <template v-if="scoreAnimating">
-          <div class="score-value score-animating">
-            {{ animatedScoreVal }} <span class="score-unit">pts</span>
-          </div>
-        </template>
-
-        <template v-else-if="currentScore.busted">
-          <div class="score-value score-busted">{{ currentScore.score }} <span class="score-unit">pts</span></div>
-          <div class="score-bust-label">💀 Busted</div>
-        </template>
-
-        <div v-else-if="currentScore.win" class="score-win">🏆 Pirate's Magic!</div>
-
-        <template v-else>
-          <div class="score-value">{{ currentScore.score }} <span class="score-unit">pts</span></div>
-          <div class="score-badges">
-            <span v-if="currentScore.fullChest" class="score-badge badge-full-chest">
-              ✨ incl. +{{ currentScore.fullChestBonus }} full chest
-            </span>
-            <span
-              v-if="currentScore.pirateShip"
-              class="score-badge"
-              :class="currentScore.pirateShip.met ? 'badge-ship-met' : 'badge-ship-unmet'"
-            >
-              <template v-if="currentScore.pirateShip.met">⚓ Contract fulfilled +{{ currentScore.pirateShip.bonus }} ✓</template>
-              <template v-else>⚓ {{ currentScore.pirateShip.swords }}/{{ currentScore.pirateShip.required }} ⚔️ needed</template>
-            </span>
-          </div>
-        </template>
       </section>
 
       <!-- Action buttons -->
@@ -171,12 +160,12 @@
           <!-- Step 2: roll the dice once the card has been revealed -->
           <template v-if="mode === 'play' && turnPhase === 'card_revealed'">
             <button
-              class="roll-dice-btn"
+              class="roll-btn roll-btn-primary"
               @click="rollInitialDice"
               :disabled="isAnimating"
               title="Roll all 8 dice to start your turn"
             >
-              🎲 Roll Dice!
+              🎲 Roll
             </button>
             <button
               class="randomize-btn"
@@ -197,43 +186,22 @@
               :disabled="!anySelected || !!rollInvalidReason || loading || isAnimating"
               :title="rollInvalidReason ?? (anySelected ? 'Re-roll ' + selectedCount + ' selected ' + (selectedCount === 1 ? 'die' : 'dice') : 'Select dice above to re-roll')"
             >
-              🎲 Roll Selected{{ anySelected ? ' (' + selectedCount + ')' : '' }}
+              🎲 Roll{{ anySelected ? ' (' + selectedCount + ')' : '' }}
             </button>
 
             <!-- A4: strategy toggle -->
             <button
-              class="solve-btn"
+              class="solve-btn solve-btn-icon"
               :class="{ 'solve-btn-active': strategyOn }"
               @click="toggleStrategy"
               :disabled="loading || isAnimating || currentScore.busted || currentScore.win"
               :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
             >
               <span v-if="loading" class="spinner"></span>
-              <span v-else-if="strategyOn">💡 Hint ON</span>
               <span v-else>💡 Hint</span>
             </button>
 
-            <!-- A4: details modal trigger -->
-            <button
-              v-if="strategyOn && strategyData && !strategyData.busted && !strategyData.win"
-              class="details-btn"
-              @click="modalOpen = true"
-              title="View full strategy table"
-            >
-              📋 Details
-            </button>
           </template>
-
-          <!-- ── edit mode: Randomize ── -->
-          <button
-            v-if="mode === 'select'"
-            class="randomize-btn"
-            @click="randomize"
-            :disabled="loading"
-            title="Pick random dice and card"
-          >
-            🎲 Randomize
-          </button>
 
         </div>
 
