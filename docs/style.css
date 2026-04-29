@@ -88,6 +88,34 @@ body {
 }
 
 /* ─── Card picker ───────────────────────────────────────────────────────────── */
+.card-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-section-header .section-title {
+  margin-bottom: 0;
+}
+
+.card-locked-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--amber);
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  border-radius: 99px;
+  padding: 0.15rem 0.55rem;
+  letter-spacing: 0.02em;
+  cursor: default;
+}
+
+.card-select-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .card-select {
   width: 100%;
   padding: 0.75rem 1rem;

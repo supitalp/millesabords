@@ -19,9 +19,12 @@
 
       <!-- Card picker -->
       <section class="section card-section">
-        <h2 class="section-title">Pirate Card</h2>
+        <div class="card-section-header">
+          <h2 class="section-title">Pirate Card</h2>
+          <span v-if="cardLocked" class="card-locked-badge" title="Switch to Edit mode or start a New Turn to change card">🔒 Locked</span>
+        </div>
         <div class="card-picker">
-          <select v-model="selectedCard" @change="onCardChange" class="card-select">
+          <select v-model="selectedCard" @change="onCardChange" class="card-select" :disabled="cardLocked" :class="{ 'card-select-locked': cardLocked }">
             <option v-for="opt in CARD_OPTIONS" :key="opt.value" :value="opt.value">
               {{ opt.icon }}  {{ opt.label }}
             </option>
@@ -68,7 +71,7 @@
               :key="i"
               :class="['die', 'die-interactive', mode === 'play' && selectedDice[i] ? 'die-selected' : '', mode === 'play' && !isDieSelectable(i) ? 'die-skull-locked' : '']"
               @click="interactDie(i)"
-              :title="mode === 'play' ? (selectedDice[i] ? 'Selected — will be re-rolled' : isDieSelectable(i) ? 'Click to select for re-roll' : (selectedCard === 'guardian' ? 'Only one skull can be re-rolled with the Guardian' : 'Skulls cannot be re-rolled')) : 'Click to change (currently: ' + FACE_NAMES[face] + ')'"
+              :title="mode === 'play' ? (selectedDice[i] ? 'Selected — will be re-rolled' : isDieSelectable(i) ? 'Click to select for re-roll' : dice[i] === FACE.SKULL ? (guardianUsed ? 'Guardian reroll already used — skull is now locked' : selectedCard === 'guardian' ? 'Only one skull can be re-rolled with the Guardian' : 'Skulls cannot be re-rolled') : 'Cannot be re-rolled') : 'Click to change (currently: ' + FACE_NAMES[face] + ')'"
             >
               <span class="die-emoji">{{ FACE_EMOJI[face] }}</span>
               <span class="die-name">{{ FACE_NAMES[face] }}</span>

@@ -379,6 +379,12 @@ const app = createApp({
     const anySelected = computed(() => selectedDice.value.some(Boolean));
     const selectedCount = computed(() => selectedDice.value.filter(Boolean).length);
 
+    // A2: card selector is locked whenever we are in play mode.
+    const cardLocked = computed(() => mode.value === 'play');
+
+    // C1: true once the Guardian's one-time skull reroll has been consumed.
+    const guardianUsed = ref(false);
+
     // Returns a human-readable reason string when the current selection is an
     // invalid reroll (solver forbids n_reroll=1 and n_kept=0).  Returns null
     // when the selection is fine (or when nothing is selected yet).
@@ -407,15 +413,19 @@ const app = createApp({
     function setMode(m) {
       mode.value = m;
       selectedDice.value = Array(8).fill(false);
+      guardianUsed.value = false;
     }
 
     // Returns true if die i can be toggled for re-roll in play mode.
-    // Skulls are locked unless the guardian card is active (then at most one skull).
+    // Skulls are locked unless the guardian card is active (then at most one skull,
+    // and only if the Guardian's reroll hasn't been used yet).
     function isDieSelectable(i) {
       if (mode.value !== 'play') return true;
       if (currentScore.value.busted) return false;
       if (dice.value[i] !== FACE.SKULL) return true;
       if (selectedCard.value !== 'guardian') return false;
+      // C1: Guardian reroll already consumed → treat skulls as locked again.
+      if (guardianUsed.value) return false;
       // Guardian: this skull is selectable only if it is already selected,
       // or no other skull die is currently selected.
       if (selectedDice.value[i]) return true;
@@ -433,6 +443,17 @@ const app = createApp({
     }
 
     function rollSelected() {
+      // C1: detect guardian skull reroll before overwriting dice.
+      const skullWasSelected = selectedDice.value.some(
+        (sel, i) => sel && dice.value[i] === FACE.SKULL
+      );
+      if (selectedCard.value === 'guardian' && skullWasSelected) {
+        guardianUsed.value = true;
+        // The Guardian card is now spent — switch to "no card" so the solver
+        // computes the correct strategy for the remainder of the turn.
+        selectedCard.value = 'default';
+      }
+
       const newDice = [...dice.value];
       for (let i = 0; i < newDice.length; i++) {
         if (selectedDice.value[i]) newDice[i] = Math.floor(Math.random() * NUM_FACES);
@@ -461,6 +482,7 @@ const app = createApp({
       selectedCard.value = randomCard();
       selectedDice.value = Array(8).fill(false);
       results.value = null;
+      guardianUsed.value = false;
     }
 
     const currentScore = computed(() => {
@@ -567,6 +589,7 @@ const app = createApp({
       dice, selectedCard, loading, error, results,
       FACE_EMOJI, FACE_NAMES, CARD_OPTIONS,
       mode, selectedDice, anySelected, selectedCount, rollInvalidReason,
+      cardLocked, guardianUsed,
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, showResults, randomize,
       keepStr, rerollStr, rowMarker, rowClass,
