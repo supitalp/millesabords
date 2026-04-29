@@ -75,7 +75,31 @@ def build_policy(config: TurnConfig) -> dict:
 
 # ── Single-turn simulation ────────────────────────────────────────────────────
 
-def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random) -> float:
+def _check_state(state: State, config: TurnConfig, label: str = "") -> None:
+    """
+    Assert the two fundamental invariants that must hold at every decision point.
+    Only called when debug=True.
+    """
+    # 1. Skulls never stored in held (held[SKULL] is always 0).
+    assert state.held[Face.SKULL] == 0, (
+        f"{label}: skull leaked into held: {state}"
+    )
+    # 2. n_skulls + sum(held) == total_dice.
+    total = state.n_skulls + sum(state.held)
+    assert total == config.total_dice, (
+        f"{label}: invariant broken — n_skulls({state.n_skulls}) + "
+        f"sum(held)({sum(state.held)}) = {total} ≠ {config.total_dice}"
+    )
+    # 3. Pre-locked dice from card are always present in held.
+    for f in range(1, NUM_FACES):
+        assert state.held[f] >= config.initial_held[f], (
+            f"{label}: initial_held[{f}]={config.initial_held[f]} "
+            f"not in held={state.held}"
+        )
+
+
+def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
+                  debug: bool = False) -> float:
     """
     Simulate one complete turn following the optimal (max-EV) policy.
 
@@ -90,6 +114,7 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random) -> float
     n_initial = config.total_dice - config.initial_n_skulls - sum(config.initial_held)
     outcome   = _sample(n_initial, rng)
     new_skulls = config.initial_n_skulls + outcome[Face.SKULL]
+    # _add_outcome skips face=0 (SKULL), so skulls only go into new_skulls.
     new_held   = _add_outcome(config.initial_held, outcome)
 
     if new_skulls >= 3:
@@ -103,9 +128,26 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random) -> float
     else:
         state = State(new_skulls, new_held, skull_reroll_used=False)
 
+    if debug:
+        _check_state(state, config, "after initial roll")
+
     # ── Decision loop ─────────────────────────────────────────────────────────
     while True:
         kept, use_guardian, is_stop = policy[state]
+
+        if debug and not is_stop:
+            # Verify n_reroll is never 1 (game rule).
+            if use_guardian:
+                nr = (sum(state.held) - sum(kept)) + 1
+            else:
+                nr = config.total_dice - state.n_skulls - sum(kept)
+            assert nr != 1, (
+                f"n_reroll==1 reached: state={state}, kept={kept}, "
+                f"use_guardian={use_guardian}"
+            )
+            assert nr == 0 or sum(kept) > 0, (
+                f"n_reroll>0 but kept is empty: state={state}, kept={kept}"
+            )
 
         if is_stop:
             s = score(state.n_skulls, state.held, config)
@@ -140,10 +182,14 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random) -> float
         else:
             state = State(new_skulls, new_held, skull_reroll_used=reroll_used_next)
 
+        if debug:
+            _check_state(state, config, "after reroll")
+
 
 # ── Report ────────────────────────────────────────────────────────────────────
 
-def report_card(card_name: str, config: TurnConfig, n: int, seed: int | None) -> None:
+def report_card(card_name: str, config: TurnConfig, n: int, seed: int | None,
+                debug: bool = False) -> None:
     label = card_name if card_name else "none (default)"
     print(f"\n{'='*62}")
     print(f"  Card : {label}")
@@ -156,9 +202,12 @@ def report_card(card_name: str, config: TurnConfig, n: int, seed: int | None) ->
     theoretical = turn_ev(config)
     print(f"  Theoretical EV (turn_ev): {theoretical:>10.2f} pts")
 
-    print(f"  Running {n:,} simulations...", end=" ", flush=True)
+    if debug:
+        print(f"  Running {n:,} simulations (debug assertions ON)...", end=" ", flush=True)
+    else:
+        print(f"  Running {n:,} simulations...", end=" ", flush=True)
     rng    = random.Random(seed)
-    scores = [simulate_turn(config, policy, rng) for _ in range(n)]
+    scores = [simulate_turn(config, policy, rng, debug=debug) for _ in range(n)]
     print("done.")
 
     emp  = mean(scores)
@@ -201,8 +250,10 @@ def main() -> None:
         "--all", action="store_true",
         help="Run all cards plus the default (no card).",
     )
-    parser.add_argument("--n",    type=int, default=100_000, help="Simulations per card (default: 100000).")
-    parser.add_argument("--seed", type=int, default=None,    help="Random seed for reproducibility.")
+    parser.add_argument("--n",    type=int,  default=100_000, help="Simulations per card (default: 100000).")
+    parser.add_argument("--seed", type=int,  default=None,    help="Random seed for reproducibility.")
+    parser.add_argument("--debug", action="store_true",
+                        help="Enable runtime assertions (skulls in held, invariant, n_reroll rules).")
     args = parser.parse_args()
 
     if args.all:
@@ -213,7 +264,7 @@ def main() -> None:
         configs = [("", DEFAULT_CONFIG)]
 
     for name, cfg in configs:
-        report_card(name, cfg, args.n, args.seed)
+        report_card(name, cfg, args.n, args.seed, debug=args.debug)
 
     print()
 
