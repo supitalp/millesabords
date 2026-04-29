@@ -100,22 +100,6 @@
             </button>
           </div>
 
-          <!-- Fixed card dice — shown below the main dice, only once active -->
-          <div v-if="turnPhase === 'active' && fixedCardDice.length > 0" class="fixed-dice-group">
-            <div class="fixed-dice-label">Card dice (locked)</div>
-            <div class="dice-row">
-              <div
-                v-for="(face, i) in fixedCardDice"
-                :key="'fixed-' + i"
-                class="die die-fixed"
-                :title="FACE_NAMES[face] + ' (locked by card)'"
-              >
-                <span class="die-emoji">{{ FACE_EMOJI[face] }}</span>
-                <span class="die-name">{{ FACE_NAMES[face] }}</span>
-              </div>
-            </div>
-          </div>
-
           <!-- Strategy banner (active phase only) -->
           <div
             v-if="turnPhase === 'active' && strategyOn && strategyData && !strategyData.busted && !strategyData.win"
