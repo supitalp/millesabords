@@ -407,21 +407,19 @@ const app = createApp({
     const guardianUsed = ref(false);
 
     // Returns a human-readable reason string when the current selection is an
-    // invalid reroll (solver forbids n_reroll=1 and n_kept=0).  Returns null
-    // when the selection is fine (or when nothing is selected yet).
+    // invalid reroll (solver forbids n_reroll=1 and n_kept_variable=0).
+    // Returns null when the selection is fine (or when nothing is selected yet).
+    //
+    // Note: the fixed card die (coin/diamond) is intentionally NOT counted as
+    // a "kept die" here — the user must keep at least one of their own 8 dice.
     const rollInvalidReason = computed(() => {
       if (!anySelected.value) return null;
       // Exactly one die selected → n_reroll=1, always forbidden.
       if (selectedCount.value === 1) {
         return "Can't reroll a single die — select at least 2";
       }
-      // Check "keeping nothing": only relevant for cards that have no initial
-      // locked dice (coin/diamond cards always keep their locked die, so their
-      // n_kept ≥ 1 even if the user selects all 8 variable dice).
-      const cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
-      const n_fixed = cfg.initial_held.reduce((a, b) => a + b, 0);
-      if (n_fixed > 0) return null;
-      // Count how many non-skull dice the user has selected to reroll.
+      // "Keeping nothing" check: count only variable dice (the 8 in dice.value).
+      // The fixed card die is always kept automatically and does not count.
       const n_nonSkull_selected = selectedDice.value
         .filter((sel, i) => sel && dice.value[i] !== FACE.SKULL).length;
       const n_nonSkull_total = dice.value.filter(f => f !== FACE.SKULL).length;
