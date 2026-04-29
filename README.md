@@ -120,6 +120,39 @@ codebase and UI straightforward.
 
 ---
 
+## Expected value by card
+
+One direct application of the DP solver is computing the **exact expected score
+for a full turn under the optimal strategy**, for every bonus card. The value
+`turn_ev(config)` integrates over every reachable dice sequence — first roll,
+all reroll decisions, bust branches — weighting each outcome by its exact
+probability. These are not approximations; they are the fixed points of the
+Bellman equations, confirmed empirically by Monte Carlo simulation.
+
+The table below ranks all cards from most to least beneficial (baseline = no card).
+
+| Card | Expected value | Mechanic |
+|------|---------------:|---------|
+| 🏴‍☠️ Pirate | **1 158 pts** | Final score × 2 |
+| 🛡️ Guardian | **906 pts** | May reroll one skull once per turn |
+| 🪙 Coin | **784 pts** | Extra die, pre-set to Coin |
+| 💎 Diamond | **784 pts** | Extra die, pre-set to Diamond |
+| 🦜 Animals | **735 pts** | Monkeys and Parrots form one combined combo |
+| 🏝️ Treasure Island | **718 pts** | Held dice score even on bust |
+| 🎲 No card *(baseline)* | **579 pts** | — |
+| ⚔️⚔️ Pirate Ship (2 swords) | **443 pts** | Meet quota: +300 pts; fail: −300 pts |
+| 💀 Skull ×1 | **346 pts** | Starts with 1 extra locked skull |
+| ⚔️⚔️⚔️ Pirate Ship (3 swords) | **249 pts** | Meet quota: +500 pts; fail: −500 pts |
+| 💀💀 Skull ×2 | **113 pts** | Starts with 2 extra locked skulls |
+| ⚔️⚔️⚔️⚔️ Pirate Ship (4 swords) | **−156 pts** | Meet quota: +1 000 pts; fail: −1 000 pts |
+
+Pirate Ship (4 swords) is the only card with a **negative** expected value even
+under optimal play — the quota is hard enough to reach that the −1 000 penalty
+dominates on average. It can still be rational in a game context where you need
+a large single-turn swing.
+
+---
+
 ## Project structure
 
 ```
@@ -144,8 +177,14 @@ uv run python docs/export_data.py
 # Run the test suite
 uv run pytest
 
-# Monte-Carlo verification (e.g. 1M sims for the coin card)
+# Monte-Carlo verification: empirical mean vs theoretical turn_ev()
 uv run python verify_solver.py --card coin --n 1000000
+
+# Q-value check: verify DP picks the best action at every sampled state
+uv run python verify_solver.py --q-check --all
+
+# Compare DP optimal vs heuristic strategies across all cards
+uv run python compare_strategies.py --all
 
 # Serve the web app
 python -m http.server 8080 --directory docs
