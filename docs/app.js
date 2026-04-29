@@ -76,6 +76,23 @@ function randomCard() {
   return CARD_DECK[CARD_DECK.length - 1].value; // float-rounding safety net
 }
 
+// ─── Persistence helpers (D1: multiplayer) ───────────────────────────────────
+
+function loadPlayers() {
+  try { return JSON.parse(localStorage.getItem('mille_sabords_players') ?? '[]'); }
+  catch { return []; }
+}
+function savePlayers(list) {
+  localStorage.setItem('mille_sabords_players', JSON.stringify(list));
+}
+function loadScores() {
+  try { return JSON.parse(localStorage.getItem('mille_sabords_scores') ?? '{}'); }
+  catch { return {}; }
+}
+function saveScores(obj) {
+  localStorage.setItem('mille_sabords_scores', JSON.stringify(obj));
+}
+
 // ─── Solver logic (ported from Python) ────────────────────────────────────────
 
 // Cache: n → [{outcome: [c0..c5], prob}]
@@ -417,6 +434,18 @@ const app = createApp({
     const mode         = ref('play');                    // 'play' | 'select'
     const selectedDice = ref(Array(8).fill(false));
     const guardianUsed = ref(false);                     // C1
+
+    // ── Multiplayer state (D1) ────────────────────────────────────────────────
+    const savedPlayers    = ref(loadPlayers());  // string[] — persisted player names
+    const gameScores      = ref(loadScores());   // { [name]: number[] } — current game
+
+    // Submit-score modal
+    const submitModalOpen = ref(false);
+    const submitPlayer    = ref('');   // selected name, or '__new__'
+    const newPlayerName   = ref('');   // typed when creating a new player
+
+    // Scoreboard modal
+    const scoreboardOpen  = ref(false);
 
     // ── Turn / animation state ────────────────────────────────────────────────
     // 'idle'          → fresh page load: blank card back + blank dice
@@ -816,6 +845,39 @@ const app = createApp({
       return fixed;
     });
 
+    // ── Multiplayer computed (D1) ─────────────────────────────────────────────
+
+    // Score to persist when the player clicks "Record Score"
+    const scoreToRecord = computed(() => {
+      if (currentScore.value.win) return WIN_SCORE;
+      return currentScore.value.score ?? 0;
+    });
+
+    // Effective player name from the submit form (used to enable the submit button)
+    const submitPlayerName = computed(() =>
+      submitPlayer.value === '__new__'
+        ? newPlayerName.value.trim()
+        : submitPlayer.value
+    );
+
+    // Players who have scores in the current game (in insertion order)
+    const scoreboardPlayers = computed(() => Object.keys(gameScores.value));
+    const hasAnyScores      = computed(() => scoreboardPlayers.value.length > 0);
+
+    // Number of rounds played (= length of the longest score array)
+    const maxRounds = computed(() =>
+      Math.max(0, ...Object.values(gameScores.value).map(s => s.length))
+    );
+
+    // Running total per player
+    const playerTotals = computed(() => {
+      const totals = {};
+      for (const [name, scores] of Object.entries(gameScores.value)) {
+        totals[name] = scores.reduce((a, b) => a + b, 0);
+      }
+      return totals;
+    });
+
     // Internal: fetch + compute, populate strategyData. Does NOT touch strategyOn.
     async function _loadStrategy() {
       loading.value = true;
@@ -866,6 +928,72 @@ const app = createApp({
       } finally {
         loading.value = false;
       }
+    }
+
+    // ── Multiplayer functions (D1) ────────────────────────────────────────────
+
+    // Reset game to idle (used after recording a score so next player starts fresh)
+    function _resetToIdle() {
+      turnPhase.value    = 'idle';
+      displayDice.value  = Array(8).fill(FACE_BLANK);
+      displayCard.value  = null;
+      dice.value         = Array(8).fill(0);
+      selectedDice.value = Array(8).fill(false);
+      guardianUsed.value = false;
+      mode.value         = 'play';
+      _clearStrategy();
+    }
+
+    // Open the "Record Score" modal, pre-selecting the first saved player
+    function openSubmitModal() {
+      submitPlayer.value    = savedPlayers.value.length > 0 ? savedPlayers.value[0] : '__new__';
+      newPlayerName.value   = '';
+      submitModalOpen.value = true;
+    }
+
+    // Confirm and persist the current score, then reset for the next player
+    function submitScore() {
+      const name = submitPlayer.value === '__new__'
+        ? newPlayerName.value.trim()
+        : submitPlayer.value;
+      if (!name) return;
+
+      // Register new player name if not yet known
+      if (!savedPlayers.value.includes(name)) {
+        savedPlayers.value = [...savedPlayers.value, name];
+        savePlayers(savedPlayers.value);
+      }
+
+      // Append score to that player's array
+      const updated = { ...gameScores.value };
+      if (!updated[name]) updated[name] = [];
+      updated[name] = [...updated[name], scoreToRecord.value];
+      gameScores.value = updated;
+      saveScores(updated);
+
+      submitModalOpen.value = false;
+      _resetToIdle();
+    }
+
+    // Clear all scores (keeps player names for future turns)
+    function resetScores() {
+      gameScores.value = {};
+      saveScores({});
+    }
+
+    // Scoreboard helpers
+    function scoreCellClass(score) {
+      if (score === undefined || score === null) return 'score-cell-empty';
+      if (score >= WIN_SCORE) return 'score-cell-win';
+      if (score > 0)          return 'score-cell-pos';
+      if (score < 0)          return 'score-cell-neg';
+      return 'score-cell-zero';
+    }
+
+    function formatScoreCell(score) {
+      if (score === undefined || score === null) return '—';
+      if (score >= WIN_SCORE) return '🏆';
+      return String(score);
     }
 
     // A4: toggle strategy on/off. Lazy-loads data on first activation.
@@ -924,6 +1052,10 @@ const app = createApp({
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
       fixedCardDice, currentScore, WIN_SCORE, FACE,
+      // D1: multiplayer
+      savedPlayers, gameScores, submitModalOpen, submitPlayer, newPlayerName, scoreboardOpen,
+      scoreToRecord, submitPlayerName, scoreboardPlayers, hasAnyScores, maxRounds, playerTotals,
+      openSubmitModal, submitScore, resetScores, scoreCellClass, formatScoreCell,
     };
   },
 });

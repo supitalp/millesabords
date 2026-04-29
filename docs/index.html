@@ -11,7 +11,9 @@
     <header class="site-header">
       <div class="header-inner">
         <h1>🏴‍☠️ Mille Sabords</h1>
-        <p class="subtitle">Optimal strategy advisor — powered by exact DP</p>
+        <button class="scoreboard-header-btn" @click="scoreboardOpen = true" title="View scoreboard">
+          📊 <span class="scoreboard-btn-label">Scores</span>
+        </button>
       </div>
     </header>
 
@@ -201,6 +203,15 @@
               <span v-else>💡 Hint</span>
             </button>
 
+            <!-- D1: record score & end turn -->
+            <button
+              v-if="mode === 'play'"
+              class="finish-turn-btn"
+              @click="openSubmitModal"
+              :disabled="isAnimating"
+              title="Bank your score and pass to the next player"
+            >✓ Record</button>
+
           </template>
 
         </div>
@@ -307,6 +318,125 @@
                   <span>Min/Max = score range across outcomes</span>
                 </div>
               </template>
+
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- D1: Record Score modal -->
+      <Teleport to="body">
+        <div v-if="submitModalOpen" class="modal-overlay" @click.self="submitModalOpen = false">
+          <div class="modal-card modal-sm">
+            <div class="modal-header">
+              <h2 class="modal-title">Record Score</h2>
+              <button class="modal-close-btn" @click="submitModalOpen = false" title="Close">✕</button>
+            </div>
+            <div class="modal-body">
+
+              <!-- Score hero -->
+              <div class="submit-score-hero">
+                <template v-if="currentScore.win">
+                  <span class="submit-hero-label submit-hero-win">🏆 Pirate's Magic!</span>
+                </template>
+                <template v-else>
+                  <span
+                    class="submit-hero-number"
+                    :class="scoreToRecord < 0 ? 'submit-hero-neg' : scoreToRecord === 0 ? 'submit-hero-zero' : ''"
+                  >{{ scoreToRecord }}</span>
+                  <span class="submit-hero-unit">pts</span>
+                  <span v-if="currentScore.busted" class="submit-hero-bust">💀 Busted</span>
+                </template>
+              </div>
+
+              <!-- Player selector -->
+              <div class="submit-player-block">
+                <label class="submit-player-label">Who played this turn?</label>
+                <select
+                  v-if="savedPlayers.length > 0"
+                  v-model="submitPlayer"
+                  class="card-select"
+                >
+                  <option v-for="name in savedPlayers" :key="name" :value="name">{{ name }}</option>
+                  <option value="__new__">＋ New player…</option>
+                </select>
+                <input
+                  v-if="savedPlayers.length === 0 || submitPlayer === '__new__'"
+                  v-model="newPlayerName"
+                  class="submit-name-input"
+                  type="text"
+                  placeholder="Enter player name"
+                  @keyup.enter="submitScore"
+                />
+              </div>
+
+              <!-- Action buttons -->
+              <div class="submit-actions">
+                <button
+                  class="solve-btn"
+                  @click="submitScore"
+                  :disabled="!submitPlayerName"
+                >✓ Confirm</button>
+                <button class="randomize-btn" @click="submitModalOpen = false">Cancel</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- D1: Scoreboard modal -->
+      <Teleport to="body">
+        <div v-if="scoreboardOpen" class="modal-overlay" @click.self="scoreboardOpen = false">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h2 class="modal-title">📊 Scoreboard</h2>
+              <button class="modal-close-btn" @click="scoreboardOpen = false" title="Close">✕</button>
+            </div>
+            <div class="modal-body">
+
+              <template v-if="!hasAnyScores">
+                <p class="scoreboard-empty">No scores yet — finish a turn to start tracking.</p>
+              </template>
+
+              <template v-else>
+                <div class="table-wrapper">
+                  <table class="scoreboard-table">
+                    <thead>
+                      <tr>
+                        <th class="sb-round-th">#</th>
+                        <th v-for="p in scoreboardPlayers" :key="p" class="sb-player-th">{{ p }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="r in maxRounds" :key="r">
+                        <td class="sb-round-td">{{ r }}</td>
+                        <td
+                          v-for="p in scoreboardPlayers"
+                          :key="p"
+                          class="sb-score-td"
+                          :class="scoreCellClass(gameScores[p]?.[r - 1])"
+                        >{{ formatScoreCell(gameScores[p]?.[r - 1]) }}</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr class="sb-total-row">
+                        <td class="sb-round-td sb-total-label">Σ</td>
+                        <td
+                          v-for="p in scoreboardPlayers"
+                          :key="p"
+                          class="sb-score-td sb-total-td"
+                          :class="(playerTotals[p] ?? 0) >= 0 ? 'sb-total-pos' : 'sb-total-neg'"
+                        >{{ playerTotals[p] ?? 0 }}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </template>
+
+              <button class="randomize-btn reset-scores-btn" @click="resetScores">
+                🗑 Reset Scores
+              </button>
 
             </div>
           </div>
