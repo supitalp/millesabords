@@ -154,6 +154,7 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
 def turn_ev(config: TurnConfig = DEFAULT_CONFIG) -> float:
     """Expected score for a fresh turn (before any dice are rolled), using optimal play."""
     sol = get_solution(config)
+    bust_score = float(-config.sword_penalty if config.sword_penalty else 0)
     n_roll = config.total_dice - config.initial_n_skulls - sum(config.initial_held)
     ev = 0.0
     for outcome, prob in roll_outcomes(n_roll):
@@ -167,6 +168,10 @@ def turn_ev(config: TurnConfig = DEFAULT_CONFIG) -> float:
                         state = State(2, rescue_held, True)
                         idx = sol.state_to_idx[state]
                         ev += prob * rescue_prob * float(sol.V_normal[idx])
+                    else:
+                        ev += prob * rescue_prob * bust_score
+            else:
+                ev += prob * bust_score
             continue
         new_held = _add_outcome(config.initial_held, outcome)
         state = State(new_skulls, new_held, False)
