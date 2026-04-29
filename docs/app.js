@@ -50,8 +50,29 @@ function randomDice() {
   return Array.from({ length: 8 }, () => Math.floor(Math.random() * NUM_FACES));
 }
 
+// Deck composition (Safe card excluded — not yet implemented).
+// Source: game rulebook; see TODO.md appendix for full table.
+const CARD_DECK = [
+  { value: 'coin',          weight: 4 },
+  { value: 'diamond',       weight: 4 },
+  { value: 'animals',       weight: 4 },
+  { value: 'guardian',      weight: 4 },
+  { value: 'pirate',        weight: 4 },
+  { value: 'skull-1',       weight: 3 },
+  { value: 'pirate-ship-2', weight: 2 },
+  { value: 'pirate-ship-3', weight: 2 },
+  { value: 'pirate-ship-4', weight: 2 },
+  { value: 'skull-2',       weight: 2 },
+]; // total weight = 31
+
 function randomCard() {
-  return CARD_OPTIONS[Math.floor(Math.random() * CARD_OPTIONS.length)].value;
+  const total = CARD_DECK.reduce((s, c) => s + c.weight, 0);
+  let r = Math.random() * total;
+  for (const { value, weight } of CARD_DECK) {
+    r -= weight;
+    if (r <= 0) return value;
+  }
+  return CARD_DECK[CARD_DECK.length - 1].value; // float-rounding safety net
 }
 
 // ─── Solver logic (ported from Python) ────────────────────────────────────────
