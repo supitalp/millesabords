@@ -16,12 +16,11 @@ NUM_DICE = 8  # dice rolled per turn (always 8; cards add extra dice on top)
 
 DIE_FACES = tuple(Face)
 
-# Points for a combo of N identical dice (N < 3 → 0)
-COMBO_SCORE: dict[int, int] = {3: 100, 4: 200, 5: 500, 6: 1000, 7: 2000, 8: 4000}
-
-# Sentinel for the "9 identical dice" instant-win (Pirate's Magic rule).
-# Large enough to dominate all normal scores; finite so numpy value iteration stays stable.
-WIN_SCORE = 1_000_000
+# Points for a combo of N identical dice (N < 3 → 0). The 9-of-a-kind score
+# (reachable only with the Coin or Diamond card, which add a 9th die) extends
+# the geometric doubling progression and is treated as just another (very high)
+# combo score — no instant-win sentinel.
+COMBO_SCORE: dict[int, int] = {3: 100, 4: 200, 5: 500, 6: 1000, 7: 2000, 8: 4000, 9: 8000}
 
 _EMPTY_HELD = tuple([0] * NUM_FACES)
 

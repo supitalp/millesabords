@@ -110,7 +110,6 @@
                 <span class="dice-score-bust-label">💀 Busted</span>
               </template>
             </template>
-            <div v-else-if="currentScore.win" class="score-win">🏆 Pirate's Magic!</div>
             <template v-else>
               <span class="dice-score-value">{{ currentScore.score }}<span class="score-unit"> pts</span></span>
               <div class="score-badges">
@@ -135,10 +134,10 @@
             class="strategy-banner"
             :class="bestStrategyIsStop ? 'strategy-banner-stop' : 'strategy-banner-reroll'"
             :style="{
-              visibility: (strategyOn && strategyData && !strategyData.busted && !strategyData.win) ? 'visible' : 'hidden',
-              cursor: (strategyOn && strategyData && !strategyData.busted && !strategyData.win) ? 'pointer' : 'default'
+              visibility: (strategyOn && strategyData && !strategyData.busted) ? 'visible' : 'hidden',
+              cursor: (strategyOn && strategyData && !strategyData.busted) ? 'pointer' : 'default'
             }"
-            @click="strategyOn && strategyData && !strategyData.busted && !strategyData.win ? modalOpen = true : null"
+            @click="strategyOn && strategyData && !strategyData.busted ? modalOpen = true : null"
             title="View full strategy table"
           >
             <template v-if="strategyData && bestStrategyIsStop">
@@ -205,7 +204,7 @@
               class="solve-btn solve-btn-icon"
               :class="{ 'solve-btn-active': strategyOn }"
               @click="toggleStrategy"
-              :disabled="loading || isAnimating || currentScore.busted || currentScore.guardianCanSave || currentScore.win"
+              :disabled="loading || isAnimating || currentScore.busted || currentScore.guardianCanSave"
               :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
             >
               <span v-if="loading" class="spinner"></span>
@@ -265,11 +264,6 @@
                 <span v-else>Three skulls — turn is lost!</span>
               </div>
 
-              <div v-else-if="strategyData.win" class="result-banner result-win">
-                <span class="banner-icon">🏆</span>
-                <span>9 identical dice — INSTANT WIN (Pirate's Magic)!</span>
-              </div>
-
               <template v-else-if="strategyData.stats">
                 <div class="result-meta modal-meta">
                   <span class="meta-item">
@@ -292,7 +286,6 @@
                         <th>Reroll</th>
                         <th>P(lose)</th>
                         <th>EV</th>
-                        <th v-if="strategyData.anyWinPossible">P(win)</th>
                         <th>Min</th>
                         <th>Max</th>
                         <th>Δ vs Stop</th>
@@ -309,7 +302,6 @@
                         <td class="col-emoji">{{ rerollStr(strategyData.state, s) }}</td>
                         <td class="col-num">{{ pct(s.p_lose) }}</td>
                         <td class="col-num col-ev">{{ evFmt(s.ev) }}</td>
-                        <td v-if="strategyData.anyWinPossible" class="col-num">{{ pct(s.p_win) }}</td>
                         <td class="col-num">{{ s.min_score }}</td>
                         <td class="col-num">{{ maxStr(s) }}</td>
                         <td class="col-num col-delta" :class="s.delta_vs_stop >= 0 ? 'positive' : 'negative'">
@@ -348,17 +340,12 @@
 
               <!-- Score hero -->
               <div class="submit-score-hero">
-                <template v-if="currentScore.win">
-                  <span class="submit-hero-label submit-hero-win">🏆 Pirate's Magic!</span>
-                </template>
-                <template v-else>
-                  <span
-                    class="submit-hero-number"
-                    :class="scoreToRecord.score < 0 ? 'submit-hero-neg' : scoreToRecord.score === 0 ? 'submit-hero-zero' : ''"
-                  >{{ scoreToRecord.score }}</span>
-                  <span class="submit-hero-unit">pts</span>
-                  <span v-if="currentScore.busted" class="submit-hero-bust">💀 Busted</span>
-                </template>
+                <span
+                  class="submit-hero-number"
+                  :class="scoreToRecord.score < 0 ? 'submit-hero-neg' : scoreToRecord.score === 0 ? 'submit-hero-zero' : ''"
+                >{{ scoreToRecord.score }}</span>
+                <span class="submit-hero-unit">pts</span>
+                <span v-if="currentScore.busted" class="submit-hero-bust">💀 Busted</span>
               </div>
 
               <!-- Player selector -->

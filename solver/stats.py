@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from .model import State, NUM_FACES, Face, TurnConfig, DEFAULT_CONFIG, WIN_SCORE
+from .model import State, NUM_FACES, Face, TurnConfig, DEFAULT_CONFIG
 from .scoring import score
 from .roll import roll_outcomes
 from .dp import get_solution, _add_outcome
@@ -12,11 +12,10 @@ class ActionStats:
     use_guardian: bool    # True when this action uses the Guardian skull-reroll ability
     stop_score: int
     p_lose: float
-    p_win: float           # probability of instant win (9 identical dice)
     ev: float
     ev_no_lose: float
-    min_score: int         # worst stop-score across non-losing, non-winning outcomes
-    max_score: int         # best achievable score; WIN_SCORE if instant win is reachable
+    min_score: int        # worst stop-score across non-losing outcomes
+    max_score: int        # best achievable score along this action's transition tree
     delta_vs_stop: float
 
 
@@ -35,7 +34,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
     if n_reroll == 0:
         return ActionStats(
             kept=kept, n_reroll=0, use_guardian=False, stop_score=stop_score,
-            p_lose=0.0, p_win=float(stop_score == WIN_SCORE),
+            p_lose=0.0,
             ev=float(stop_score), ev_no_lose=float(stop_score),
             min_score=stop_score, max_score=stop_score, delta_vs_stop=0.0,
         )
@@ -43,7 +42,6 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
     sol = get_solution(config)
 
     p_lose = 0.0
-    p_win = 0.0
     ev = 0.0
     p_survive = 0.0
     ev_survive = 0.0
@@ -64,7 +62,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
                         rescue_held = _add_outcome(bust_held, rescue_outcome)
                         next_state = State(2, rescue_held, True)
                         idx = sol.state_to_idx[next_state]
-                        val = float(sol.V_normal[idx])
+                        val = float(sol.V[idx])
                         ev += prob * rescue_prob * val
                         p_survive += prob * rescue_prob
                         ev_survive += prob * rescue_prob * val
@@ -72,9 +70,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
                         if max_score is None or next_max > max_score:
                             max_score = next_max
                         next_stop = score(2, rescue_held, config)
-                        if next_stop == WIN_SCORE:
-                            p_win += prob * rescue_prob
-                        elif min_score is None or next_stop < min_score:
+                        if min_score is None or next_stop < min_score:
                             min_score = next_stop
             else:
                 p_lose += prob
@@ -85,7 +81,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
             next_state = State(new_skulls, new_held, new_skull_reroll_used)
             idx = sol.state_to_idx[next_state]
 
-            val = float(sol.V_normal[idx])
+            val = float(sol.V[idx])
             ev += prob * val
             p_survive += prob
             ev_survive += prob * val
@@ -95,17 +91,14 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
                 max_score = next_max
 
             next_stop = score(new_skulls, new_held, config)
-            if next_stop == WIN_SCORE:
-                p_win += prob
-            else:
-                if min_score is None or next_stop < min_score:
-                    min_score = next_stop
+            if min_score is None or next_stop < min_score:
+                min_score = next_stop
 
     ev_no_lose = (ev_survive / p_survive) if p_survive > 0 else 0.0
 
     return ActionStats(
         kept=kept, n_reroll=n_reroll, use_guardian=use_guardian,
-        stop_score=stop_score, p_lose=p_lose, p_win=p_win,
+        stop_score=stop_score, p_lose=p_lose,
         ev=ev, ev_no_lose=ev_no_lose,
         min_score=min_score if min_score is not None else 0,
         max_score=max_score if max_score is not None else 0,

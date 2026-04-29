@@ -601,12 +601,6 @@ body {
   opacity: 0.6;
 }
 
-.score-win {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #86efac;
-}
-
 /* A5 + A6: score badges (full chest, pirate ship) */
 .score-badges {
   display: flex;
@@ -910,12 +904,6 @@ body {
   color: #fca5a5;
 }
 
-.result-win {
-  background: rgba(34,197,94,0.12);
-  border: 1px solid rgba(34,197,94,0.35);
-  color: #86efac;
-}
-
 .results-header { margin-bottom: 1rem; }
 
 .result-meta {
@@ -1214,13 +1202,6 @@ body {
   margin-top: 0.3rem;
 }
 
-.submit-hero-label {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.submit-hero-win { color: #86efac; }
-
 .submit-player-block {
   display: flex;
   flex-direction: column;
@@ -1315,7 +1296,6 @@ body {
 .score-cell-neg   { color: #fca5a5; }
 .score-cell-zero  { color: var(--text-muted); }
 .score-cell-empty { color: var(--text-muted); opacity: 0.3; }
-.score-cell-win   { color: #86efac; font-size: 1.1rem; }
 
 .sb-total-row {
   border-top: 2px solid var(--border);

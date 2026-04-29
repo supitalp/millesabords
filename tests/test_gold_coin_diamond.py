@@ -1,6 +1,6 @@
 """Tests for Gold Coin and Diamant cards (pre-set coin/diamond extra die)."""
 import pytest
-from solver.model import Face, NUM_FACES, NUM_DICE, State, TurnConfig, CARD_CONFIGS, DEFAULT_CONFIG, WIN_SCORE
+from solver.model import Face, NUM_FACES, NUM_DICE, State, TurnConfig, CARD_CONFIGS, DEFAULT_CONFIG
 from solver.scoring import score
 from solver.actions import valid_actions
 from solver.dp import get_solution
@@ -89,10 +89,11 @@ def test_card_diamond_counts_in_combo():
 # ---------------------------------------------------------------------------
 
 def test_full_board_bonus_9_coins():
-    # 8 rolled coins + 1 card coin = 9 identical → Pirate's Magic instant win
+    # 8 rolled coins + 1 card coin = 9 coins. COMBO_SCORE[9]=8000 + 900 individual
+    # + 500 full chest = 9400 (the highest achievable score).
     h = held((Face.COIN, 9))
     s = score(0, h, COIN_CARD)
-    assert s == WIN_SCORE
+    assert s == 8000 + 900 + 500
 
 
 def test_full_board_bonus_requires_all_9_to_contribute_coin_card():

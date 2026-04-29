@@ -104,19 +104,19 @@ def test_treasure_island_state_space_unchanged():
 # DP / EV ordering
 # ---------------------------------------------------------------------------
 
-def test_treasure_island_v_normal_dominates_default():
-    """V_normal[TI] >= V_normal[default] for every state (bust shield never hurts)."""
+def test_treasure_island_v_dominates_default():
+    """V[TI] >= V[default] for every state (bust shield never hurts)."""
     sol_default = get_solution(DEFAULT_CONFIG)
     sol_ti = get_solution(TI)
     # Both solutions share the same state ordering (same _all_states)
-    assert np.all(sol_ti.V_normal >= sol_default.V_normal - 1e-9)
+    assert np.all(sol_ti.V >= sol_default.V - 1e-9)
 
 
 def test_treasure_island_strictly_improves_some_states():
-    """TI must strictly improve V_normal for at least some states (non-trivial benefit)."""
+    """TI must strictly improve V for at least some states (non-trivial benefit)."""
     sol_default = get_solution(DEFAULT_CONFIG)
     sol_ti = get_solution(TI)
-    delta = sol_ti.V_normal - sol_default.V_normal
+    delta = sol_ti.V - sol_default.V
     assert float(np.max(delta)) > 0.0, "TI should strictly improve at least one state's EV"
 
 

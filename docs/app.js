@@ -4,13 +4,14 @@ import { createApp, ref, computed, reactive } from 'https://unpkg.com/vue@3/dist
 
 const FACE = { SKULL: 0, SWORD: 1, COIN: 2, DIAMOND: 3, MONKEY: 4, PARROT: 5 };
 const NUM_FACES = 6;
-const WIN_SCORE = 1_000_000;
 const FACE_BLANK = -1; // sentinel: die not yet rolled
 
 const FACE_EMOJI = ['💀', '⚔️', '🪙', '💎', '🐒', '🦜'];
 const FACE_NAMES = ['Skull', 'Sword', 'Coin', 'Diamond', 'Monkey', 'Parrot'];
 
-const COMBO_SCORE = { 3: 100, 4: 200, 5: 500, 6: 1000, 7: 2000, 8: 4000 };
+// 9-of-a-kind (reachable only with the Coin/Diamond card) extends the geometric
+// doubling progression — no instant-win sentinel.
+const COMBO_SCORE = { 3: 100, 4: 200, 5: 500, 6: 1000, 7: 2000, 8: 4000, 9: 8000 };
 
 const CARD_OPTIONS = [
   { value: 'default',       name: 'No Card',       icon: '🎲',          desc: 'No bonus card',                        label: 'No card'                              },
@@ -176,12 +177,6 @@ function scoreFunc(n_skulls, held, config) {
     if (config.treasure_island) return _scoreCombos(held, config);
     return config.sword_penalty ? -config.sword_penalty : 0;
   }
-  // Pirate's Magic: 9 identical dice
-  if (n_skulls === 0) {
-    for (let f = 1; f < NUM_FACES; f++) {
-      if (held[f] === 9) return WIN_SCORE;
-    }
-  }
 
   let total = 0;
   if (config.merge_animals) {
@@ -301,46 +296,47 @@ function computeStats(state, kept, config, sol, use_guardian = false) {
   if (n_reroll === 0) {
     return {
       kept, n_reroll: 0, use_guardian: false, stop_score,
-      p_lose: 0, p_win: stop_score === WIN_SCORE ? 1 : 0,
+      p_lose: 0,
       ev: stop_score, ev_no_lose: stop_score,
       min_score: stop_score, max_score: stop_score,
       delta_vs_stop: 0,
     };
   }
 
-  const bust_score = config.sword_penalty ? -config.sword_penalty : 0;
-  let p_lose = 0, p_win = 0, ev = 0, p_survive = 0, ev_survive = 0;
+  let p_lose = 0, ev = 0, p_survive = 0, ev_survive = 0;
   let min_score = null, max_score = null;
 
   for (const { outcome, prob } of rollOutcomes(n_reroll)) {
     const new_skulls = n_skulls_base + outcome[FACE.SKULL];
     if (new_skulls >= 3) {
+      const bust_held = addOutcome(kept, outcome);
+      // scoreFunc handles bust scoring naturally: 0 (or -sword_penalty) for normal
+      // cards, the held-dice score for treasure-island.
+      const this_bust_score = scoreFunc(new_skulls, bust_held, config);
       // Guardian rescue on first reroll
       if (config.skull_reroll_available && !state.skull_reroll_used && !use_guardian && new_skulls === 3) {
-        const base_held = addOutcome(kept, outcome);
         for (const { outcome: rOutcome, prob: rProb } of rollOutcomes(1)) {
           if (rOutcome[FACE.SKULL] > 0) {
             p_lose += prob * rProb;
-            ev += prob * rProb * bust_score;
+            ev += prob * rProb * this_bust_score;
           } else {
-            const rescue_held = addOutcome(base_held, rOutcome);
+            const rescue_held = addOutcome(bust_held, rOutcome);
             const key = stateKey(2, rescue_held, true);
             const idx = sol.stateToIdx.get(key);
             if (idx === undefined) continue;
-            const val = sol.V_normal[idx];
+            const val = sol.V[idx];
             ev += prob * rProb * val;
             p_survive += prob * rProb;
             ev_survive += prob * rProb * val;
             const nextMax = sol.max_score[idx];
             if (max_score === null || nextMax > max_score) max_score = nextMax;
             const nextStop = scoreFunc(2, rescue_held, config);
-            if (nextStop === WIN_SCORE) p_win += prob * rProb;
-            else if (min_score === null || nextStop < min_score) min_score = nextStop;
+            if (min_score === null || nextStop < min_score) min_score = nextStop;
           }
         }
       } else {
         p_lose += prob;
-        ev += prob * bust_score;
+        ev += prob * this_bust_score;
       }
     } else {
       const new_held = addOutcome(kept, outcome);
@@ -349,7 +345,7 @@ function computeStats(state, kept, config, sol, use_guardian = false) {
       const idx = sol.stateToIdx.get(key);
       if (idx === undefined) continue;
 
-      const val = sol.V_normal[idx];
+      const val = sol.V[idx];
       ev += prob * val;
       p_survive += prob;
       ev_survive += prob * val;
@@ -358,8 +354,7 @@ function computeStats(state, kept, config, sol, use_guardian = false) {
       if (max_score === null || nextMax > max_score) max_score = nextMax;
 
       const nextStop = scoreFunc(new_skulls, new_held, config);
-      if (nextStop === WIN_SCORE) p_win += prob;
-      else if (min_score === null || nextStop < min_score) min_score = nextStop;
+      if (min_score === null || nextStop < min_score) min_score = nextStop;
     }
   }
 
@@ -367,7 +362,7 @@ function computeStats(state, kept, config, sol, use_guardian = false) {
 
   return {
     kept, n_reroll, use_guardian, stop_score,
-    p_lose, p_win, ev, ev_no_lose,
+    p_lose, ev, ev_no_lose,
     min_score: min_score ?? 0,
     max_score: max_score ?? 0,
     delta_vs_stop: ev - stop_score,
@@ -398,7 +393,7 @@ async function loadSolution(cardName) {
   const sol = {
     config: data.config,
     stateToIdx,
-    V_normal: data.V_normal,
+    V: data.V,
     max_score: data.max_score,
     stop_values: data.stop_values,
   };
@@ -859,7 +854,6 @@ const app = createApp({
         return { busted: !guardianCanSave, guardianCanSave, score: bustScore, treasureIslandSaved };
       }
       const score = scoreFunc(state.n_skulls, state.held, config);
-      if (score === WIN_SCORE) return { win: true };
 
       // A5: detect whether the +500 full-chest bonus is active right now.
       // Mirror the exact condition used in scoreFunc; guard with score > 0
@@ -908,7 +902,7 @@ const app = createApp({
 
     // Full turn state to persist when the player clicks "Record Score"
     const scoreToRecord = computed(() => {
-      const score = currentScore.value.win ? WIN_SCORE : (currentScore.value.score ?? 0);
+      const score = currentScore.value.score ?? 0;
       return { score, card: originalCard.value, dice: [...dice.value] };
     });
 
@@ -964,11 +958,6 @@ const app = createApp({
 
         const stopScore = scoreFunc(state.n_skulls, state.held, config);
 
-        if (stopScore === WIN_SCORE) {
-          strategyData.value = { win: true, config };
-          return;
-        }
-
         const actions = validActions(state, config);
         let allStats = actions.map(kept => computeStats(state, kept, config, sol));
 
@@ -988,7 +977,6 @@ const app = createApp({
           state,
           config,
           stats: allStats,
-          anyWinPossible: allStats.some(s => s.p_win > 0),
           stopScore,
         };
       } catch (e) {
@@ -1053,7 +1041,6 @@ const app = createApp({
     function scoreCellClass(turn) {
       const score = turn?.score;
       if (score === undefined || score === null) return 'score-cell-empty';
-      if (score >= WIN_SCORE) return 'score-cell-win';
       if (score > 0)          return 'score-cell-pos';
       if (score < 0)          return 'score-cell-neg';
       return 'score-cell-zero';
@@ -1062,7 +1049,6 @@ const app = createApp({
     function formatScoreCell(turn) {
       const score = turn?.score;
       if (score === undefined || score === null) return '—';
-      if (score >= WIN_SCORE) return '🏆';
       return String(score);
     }
 
@@ -1103,7 +1089,7 @@ const app = createApp({
     function deltaFmt(v) { return (v >= 0 ? '+' : '') + v.toFixed(1); }
 
     function maxStr(s) {
-      return s.max_score >= WIN_SCORE ? 'WIN' : String(s.max_score);
+      return String(s.max_score);
     }
 
     return {
@@ -1121,7 +1107,7 @@ const app = createApp({
       startNewTurn, rollInitialDice,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
-      fixedCardDice, currentScore, WIN_SCORE, FACE,
+      fixedCardDice, currentScore, FACE,
       // D1: multiplayer
       savedPlayers, gameScores, submitModalOpen, submitPlayer, newPlayerName, scoreboardOpen,
       scoreToRecord, submitPlayerName, scoreboardPlayers, hasAnyScores, maxRounds,

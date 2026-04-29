@@ -2,7 +2,7 @@ import tabulate as _tabulate_mod
 _tabulate_mod.WIDE_CHARS_MODE = True
 from tabulate import tabulate
 
-from .model import State, Face, NUM_FACES, NUM_DICE, TurnConfig, DEFAULT_CONFIG, WIN_SCORE
+from .model import State, Face, NUM_FACES, NUM_DICE, TurnConfig, DEFAULT_CONFIG
 from .actions import valid_actions, guardian_kept_options
 from .scoring import score
 from .stats import compute_stats, ActionStats
@@ -91,10 +91,6 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
         lines.append("\n💀💀💀 Three skulls — turn is lost.")
         return "\n".join(lines)
 
-    if current_score == WIN_SCORE:
-        lines.append("\n🏆 9 identical dice — INSTANT WIN (Pirate's Magic)!")
-        return "\n".join(lines)
-
     all_stats: list[ActionStats] = [
         compute_stats(state, kept, config) for kept in valid_actions(state, config)
     ]
@@ -105,12 +101,10 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
         ]
     all_stats.sort(key=lambda s: (-s.ev, s.p_lose))
 
-    any_win_possible = any(s.p_win > 0 for s in all_stats)
-
     base_headers = ["", "Keep", "Reroll", "P(lose)", "EV", "ΔvsStop"]
     base_align   = ("right", "left", "left", "right", "right", "right")
     if verbose:
-        extra_h = ["P(win)", "EV|safe", "Min", "Max"] if any_win_possible else ["EV|safe", "Min", "Max"]
+        extra_h = ["EV|safe", "Min", "Max"]
         extra_a = ("right",) * len(extra_h)
         headers   = base_headers[:5] + list(extra_h) + [base_headers[-1]]
         col_align = base_align[:5]   + extra_a        + (base_align[-1],)
@@ -129,12 +123,10 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
             marker = "⭐"
         else:
             marker = f"{i + 1}"
-        max_str = "WIN" if s.max_score == WIN_SCORE else str(s.max_score)
         row = [marker, _keep_str(state, s, config), _reroll_str(state, s),
                f"{s.p_lose:.1%}", f"{s.ev:.1f}", f"{s.delta_vs_stop:+.1f}"]
         if verbose:
-            extras = ([f"{s.p_win:.2%}"] if any_win_possible else []) + \
-                     [f"{s.ev_no_lose:.1f}", str(s.min_score), max_str]
+            extras = [f"{s.ev_no_lose:.1f}", str(s.min_score), str(s.max_score)]
             row = row[:-1] + extras + [row[-1]]
         rows.append(row)
 
@@ -144,8 +136,6 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
     lines.append("⭐ = recommended action  |  🛑 = stop  |  ΔvsStop = EV gain vs stopping now")
     if verbose:
         lines.append("EV|safe = expected score if no bust  |  Min/Max = score range")
-        if any_win_possible:
-            lines.append("P(win) = probability of 9 identical dice (instant game win)")
     lines.append("=" * 60)
 
     return "\n".join(lines)
@@ -170,7 +160,7 @@ def turn_ev(config: TurnConfig = DEFAULT_CONFIG) -> float:
                         rescue_held = _add_outcome(new_held, rescue_outcome)
                         state = State(2, rescue_held, True)
                         idx = sol.state_to_idx[state]
-                        ev += prob * rescue_prob * float(sol.V_normal[idx])
+                        ev += prob * rescue_prob * float(sol.V[idx])
                     else:
                         ev += prob * rescue_prob * initial_bust_score
             else:
@@ -179,7 +169,7 @@ def turn_ev(config: TurnConfig = DEFAULT_CONFIG) -> float:
         new_held = _add_outcome(config.initial_held, outcome)
         state = State(new_skulls, new_held, False)
         idx = sol.state_to_idx[state]
-        ev += prob * float(sol.V_normal[idx])
+        ev += prob * float(sol.V[idx])
     return ev
 
 

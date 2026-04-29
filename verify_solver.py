@@ -20,7 +20,7 @@ import sys
 from statistics import mean, stdev
 
 from solver.model import (
-    Face, CARD_CONFIGS, DEFAULT_CONFIG, TurnConfig, State, NUM_FACES, WIN_SCORE,
+    Face, CARD_CONFIGS, DEFAULT_CONFIG, TurnConfig, State, NUM_FACES,
 )
 from solver.scoring import score
 from solver.actions import valid_actions, guardian_kept_options
@@ -52,11 +52,6 @@ def build_policy(config: TurnConfig) -> dict:
     policy: dict[State, tuple] = {}
 
     for state in sol.states:
-        current_score = score(state.n_skulls, state.held, config)
-        if current_score == WIN_SCORE:
-            policy[state] = (state.held, False, True)   # instant win → stop
-            continue
-
         candidates = [
             compute_stats(state, kept, config)
             for kept in valid_actions(state, config)
@@ -103,10 +98,10 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
     """
     Simulate one complete turn following the optimal (max-EV) policy.
 
-    Return value follows the V_normal convention used by turn_ev():
-      - bust (3+ skulls)   → 0 for normal cards, -penalty for pirate-ship cards
-      - instant win        → 0  (WIN_SCORE events excluded from normal EV)
-      - normal stop        → stop score
+    Return value matches turn_ev():
+      - bust (3+ skulls)   → 0 for normal cards, -penalty for pirate-ship cards,
+                             held-dice score for treasure-island
+      - normal stop        → stop score (including 9-of-a-kind = 8000 + bonuses)
     """
     # ── Initial roll ──────────────────────────────────────────────────────────
     n_initial = config.total_dice - config.initial_n_skulls - sum(config.initial_held)
@@ -152,8 +147,7 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
             )
 
         if is_stop:
-            s = score(state.n_skulls, state.held, config)
-            return 0.0 if s == WIN_SCORE else float(s)
+            return float(score(state.n_skulls, state.held, config))
 
         if use_guardian:
             n_reroll       = (sum(state.held) - sum(kept)) + 1
@@ -219,8 +213,6 @@ def report_card(card_name: str, config: TurnConfig, n: int, seed: int | None,
     rel  = abs(emp - theoretical) / (abs(theoretical) + 1e-9) * 100
 
     busts = sum(1 for s in scores if s < 0)
-    zeros = sum(1 for s in scores if s == 0) - busts  # 0-point stops (not bust)
-    wins  = sum(1 for s in scores if s == WIN_SCORE)
 
     print(f"  Empirical mean           : {emp:>10.2f} pts  (±{sem:.2f} SEM)")
     print(f"  Std deviation            : {sd:>10.2f} pts")
@@ -229,8 +221,6 @@ def report_card(card_name: str, config: TurnConfig, n: int, seed: int | None,
     print(f"  Bust rate                : {sum(1 for s in scores if s <= 0) / n:>9.1%}")
     if busts:
         print(f"  Bust (negative score)    : {busts/n:>9.1%}")
-    if wins:
-        print(f"  Instant wins (excluded)  : {wins:>9d}")
     print(f"  Score range              : [{int(min(scores))}, {int(max(scores))}]")
 
     status = "\033[32mPASS ✓\033[0m" if z < 3 else "\033[31mFAIL ✗\033[0m"

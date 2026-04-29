@@ -42,7 +42,7 @@ def export_config(name: str, config, out_dir: Path) -> None:
             "treasure_island": config.treasure_island,
         },
         "states": states,
-        "V_normal": [round(float(v), 6) for v in sol.V_normal],
+        "V": [round(float(v), 6) for v in sol.V],
         "max_score": [int(v) for v in sol.max_score],
         "stop_values": [int(v) for v in sol.stop_values],
     }

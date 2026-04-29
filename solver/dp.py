@@ -76,8 +76,7 @@ class Solution:
     states: list[State]
     state_to_idx: dict
     stop_values: np.ndarray  # shape (n_states,)
-    V: np.ndarray            # shape (n_states,) — optimal expected score (WIN_SCORE for win states)
-    V_normal: np.ndarray     # shape (n_states,) — expected normal points (win → 0, not WIN_SCORE)
+    V: np.ndarray            # shape (n_states,) — optimal expected score under optimal play
     max_score: np.ndarray    # shape (n_states,) — best achievable score (best-case dice)
     actions: list[_Action]
 
@@ -165,7 +164,9 @@ def _solve(config: TurnConfig) -> Solution:
 
     actions = _precompute(states, state_to_idx, config)
 
-    # Expected-value DP (value iteration)
+    # Expected-value DP (value iteration). With the WIN_SCORE sentinel removed,
+    # a single value function captures everything: 9-of-a-kind is just the
+    # highest combo tier and folds naturally into the same Bellman recursion.
     V = stop_values.copy()
     while True:
         V_new = stop_values.copy()
@@ -176,20 +177,6 @@ def _solve(config: TurnConfig) -> Solution:
         if np.max(np.abs(V_new - V)) < 1e-9:
             break
         V = V_new
-
-    # V_normal: expected points excluding instant-win (win states contribute 0)
-    from .model import WIN_SCORE
-    stop_values_normal = np.where(stop_values >= WIN_SCORE, 0.0, stop_values)
-    V_normal = stop_values_normal.copy()
-    while True:
-        V_normal_new = stop_values_normal.copy()
-        for a in actions:
-            ev = float(np.dot(a.next_probs, V_normal[a.next_idxs])) + a.bust_ev
-            if ev > V_normal_new[a.state_idx]:
-                V_normal_new[a.state_idx] = ev
-        if np.max(np.abs(V_normal_new - V_normal)) < 1e-9:
-            break
-        V_normal = V_normal_new
 
     # Max-score DP (best-case dice, optimal play)
     max_score = stop_values.copy()
@@ -203,7 +190,7 @@ def _solve(config: TurnConfig) -> Solution:
             break
         max_score = max_new
 
-    return Solution(config, states, state_to_idx, stop_values, V, V_normal, max_score, actions)
+    return Solution(config, states, state_to_idx, stop_values, V, max_score, actions)
 
 
 def _save_solution(sol: Solution) -> None:
@@ -211,7 +198,6 @@ def _save_solution(sol: Solution) -> None:
     path = _DISK_CACHE_DIR / f"{_config_key(sol.config)}.npz"
     np.savez_compressed(path,
                         V=sol.V,
-                        V_normal=sol.V_normal,
                         max_score=sol.max_score,
                         stop_values=sol.stop_values)
 
@@ -229,7 +215,6 @@ def _load_solution(config: TurnConfig) -> Solution | None:
         state_to_idx=state_to_idx,
         stop_values=data["stop_values"],
         V=data["V"],
-        V_normal=data["V_normal"],
         max_score=data["max_score"],
         actions=[],
     )

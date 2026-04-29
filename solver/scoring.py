@@ -1,11 +1,11 @@
-from .model import Face, COMBO_SCORE, WIN_SCORE, TurnConfig, DEFAULT_CONFIG
+from .model import Face, COMBO_SCORE, TurnConfig, DEFAULT_CONFIG
 
 
 def _score_combos(held: tuple, config: TurnConfig) -> int:
     """
     Compute combo + coin/diamond individual bonuses + sword bonus/penalty + multiplier.
-    Does NOT check for Pirate's Magic (9-of-a-kind) or full-chest bonus; those are
-    caller responsibilities. Safe to call on a busted hand (with n_skulls >= 3).
+    Does NOT check the full-chest bonus; that is the caller's responsibility.
+    Safe to call on a busted hand (with n_skulls >= 3).
     """
     total = 0
 
@@ -38,22 +38,15 @@ def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> in
     """
     Compute the score for a completed turn.
     Returns 0 if n_skulls >= 3 (bust), except with the Treasure Island card which scores
-    the held dice even on a bust.
-    Returns WIN_SCORE if 9 identical dice are achieved (Pirate's Magic instant win).
+    the held dice even on a bust. A 9-of-a-kind (reachable only with the Coin/Diamond
+    card) is just the highest combo tier — no special-case win sentinel.
     """
     if n_skulls >= 3:
         if config.treasure_island:
-            # Score the held dice even on bust. Full-chest and Pirate's Magic are impossible
-            # with 3+ skulls, so we skip those checks and go straight to combo scoring.
+            # Score the held dice even on bust. Full-chest is impossible with 3+ skulls
+            # (need every die contributing), so we skip that check and just score combos.
             return _score_combos(held, config)
         return -config.sword_penalty if config.sword_penalty else 0
-
-    # Pirate's Magic: exactly 9 identical dice = instant game win.
-    # The rule requires specifically 9 — 8 identical in the base game is not a win.
-    if n_skulls == 0:
-        for f in range(1, 6):
-            if held[f] == 9:
-                return WIN_SCORE
 
     total = 0
 

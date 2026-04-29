@@ -43,11 +43,13 @@ def test_zero_score_not_doubled():
     assert score(3, held((Face.SWORD, 5)), PIRATE) == 0
 
 
-def test_win_score_not_doubled():
-    # 9 identical → WIN_SCORE sentinel, not subject to multiplier
-    from solver.model import WIN_SCORE
+def test_9_of_a_kind_doubled_like_any_other_combo():
+    # 9-of-a-kind is just COMBO_SCORE[9]=8000, multiplied by the pirate's ×2 like
+    # any other combo. (Note: 9-of-a-kind is unreachable in pirate's 8-dice config;
+    # this test exercises the scoring function directly to verify symmetry.)
+    # No chest bonus: sum(held)=9 != total_dice=8.
     h = held((Face.SWORD, 9))
-    assert score(0, h, PIRATE) == WIN_SCORE
+    assert score(0, h, PIRATE) == 16000   # 8000 × 2
 
 
 # ---------------------------------------------------------------------------
