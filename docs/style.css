@@ -1337,6 +1337,25 @@ body {
 .sb-total-pos { color: var(--accent); }
 .sb-total-neg { color: #fca5a5; }
 
+.sb-avg-row {
+  border-top: 1px solid var(--border);
+}
+
+.sb-avg-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sb-avg-td {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: none;
+}
+
+.sb-round-td.sb-avg-label { border-bottom: none; }
+
 .scoreboard-empty {
   color: var(--text-muted);
   font-size: 0.9rem;

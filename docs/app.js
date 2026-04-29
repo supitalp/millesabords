@@ -431,6 +431,7 @@ const app = createApp({
     // ── Game state ────────────────────────────────────────────────────────────
     const dice         = ref(Array(8).fill(0));          // true committed game state
     const selectedCard = ref('default');
+    const originalCard = ref('default');                 // card drawn at turn start; survives guardian switch
     const mode         = ref('play');                    // 'play' | 'select'
     const selectedDice = ref(Array(8).fill(false));
     const guardianUsed = ref(false);                     // C1
@@ -708,6 +709,7 @@ const app = createApp({
 
       displayDice.value = Array(8).fill(FACE_BLANK);
       selectedCard.value = randomCard();
+      originalCard.value = selectedCard.value;
 
       await _animateCardReveal();
 
@@ -802,6 +804,7 @@ const app = createApp({
       dice.value = randomDice();
       displayDice.value = [...dice.value];
       selectedCard.value = randomCard();
+      originalCard.value = selectedCard.value;
       displayCard.value = selectedCard.value;
       selectedDice.value = Array(8).fill(false);
       guardianUsed.value = false;
@@ -864,10 +867,10 @@ const app = createApp({
 
     // ── Multiplayer computed (D1) ─────────────────────────────────────────────
 
-    // Score to persist when the player clicks "Record Score"
+    // Full turn state to persist when the player clicks "Record Score"
     const scoreToRecord = computed(() => {
-      if (currentScore.value.win) return WIN_SCORE;
-      return currentScore.value.score ?? 0;
+      const score = currentScore.value.win ? WIN_SCORE : (currentScore.value.score ?? 0);
+      return { score, card: originalCard.value, dice: [...dice.value] };
     });
 
     // Effective player name from the submit form (used to enable the submit button)
@@ -889,10 +892,19 @@ const app = createApp({
     // Running total per player
     const playerTotals = computed(() => {
       const totals = {};
-      for (const [name, scores] of Object.entries(gameScores.value)) {
-        totals[name] = scores.reduce((a, b) => a + b, 0);
+      for (const [name, turns] of Object.entries(gameScores.value)) {
+        totals[name] = turns.reduce((a, t) => a + t.score, 0);
       }
       return totals;
+    });
+
+    // Average score per turn per player
+    const playerAverages = computed(() => {
+      const avgs = {};
+      for (const [name, turns] of Object.entries(gameScores.value)) {
+        avgs[name] = turns.length > 0 ? turns.reduce((a, t) => a + t.score, 0) / turns.length : null;
+      }
+      return avgs;
     });
 
     // Internal: fetch + compute, populate strategyData. Does NOT touch strategyOn.
@@ -999,7 +1011,8 @@ const app = createApp({
     }
 
     // Scoreboard helpers
-    function scoreCellClass(score) {
+    function scoreCellClass(turn) {
+      const score = turn?.score;
       if (score === undefined || score === null) return 'score-cell-empty';
       if (score >= WIN_SCORE) return 'score-cell-win';
       if (score > 0)          return 'score-cell-pos';
@@ -1007,7 +1020,8 @@ const app = createApp({
       return 'score-cell-zero';
     }
 
-    function formatScoreCell(score) {
+    function formatScoreCell(turn) {
+      const score = turn?.score;
       if (score === undefined || score === null) return '—';
       if (score >= WIN_SCORE) return '🏆';
       return String(score);
@@ -1071,7 +1085,8 @@ const app = createApp({
       fixedCardDice, currentScore, WIN_SCORE, FACE,
       // D1: multiplayer
       savedPlayers, gameScores, submitModalOpen, submitPlayer, newPlayerName, scoreboardOpen,
-      scoreToRecord, submitPlayerName, scoreboardPlayers, hasAnyScores, maxRounds, playerTotals,
+      scoreToRecord, submitPlayerName, scoreboardPlayers, hasAnyScores, maxRounds,
+      playerTotals, playerAverages,
       openSubmitModal, submitScore, resetScores, scoreCellClass, formatScoreCell,
     };
   },

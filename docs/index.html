@@ -346,8 +346,8 @@
                 <template v-else>
                   <span
                     class="submit-hero-number"
-                    :class="scoreToRecord < 0 ? 'submit-hero-neg' : scoreToRecord === 0 ? 'submit-hero-zero' : ''"
-                  >{{ scoreToRecord }}</span>
+                    :class="scoreToRecord.score < 0 ? 'submit-hero-neg' : scoreToRecord.score === 0 ? 'submit-hero-zero' : ''"
+                  >{{ scoreToRecord.score }}</span>
                   <span class="submit-hero-unit">pts</span>
                   <span v-if="currentScore.busted" class="submit-hero-bust">💀 Busted</span>
                 </template>
@@ -432,6 +432,14 @@
                           class="sb-score-td sb-total-td"
                           :class="(playerTotals[p] ?? 0) >= 0 ? 'sb-total-pos' : 'sb-total-neg'"
                         >{{ playerTotals[p] ?? 0 }}</td>
+                      </tr>
+                      <tr class="sb-avg-row">
+                        <td class="sb-round-td sb-avg-label">μ</td>
+                        <td
+                          v-for="p in scoreboardPlayers"
+                          :key="p"
+                          class="sb-score-td sb-avg-td"
+                        >{{ playerAverages[p] !== null ? playerAverages[p].toFixed(1) : '—' }}</td>
                       </tr>
                     </tfoot>
                   </table>
