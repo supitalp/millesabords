@@ -5,6 +5,7 @@ import { createApp, ref, computed, reactive } from 'https://unpkg.com/vue@3/dist
 const FACE = { SKULL: 0, SWORD: 1, COIN: 2, DIAMOND: 3, MONKEY: 4, PARROT: 5 };
 const NUM_FACES = 6;
 const WIN_SCORE = 1_000_000;
+const FACE_BLANK = -1; // sentinel: die not yet rolled
 
 const FACE_EMOJI = ['💀', '⚔️', '🪙', '💎', '🐒', '🦜'];
 const FACE_NAMES = ['Skull', 'Sword', 'Coin', 'Diamond', 'Monkey', 'Parrot'];
@@ -12,17 +13,17 @@ const FACE_NAMES = ['Skull', 'Sword', 'Coin', 'Diamond', 'Monkey', 'Parrot'];
 const COMBO_SCORE = { 3: 100, 4: 200, 5: 500, 6: 1000, 7: 2000, 8: 4000 };
 
 const CARD_OPTIONS = [
-  { value: 'default',      label: 'No card',                         icon: '🎲' },
-  { value: 'skull-1',      label: 'Skull card (1 skull locked)',      icon: '💀' },
-  { value: 'skull-2',      label: 'Skull card (2 skulls locked)',     icon: '💀💀' },
-  { value: 'coin',         label: 'Treasure: Coin (+1 coin die)',     icon: '🪙' },
-  { value: 'diamond',      label: 'Treasure: Diamond (+1 diamond die)', icon: '💎' },
-  { value: 'animals',      label: 'Animals (monkeys = parrots)',      icon: '🐒🦜' },
-  { value: 'pirate',       label: 'Pirate (×2 score)',                icon: '🏴‍☠️' },
-  { value: 'guardian',     label: 'Guardian (reroll 1 skull once)',   icon: '🛡️' },
-  { value: 'pirate-ship-2', label: 'Pirate Ship (≥2 ⚔️, +300/−300)', icon: '⚓' },
-  { value: 'pirate-ship-3', label: 'Pirate Ship (≥3 ⚔️, +500/−500)', icon: '⚓' },
-  { value: 'pirate-ship-4', label: 'Pirate Ship (≥4 ⚔️, +1000/−1000)', icon: '⚓' },
+  { value: 'default',       name: 'No Card',       icon: '🎲',          desc: 'No bonus card',                        label: 'No card'                              },
+  { value: 'skull-1',       name: 'Skull ×1',      icon: '💀',          desc: '1 skull locked at start',              label: 'Skull ×1 (1 skull locked)'            },
+  { value: 'skull-2',       name: 'Skull ×2',      icon: '💀💀',        desc: '2 skulls locked at start',             label: 'Skull ×2 (2 skulls locked)'           },
+  { value: 'coin',          name: 'Coin',           icon: '🪙',          desc: '+1 coin die at start',                 label: 'Coin (+1 coin die)'                   },
+  { value: 'diamond',       name: 'Diamond',        icon: '💎',          desc: '+1 diamond die at start',              label: 'Diamond (+1 diamond die)'             },
+  { value: 'animals',       name: 'Animals',        icon: '🐒🦜',        desc: 'Monkeys and parrots count together',   label: 'Animals (monkeys = parrots)'          },
+  { value: 'pirate',        name: 'Pirate',         icon: '🏴‍☠️',          desc: 'Score × 2',                            label: 'Pirate (×2 score)'                    },
+  { value: 'guardian',      name: 'Guardian',       icon: '🛡️',          desc: 'Reroll 1 skull once per turn',         label: 'Guardian (reroll 1 skull once)'       },
+  { value: 'pirate-ship-2', name: 'Pirate Ship',    icon: '⚔️⚔️',        desc: '≥2 swords: +300 pts, else −300 pts',   label: 'Pirate Ship (+300 / −300)'   },
+  { value: 'pirate-ship-3', name: 'Pirate Ship',    icon: '⚔️⚔️⚔️',      desc: '≥3 swords: +500 pts, else −500 pts',   label: 'Pirate Ship (+500 / −500)'   },
+  { value: 'pirate-ship-4', name: 'Pirate Ship',    icon: '⚔️⚔️⚔️⚔️',    desc: '≥4 swords: +1000 pts, else −1000 pts',  label: 'Pirate Ship (+1000 / −1000)' },
 ];
 
 const _EMPTY_HELD = [0, 0, 0, 0, 0, 0];
@@ -406,26 +407,47 @@ function rerollStr(state, s) {
 
 // ─── Vue App ───────────────────────────────────────────────────────────────────
 
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 const app = createApp({
   setup() {
-    const dice = ref(randomDice());
-    const selectedCard = ref(randomCard());
-    const loading = ref(false);
-    const error = ref(null);
+    // ── Game state ────────────────────────────────────────────────────────────
+    const dice         = ref(Array(8).fill(0));          // true committed game state
+    const selectedCard = ref('default');
+    const mode         = ref('play');                    // 'play' | 'select'
+    const selectedDice = ref(Array(8).fill(false));
+    const guardianUsed = ref(false);                     // C1
+
+    // ── Turn / animation state ────────────────────────────────────────────────
+    // 'idle'          → fresh page load: blank card back + blank dice
+    // 'card_revealed' → card flipped, waiting for user to click "Roll Dice!"
+    // 'rolling'       → dice animating (all buttons disabled)
+    // 'active'        → dice settled, normal play
+    const turnPhase   = ref('idle');
+    const displayDice = ref(Array(8).fill(FACE_BLANK)); // visually shown faces
+    const isAnimating  = ref(false);
+    const displayCard  = ref(null); // null = card back; string = card value being shown
+
+    // ── Strategy state ────────────────────────────────────────────────────────
+    const loading      = ref(false);
+    const error        = ref(null);
     const strategyData = ref(null); // null = not yet computed; cleared when dice/card change
     const strategyOn   = ref(false);  // A4: toggle — controls die highlights + banner
     const modalOpen    = ref(false);  // A4: details modal
 
-    const mode = ref('play'); // 'play' | 'select'
-    const selectedDice = ref(Array(8).fill(false));
     const anySelected = computed(() => selectedDice.value.some(Boolean));
     const selectedCount = computed(() => selectedDice.value.filter(Boolean).length);
 
-    // A2: card selector is locked whenever we are in play mode.
-    const cardLocked = computed(() => mode.value === 'play');
+    // Current card option object (for the card tile display)
+    // Card shown on the tile right now (cycles during animation, null = back of card)
+    const displayCardOption = computed(() =>
+      displayCard.value === null
+        ? null
+        : (CARD_OPTIONS.find(o => o.value === displayCard.value) ?? CARD_OPTIONS[0])
+    );
 
-    // C1: true once the Guardian's one-time skull reroll has been consumed.
-    const guardianUsed = ref(false);
+    // A2: card selector locked in play mode once a turn has started
+    const cardLocked = computed(() => mode.value === 'play' && turnPhase.value !== 'idle');
 
     // Returns a human-readable reason string when the current selection is an
     // invalid reroll (solver forbids n_reroll=1 and n_kept_variable=0).
@@ -454,7 +476,7 @@ const app = createApp({
     // selection. null when no dice are selected, the state is already busted,
     // or the selection is invalid.
     const bustProbability = computed(() => {
-      if (mode.value !== 'play' || !anySelected.value || !!rollInvalidReason.value) return null;
+      if (mode.value !== 'play' || turnPhase.value !== 'active' || !anySelected.value || !!rollInvalidReason.value) return null;
       const config = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
       const state = diceToState(dice.value, config);
       if (state.n_skulls >= 3) return null;
@@ -507,6 +529,11 @@ const app = createApp({
       selectedDice.value = Array(8).fill(false);
       guardianUsed.value = false;
       _clearStrategy();
+      if (m === 'select') {
+        // Sync visual display with committed values when entering edit mode
+        displayDice.value = [...dice.value];
+        displayCard.value = selectedCard.value;
+      }
     }
 
     // Returns true if die i can be toggled for re-roll in play mode.
@@ -526,16 +553,144 @@ const app = createApp({
     }
 
     function interactDie(i) {
+      // Silently ignore clicks during animation or while dice haven't been rolled yet
+      if (isAnimating.value || displayDice.value[i] === FACE_BLANK) return;
       if (mode.value === 'play') {
         if (!isDieSelectable(i)) return;
         selectedDice.value[i] = !selectedDice.value[i];
       } else {
         dice.value[i] = (dice.value[i] + 1) % NUM_FACES;
+        displayDice.value[i] = dice.value[i]; // keep display in sync
         _clearStrategy();
       }
     }
 
-    function rollSelected() {
+    // ── Animation engine ──────────────────────────────────────────────────────
+
+    // Slot-machine animation for a single die.
+    // Rapidly cycles through random faces (fast → decelerate → settle).
+    // startDelay: ms to wait before starting; perDieMs: total cycle duration.
+    async function _animateSingleDie(idx, finalFace, startDelay, perDieMs) {
+      if (startDelay > 0) await sleep(startDelay);
+
+      // Build schedule: fast ticks → progressively slower ticks
+      const MIN_IV  = 55;   // fastest tick interval (ms)
+      const MAX_IV  = 190;  // slowest tick before settling (ms)
+      const schedule = [];
+      let elapsed = 0;
+      const fastEnd = perDieMs * 0.62;
+
+      // Fast phase
+      while (elapsed < fastEnd) {
+        schedule.push(MIN_IV);
+        elapsed += MIN_IV;
+      }
+      // Deceleration phase
+      let iv = MIN_IV;
+      while (elapsed < perDieMs - MAX_IV) {
+        iv = Math.min(Math.round(iv * 1.5), MAX_IV);
+        schedule.push(iv);
+        elapsed += iv;
+      }
+
+      // Run cycles (all show random faces)
+      for (const interval of schedule) {
+        displayDice.value[idx] = Math.floor(Math.random() * NUM_FACES);
+        await sleep(interval);
+      }
+
+      // Settle on final face
+      displayDice.value[idx] = finalFace;
+    }
+
+    // Animate a set of dice.
+    // diceToRoll: [{idx, finalFace}, ...]
+    // perDieMs:   how long each die's slot-machine runs
+    // staggerMs:  delay between successive dice starts (0 = all simultaneous)
+    // When staggerMs > 0 the order is randomised for a pleasing cascade effect.
+    async function _animateDiceRoll(diceToRoll, perDieMs, staggerMs = 0) {
+      const order = [...diceToRoll];
+      if (staggerMs > 0) {
+        // Shuffle for random settle order
+        for (let i = order.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [order[i], order[j]] = [order[j], order[i]];
+        }
+      }
+      await Promise.all(
+        order.map(({ idx, finalFace }, i) =>
+          _animateSingleDie(idx, finalFace, i * staggerMs, perDieMs)
+        )
+      );
+    }
+
+    // ── Turn flow ─────────────────────────────────────────────────────────────
+
+    // Slot-machine reveal for the bonus card: rapidly cycles through card icons
+    // then settles on the actual drawn card (same deceleration pattern as dice).
+    async function _animateCardReveal() {
+      const cyclePool = CARD_OPTIONS.filter(o => o.value !== 'default');
+      displayCard.value = null; // show card back briefly
+      await sleep(160);
+
+      const MIN_IV = 65, MAX_IV = 220, TOTAL_MS = 1050;
+      const schedule = [];
+      let elapsed = 0;
+      while (elapsed < TOTAL_MS * 0.65) { schedule.push(MIN_IV); elapsed += MIN_IV; }
+      let iv = MIN_IV;
+      while (elapsed < TOTAL_MS - MAX_IV) {
+        iv = Math.min(Math.round(iv * 1.5), MAX_IV);
+        schedule.push(iv); elapsed += iv;
+      }
+
+      for (const interval of schedule) {
+        displayCard.value = cyclePool[Math.floor(Math.random() * cyclePool.length)].value;
+        await sleep(interval);
+      }
+      displayCard.value = selectedCard.value; // settle on drawn card
+    }
+
+    // Step 1 of a new turn: draw and reveal the bonus card, then wait for the
+    // user to click "Roll Dice!".
+    async function startNewTurn() {
+      if (isAnimating.value) return;
+      isAnimating.value = true;
+      turnPhase.value = 'card_revealed';
+      mode.value = 'play';
+      guardianUsed.value = false;
+      selectedDice.value = Array(8).fill(false);
+      _clearStrategy();
+
+      displayDice.value = Array(8).fill(FACE_BLANK);
+      selectedCard.value = randomCard();
+
+      await _animateCardReveal();
+
+      isAnimating.value = false;
+      // turnPhase remains 'card_revealed' — "Roll Dice!" button now appears
+    }
+
+    // Step 2: roll all 8 dice with slot-machine animation, staggered (~2 s total).
+    async function rollInitialDice() {
+      if (isAnimating.value) return;
+      isAnimating.value = true;
+      turnPhase.value = 'rolling';
+
+      const finalDice = randomDice();
+      dice.value = finalDice;
+
+      // perDie = 900 ms, stagger = 150 ms → last die starts at 7×150=1050ms, ends at 1950ms ≈ 2s
+      await _animateDiceRoll(
+        finalDice.map((finalFace, idx) => ({ idx, finalFace })),
+        900, 150
+      );
+
+      displayDice.value = [...finalDice]; // safety flush
+      turnPhase.value = 'active';
+      isAnimating.value = false;
+    }
+
+    async function rollSelected() {
       // C1: detect guardian skull reroll before overwriting dice.
       const skullWasSelected = selectedDice.value.some(
         (sel, i) => sel && dice.value[i] === FACE.SKULL
@@ -547,13 +702,25 @@ const app = createApp({
         selectedCard.value = 'default';
       }
 
+      // Compute final values and commit to game state immediately
       const newDice = [...dice.value];
+      const diceToRoll = [];
       for (let i = 0; i < newDice.length; i++) {
-        if (selectedDice.value[i]) newDice[i] = Math.floor(Math.random() * NUM_FACES);
+        if (selectedDice.value[i]) {
+          const finalFace = Math.floor(Math.random() * NUM_FACES);
+          newDice[i] = finalFace;
+          diceToRoll.push({ idx: i, finalFace });
+        }
       }
       dice.value = newDice;
       selectedDice.value = Array(8).fill(false);
       _clearStrategy();
+
+      isAnimating.value = true;
+      // All selected dice animate simultaneously (staggerMs = 0), ~900 ms each
+      await _animateDiceRoll(diceToRoll, 900, 0);
+      displayDice.value = [...dice.value]; // safety flush
+      isAnimating.value = false;
     }
 
     // Sort priority per face: skull, coin, diamond, sword, monkey, parrot
@@ -563,16 +730,21 @@ const app = createApp({
       const pairs = dice.value.map((face, i) => ({ face, selected: selectedDice.value[i] }));
       pairs.sort((a, b) => _REORDER_PRIORITY[a.face] - _REORDER_PRIORITY[b.face]);
       dice.value = pairs.map(p => p.face);
+      displayDice.value = [...dice.value]; // keep display in sync
       selectedDice.value = pairs.map(p => p.selected);
     }
 
     function onCardChange() {
       _clearStrategy();
+      displayCard.value = selectedCard.value; // keep tile in sync in edit mode
     }
 
+    // Edit-mode instant randomise (no animation)
     function randomize() {
       dice.value = randomDice();
+      displayDice.value = [...dice.value];
       selectedCard.value = randomCard();
+      displayCard.value = selectedCard.value;
       selectedDice.value = Array(8).fill(false);
       guardianUsed.value = false;
       _clearStrategy();
@@ -724,11 +896,14 @@ const app = createApp({
       dice, selectedCard, loading, error,
       strategyData, strategyOn, modalOpen,
       bestStrategyIsStop, bestStrategyRerollIndices,
-      FACE_EMOJI, FACE_NAMES, CARD_OPTIONS,
+      FACE_EMOJI, FACE_NAMES, CARD_OPTIONS, FACE_BLANK,
       mode, selectedDice, anySelected, selectedCount, rollInvalidReason, bustProbability,
       cardLocked, guardianUsed,
+      // A7: animation state
+      turnPhase, displayDice, isAnimating, displayCard, displayCardOption,
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, toggleStrategy, randomize,
+      startNewTurn, rollInitialDice,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
       fixedCardDice, currentScore, WIN_SCORE, FACE,

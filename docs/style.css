@@ -145,6 +145,121 @@ body {
   background: var(--bg-card);
 }
 
+/* ─── A7: Card tile (play mode) ─────────────────────────────────────────────── */
+.card-tile-container {
+  display: flex;
+  justify-content: center;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.card-tile {
+  width: 220px;
+  height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 8px,
+      rgba(255,255,255,0.025) 8px,
+      rgba(255,255,255,0.025) 16px
+    );
+  transition: border-color 0.2s, box-shadow 0.2s, background-image 0.2s;
+}
+
+/* Settled on a card: highlight border */
+.card-tile-settled {
+  border-color: var(--accent);
+  box-shadow: 0 0 24px rgba(240,165,0,0.18);
+  background-image: none;
+}
+
+.card-tile-back-icon {
+  font-size: 2.2rem;
+  opacity: 0.3;
+  user-select: none;
+}
+
+.card-tile-back-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  opacity: 0.45;
+}
+
+.card-tile-face-icon {
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.05em; /* a little breathing room between repeated emoji */
+}
+
+.card-tile-face-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  padding: 0 0.75rem;
+  letter-spacing: 0.01em;
+}
+
+/* Idle-state prompt below the card back */
+.card-idle-hint {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  opacity: 0.55;
+  margin-top: 0.35rem;
+  letter-spacing: 0.01em;
+}
+
+/* "Roll Dice!" button — prominent primary CTA */
+.roll-dice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 2.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: var(--font);
+  background: var(--accent);
+  color: #0f1117;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform 0.1s, box-shadow 0.15s, background 0.15s;
+  box-shadow: 0 4px 20px rgba(240,165,0,0.4);
+  animation: roll-dice-pulse 2s ease-in-out infinite;
+}
+
+@keyframes roll-dice-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(240,165,0,0.4); }
+  50%       { box-shadow: 0 6px 30px rgba(240,165,0,0.65); }
+}
+
+.roll-dice-btn:hover:not(:disabled) {
+  background: #f8b800;
+  transform: translateY(-2px);
+  animation: none;
+  box-shadow: 0 8px 28px rgba(240,165,0,0.5);
+}
+
+.roll-dice-btn:active:not(:disabled) { transform: translateY(0); }
+
+.roll-dice-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
+}
+
 /* ─── Dice ──────────────────────────────────────────────────────────────────── */
 .dice-section-header {
   display: flex;
@@ -254,10 +369,18 @@ body {
   padding: 0.4rem;
 }
 
+/* Inner wrapper — keeps content centred inside the die button */
+.die-face-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+
 .die-emoji {
   font-size: 2rem;
   line-height: 1;
-  /* ensure emoji renders at consistent size */
   display: block;
 }
 
@@ -266,6 +389,29 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
+}
+
+/* Blank / not-yet-rolled die */
+.die-blank {
+  border-style: dashed !important;
+  border-color: var(--border) !important;
+  cursor: default !important;
+}
+
+.die-blank:hover {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.die-blank .die-emoji {
+  font-size: 1.4rem;
+  opacity: 0.25;
+}
+
+.die-blank .die-name {
+  opacity: 0;
 }
 
 /* Interactive die */

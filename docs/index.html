@@ -21,10 +21,33 @@
       <section class="section card-section">
         <div class="card-section-header">
           <h2 class="section-title">Pirate Card</h2>
-          <span v-if="cardLocked" class="card-locked-badge" title="Switch to Edit mode or start a New Turn to change card">🔒 Locked</span>
+          <span v-if="cardLocked && mode === 'play'" class="card-locked-badge" title="Start a New Turn to draw a new card">🔒 Locked</span>
         </div>
-        <div class="card-picker">
-          <select v-model="selectedCard" @change="onCardChange" class="card-select" :disabled="cardLocked" :class="{ 'card-select-locked': cardLocked }">
+
+        <!-- Play mode: slot-machine card tile -->
+        <template v-if="mode === 'play'">
+          <div class="card-tile-container">
+            <div
+              class="card-tile"
+              :class="{ 'card-tile-settled': displayCard !== null }"
+              :title="displayCard !== null ? displayCardOption.desc : ''"
+            >
+              <template v-if="displayCard === null">
+                <span class="card-tile-back-icon">🂠</span>
+                <span class="card-tile-back-label">Pirate Card</span>
+              </template>
+              <template v-else>
+                <span class="card-tile-face-icon">{{ displayCardOption.icon }}</span>
+                <span class="card-tile-face-name">{{ displayCardOption.name }}</span>
+              </template>
+            </div>
+          </div>
+          <p v-if="turnPhase === 'idle'" class="card-idle-hint">Draw a card to begin your turn</p>
+        </template>
+
+        <!-- Edit mode: plain select -->
+        <div v-else class="card-picker">
+          <select v-model="selectedCard" @change="onCardChange" class="card-select">
             <option v-for="opt in CARD_OPTIONS" :key="opt.value" :value="opt.value">
               {{ opt.icon }}  {{ opt.label }}
             </option>
@@ -36,20 +59,50 @@
       <section class="section dice-section">
         <div class="dice-section-header">
           <h2 class="section-title">Your Dice</h2>
-          <div class="dice-header-controls">
-            <button class="reorder-btn" @click="reorderDice" title="Group same faces together">⊞ Group Dice</button>
+          <!-- Reserve layout space always; only interactive + visible when active -->
+          <div
+            class="dice-header-controls"
+            :style="{ visibility: turnPhase === 'active' ? 'visible' : 'hidden' }"
+          >
+            <button class="reorder-btn" @click="reorderDice" :disabled="isAnimating" title="Group same faces together">⊞ Group Dice</button>
             <div class="mode-toggle">
               <button :class="['mode-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')">🎮 Play</button>
               <button :class="['mode-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')">✏️ Edit</button>
             </div>
           </div>
         </div>
-        <p class="section-hint mode-hint" v-if="mode === 'play'">Click dice to select them, then roll</p>
-        <p class="section-hint mode-hint" v-else>Click a die to cycle its face</p>
+        <!-- Reserve one line of height always so the dice row never shifts -->
+        <p class="section-hint mode-hint"
+           :style="{ visibility: turnPhase === 'active' ? 'visible' : 'hidden' }">
+          {{ mode === 'play' ? 'Click dice to select them, then roll' : 'Click a die to cycle its face' }}
+        </p>
 
         <div class="dice-area">
-          <!-- Fixed card dice (not clickable) -->
-          <div v-if="fixedCardDice.length > 0" class="fixed-dice-group">
+          <!-- Interactive dice -->
+          <div class="dice-row">
+            <button
+              v-for="(face, i) in dice"
+              :key="i"
+              :class="[
+                'die', 'die-interactive',
+                displayDice[i] === FACE_BLANK                                               ? 'die-blank'          : '',
+                mode === 'play' && selectedDice[i]                                          ? 'die-selected'       : '',
+                mode === 'play' && turnPhase === 'active' && !isDieSelectable(i)            ? 'die-skull-locked'   : '',
+                turnPhase === 'active' && strategyOn && bestStrategyRerollIndices.has(i)    ? 'die-strategy-reroll': '',
+                turnPhase === 'active' && strategyOn && !bestStrategyRerollIndices.has(i) && dice[i] !== FACE.SKULL ? 'die-strategy-keep' : '',
+              ]"
+              @click="interactDie(i)"
+              :title="displayDice[i] === FACE_BLANK ? '' : mode === 'play' ? (selectedDice[i] ? 'Selected — will be re-rolled' : isDieSelectable(i) ? 'Click to select for re-roll' : dice[i] === FACE.SKULL ? (guardianUsed ? 'Guardian reroll already used — skull is now locked' : selectedCard === 'guardian' ? 'Only one skull can be re-rolled with the Guardian' : 'Skulls cannot be re-rolled') : 'Cannot be re-rolled') : 'Click to change (currently: ' + FACE_NAMES[face] + ')'"
+            >
+              <div class="die-face-wrapper">
+                <span class="die-emoji">{{ displayDice[i] === FACE_BLANK ? '·' : FACE_EMOJI[displayDice[i]] }}</span>
+                <span class="die-name">{{ displayDice[i] === FACE_BLANK ? '' : FACE_NAMES[displayDice[i]] }}</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Fixed card dice — shown below the main dice, only once active -->
+          <div v-if="turnPhase === 'active' && fixedCardDice.length > 0" class="fixed-dice-group">
             <div class="fixed-dice-label">Card dice (locked)</div>
             <div class="dice-row">
               <div
@@ -64,29 +117,9 @@
             </div>
           </div>
 
-          <!-- Interactive dice -->
-          <div class="dice-row">
-            <button
-              v-for="(face, i) in dice"
-              :key="i"
-              :class="[
-                'die', 'die-interactive',
-                mode === 'play' && selectedDice[i]    ? 'die-selected'        : '',
-                mode === 'play' && !isDieSelectable(i) ? 'die-skull-locked'    : '',
-                strategyOn && bestStrategyRerollIndices.has(i)                            ? 'die-strategy-reroll' : '',
-                strategyOn && !bestStrategyRerollIndices.has(i) && dice[i] !== FACE.SKULL ? 'die-strategy-keep'   : '',
-              ]"
-              @click="interactDie(i)"
-              :title="mode === 'play' ? (selectedDice[i] ? 'Selected — will be re-rolled' : isDieSelectable(i) ? 'Click to select for re-roll' : dice[i] === FACE.SKULL ? (guardianUsed ? 'Guardian reroll already used — skull is now locked' : selectedCard === 'guardian' ? 'Only one skull can be re-rolled with the Guardian' : 'Skulls cannot be re-rolled') : 'Cannot be re-rolled') : 'Click to change (currently: ' + FACE_NAMES[face] + ')'"
-            >
-              <span class="die-emoji">{{ FACE_EMOJI[face] }}</span>
-              <span class="die-name">{{ FACE_NAMES[face] }}</span>
-            </button>
-          </div>
-
-          <!-- Strategy banner -->
+          <!-- Strategy banner (active phase only) -->
           <div
-            v-if="strategyOn && strategyData && !strategyData.busted && !strategyData.win"
+            v-if="turnPhase === 'active' && strategyOn && strategyData && !strategyData.busted && !strategyData.win"
             class="strategy-banner"
             :class="bestStrategyIsStop ? 'strategy-banner-stop' : 'strategy-banner-reroll'"
           >
@@ -100,8 +133,8 @@
         </div>
       </section>
 
-      <!-- Current score -->
-      <section class="section score-section">
+      <!-- Current score — only meaningful once dice are settled -->
+      <section v-if="turnPhase === 'active'" class="section score-section">
         <h2 class="section-title">Current Score</h2>
         <div v-if="currentScore.busted" class="score-bust">💀 Busted — no points</div>
         <div v-else-if="currentScore.win" class="score-win">🏆 Pirate's Magic!</div>
@@ -126,45 +159,89 @@
       <!-- Action buttons -->
       <section class="section action-section">
         <div class="action-buttons">
+
+          <!-- ── idle / card_revealed: New Turn + Roll Dice ── -->
           <button
-            v-if="mode === 'play'"
-            class="roll-btn"
-            @click="rollSelected"
-            :disabled="!anySelected || !!rollInvalidReason || loading"
-            :title="rollInvalidReason ?? (anySelected ? 'Re-roll ' + selectedCount + ' selected ' + (selectedCount === 1 ? 'die' : 'dice') : 'Select dice above to re-roll')"
+            v-if="mode === 'play' && (turnPhase === 'idle' || turnPhase === 'active')"
+            class="randomize-btn"
+            @click="startNewTurn"
+            :disabled="isAnimating"
+            title="Draw a new card and roll all dice"
           >
-            🎲 Roll Selected{{ anySelected ? ' (' + selectedCount + ')' : '' }}
+            🎲 New Turn
           </button>
 
-          <!-- A4: strategy toggle -->
+          <!-- Step 2: roll the dice once the card has been revealed -->
+          <template v-if="mode === 'play' && turnPhase === 'card_revealed'">
+            <button
+              class="roll-dice-btn"
+              @click="rollInitialDice"
+              :disabled="isAnimating"
+              title="Roll all 8 dice to start your turn"
+            >
+              🎲 Roll Dice!
+            </button>
+            <button
+              class="randomize-btn"
+              @click="startNewTurn"
+              :disabled="isAnimating"
+              title="Re-draw a different card"
+            >
+              ↩ Redraw Card
+            </button>
+          </template>
+
+          <!-- ── active play: Roll Selected, Hint, Details ── -->
+          <template v-if="turnPhase === 'active'">
+            <button
+              v-if="mode === 'play'"
+              class="roll-btn"
+              @click="rollSelected"
+              :disabled="!anySelected || !!rollInvalidReason || loading || isAnimating"
+              :title="rollInvalidReason ?? (anySelected ? 'Re-roll ' + selectedCount + ' selected ' + (selectedCount === 1 ? 'die' : 'dice') : 'Select dice above to re-roll')"
+            >
+              🎲 Roll Selected{{ anySelected ? ' (' + selectedCount + ')' : '' }}
+            </button>
+
+            <!-- A4: strategy toggle -->
+            <button
+              class="solve-btn"
+              :class="{ 'solve-btn-active': strategyOn }"
+              @click="toggleStrategy"
+              :disabled="loading || isAnimating || currentScore.busted || currentScore.win"
+              :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
+            >
+              <span v-if="loading" class="spinner"></span>
+              <span v-else-if="strategyOn">💡 Hint ON</span>
+              <span v-else>💡 Hint</span>
+            </button>
+
+            <!-- A4: details modal trigger -->
+            <button
+              v-if="strategyOn && strategyData && !strategyData.busted && !strategyData.win"
+              class="details-btn"
+              @click="modalOpen = true"
+              title="View full strategy table"
+            >
+              📋 Details
+            </button>
+          </template>
+
+          <!-- ── edit mode: Randomize ── -->
           <button
-            class="solve-btn"
-            :class="{ 'solve-btn-active': strategyOn }"
-            @click="toggleStrategy"
-            :disabled="loading || currentScore.busted || currentScore.win"
-            :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
+            v-if="mode === 'select'"
+            class="randomize-btn"
+            @click="randomize"
+            :disabled="loading"
+            title="Pick random dice and card"
           >
-            <span v-if="loading" class="spinner"></span>
-            <span v-else-if="strategyOn">💡 Hint ON</span>
-            <span v-else>💡 Hint</span>
+            🎲 Randomize
           </button>
 
-          <!-- A4: details modal trigger — only when strategy is active and has a table -->
-          <button
-            v-if="strategyOn && strategyData && !strategyData.busted && !strategyData.win"
-            class="details-btn"
-            @click="modalOpen = true"
-            title="View full strategy table"
-          >
-            📋 Details
-          </button>
-
-          <button class="randomize-btn" @click="randomize" :disabled="loading" :title="mode === 'play' ? 'Start a new turn with random dice and card' : 'Pick random dice and card'">
-            {{ mode === 'play' ? '🎲 New Turn' : '🎲 Randomize' }}
-          </button>
         </div>
-        <!-- B1: danger gauge -->
-        <div v-if="bustProbability !== null" class="danger-gauge">
+
+        <!-- B1: danger gauge (active play only) -->
+        <div v-if="turnPhase === 'active' && bustProbability !== null" class="danger-gauge">
           <div class="danger-label">
             <span>☠️ Bust risk</span>
             <span class="danger-pct">{{ (bustProbability * 100).toFixed(1) }}%</span>
@@ -181,7 +258,7 @@
           </div>
         </div>
 
-        <p v-if="rollInvalidReason && mode === 'play'" class="roll-invalid-hint">⚠️ {{ rollInvalidReason }}</p>
+        <p v-if="turnPhase === 'active' && rollInvalidReason && mode === 'play'" class="roll-invalid-hint">⚠️ {{ rollInvalidReason }}</p>
         <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
       </section>
 
