@@ -50,18 +50,18 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
     min_score = None
     max_score = None
 
-    bust_score = -config.sword_penalty if config.sword_penalty else 0
     for outcome, prob in roll_outcomes(n_reroll):
         new_skulls = n_skulls_base + outcome[Face.SKULL]
         if new_skulls >= 3:
+            bust_held = _add_outcome(kept, outcome)
+            this_bust_score = float(score(new_skulls, bust_held, config))
             if config.skull_reroll_available and not state.skull_reroll_used and not use_guardian and new_skulls == 3:
-                base_held = _add_outcome(kept, outcome)
                 for rescue_outcome, rescue_prob in roll_outcomes(1):
                     if rescue_outcome[Face.SKULL] > 0:
                         p_lose += prob * rescue_prob
-                        ev += prob * rescue_prob * bust_score
+                        ev += prob * rescue_prob * this_bust_score
                     else:
-                        rescue_held = _add_outcome(base_held, rescue_outcome)
+                        rescue_held = _add_outcome(bust_held, rescue_outcome)
                         next_state = State(2, rescue_held, True)
                         idx = sol.state_to_idx[next_state]
                         val = float(sol.V_normal[idx])
@@ -78,7 +78,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
                             min_score = next_stop
             else:
                 p_lose += prob
-                ev += prob * bust_score
+                ev += prob * this_bust_score
         else:
             new_held = _add_outcome(kept, outcome)
             new_skull_reroll_used = True if use_guardian else state.skull_reroll_used

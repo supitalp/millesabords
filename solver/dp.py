@@ -32,7 +32,7 @@ def _config_key(config: TurnConfig) -> str:
     return (f"d{config.total_dice}_sk{config.initial_n_skulls}_h{held}"
             f"_ma{int(config.merge_animals)}_sm{config.score_multiplier}"
             f"_rs{config.required_swords}_sb{config.sword_bonus}_sp{config.sword_penalty}"
-            f"_sr{int(config.skull_reroll_available)}")
+            f"_sr{int(config.skull_reroll_available)}_ti{int(config.treasure_island)}")
 
 
 def _add_outcome(kept: tuple, outcome: tuple) -> tuple:
@@ -66,7 +66,8 @@ class _Action:
     state_idx: int
     next_idxs: np.ndarray   # shape (k,)
     next_probs: np.ndarray  # shape (k,)
-    bust_ev: float = 0.0    # fixed EV contribution from skull-bust outcomes (non-zero for bateau pirate)
+    bust_ev: float = 0.0    # expected value contribution from skull-bust outcomes
+    bust_max: float = 0.0   # best-case score from skull-bust outcomes (for max_score DP)
 
 
 @dataclass
@@ -81,9 +82,17 @@ class Solution:
     actions: list[_Action]
 
 
+def _bust_score(new_skulls: int, new_held: tuple, config: TurnConfig) -> float:
+    """
+    EV contribution from a bust outcome.
+    For most cards this is a constant (0 or -sword_penalty).
+    For Treasure Island the bust score depends on which dice were held at bust time.
+    """
+    return float(score(new_skulls, new_held, config))
+
+
 def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> list[_Action]:
     """Build sparse transition arrays for every (state, reroll-action) pair."""
-    bust_score = -config.sword_penalty if config.sword_penalty else 0.0
     result = []
     for i, s in enumerate(states):
         # Normal reroll actions
@@ -93,20 +102,25 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                 continue
             acc: dict[int, float] = {}
             bust_ev = 0.0
+            bust_max = float("-inf")
             for outcome, prob in roll_outcomes(n_reroll):
                 new_skulls = s.n_skulls + outcome[Face.SKULL]
                 if new_skulls >= 3:
+                    new_held = _add_outcome(kept, outcome)
                     if config.skull_reroll_available and not s.skull_reroll_used and new_skulls == 3:
-                        base_held = _add_outcome(kept, outcome)
                         for rescue_outcome, rescue_prob in roll_outcomes(1):
                             if rescue_outcome[Face.SKULL] > 0:
-                                bust_ev += prob * rescue_prob * bust_score
+                                bs = _bust_score(new_skulls, new_held, config)
+                                bust_ev += prob * rescue_prob * bs
+                                bust_max = max(bust_max, bs)
                             else:
-                                rescue_held = _add_outcome(base_held, rescue_outcome)
+                                rescue_held = _add_outcome(new_held, rescue_outcome)
                                 j = state_to_idx[State(2, rescue_held, True)]
                                 acc[j] = acc.get(j, 0.0) + prob * rescue_prob
                     else:
-                        bust_ev += prob * bust_score
+                        bs = _bust_score(new_skulls, new_held, config)
+                        bust_ev += prob * bs
+                        bust_max = max(bust_max, bs)
                     continue
                 new_held = _add_outcome(kept, outcome)
                 j = state_to_idx[State(new_skulls, new_held, s.skull_reroll_used)]
@@ -114,7 +128,8 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
             if acc:
                 idxs = np.array(list(acc.keys()), dtype=np.int32)
                 probs = np.array(list(acc.values()), dtype=np.float64)
-                result.append(_Action(i, idxs, probs, bust_ev))
+                bmax = bust_max if bust_max > float("-inf") else 0.0
+                result.append(_Action(i, idxs, probs, bust_ev, bmax))
 
         # Guardian actions: free 1 skull die into the reroll pool (one-time ability)
         if config.skull_reroll_available and not s.skull_reroll_used and s.n_skulls >= 1:
@@ -122,10 +137,14 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                 n_reroll = (sum(s.held) - sum(kept)) + 1  # +1 for the freed skull
                 acc: dict[int, float] = {}
                 bust_ev = 0.0
+                bust_max = float("-inf")
                 for outcome, prob in roll_outcomes(n_reroll):
                     new_skulls = (s.n_skulls - 1) + outcome[Face.SKULL]
                     if new_skulls >= 3:
-                        bust_ev += prob * bust_score
+                        new_held = _add_outcome(kept, outcome)
+                        bs = _bust_score(new_skulls, new_held, config)
+                        bust_ev += prob * bs
+                        bust_max = max(bust_max, bs)
                         continue
                     new_held = _add_outcome(kept, outcome)
                     j = state_to_idx[State(new_skulls, new_held, True)]
@@ -133,7 +152,8 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                 if acc:
                     idxs = np.array(list(acc.keys()), dtype=np.int32)
                     probs = np.array(list(acc.values()), dtype=np.float64)
-                    result.append(_Action(i, idxs, probs, bust_ev))
+                    bmax = bust_max if bust_max > float("-inf") else 0.0
+                    result.append(_Action(i, idxs, probs, bust_ev, bmax))
 
     return result
 
@@ -172,12 +192,11 @@ def _solve(config: TurnConfig) -> Solution:
         V_normal = V_normal_new
 
     # Max-score DP (best-case dice, optimal play)
-    bust_max = float(-config.sword_penalty) if config.sword_penalty else 0.0
     max_score = stop_values.copy()
     while True:
         max_new = stop_values.copy()
         for a in actions:
-            best_next = max(float(np.max(max_score[a.next_idxs])), bust_max) if len(a.next_idxs) else bust_max
+            best_next = max(float(np.max(max_score[a.next_idxs])), a.bust_max) if len(a.next_idxs) else a.bust_max
             if best_next > max_new[a.state_idx]:
                 max_new[a.state_idx] = best_next
         if np.max(np.abs(max_new - max_score)) < 1e-9:

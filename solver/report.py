@@ -154,24 +154,27 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
 def turn_ev(config: TurnConfig = DEFAULT_CONFIG) -> float:
     """Expected score for a fresh turn (before any dice are rolled), using optimal play."""
     sol = get_solution(config)
-    bust_score = float(-config.sword_penalty if config.sword_penalty else 0)
     n_roll = config.total_dice - config.initial_n_skulls - sum(config.initial_held)
     ev = 0.0
     for outcome, prob in roll_outcomes(n_roll):
         new_skulls = config.initial_n_skulls + outcome[Face.SKULL]
         if new_skulls >= 3:
+            new_held = _add_outcome(config.initial_held, outcome)
+            # On the initial roll, the player has not yet had a chance to place
+            # any dice on Treasure Island, so the bust score is always based on
+            # config.initial_held only (= 0 for the standard TI card).
+            initial_bust_score = float(score(new_skulls, config.initial_held, config))
             if config.skull_reroll_available and new_skulls == 3:
-                base_held = _add_outcome(config.initial_held, outcome)
                 for rescue_outcome, rescue_prob in roll_outcomes(1):
                     if rescue_outcome[Face.SKULL] == 0:
-                        rescue_held = _add_outcome(base_held, rescue_outcome)
+                        rescue_held = _add_outcome(new_held, rescue_outcome)
                         state = State(2, rescue_held, True)
                         idx = sol.state_to_idx[state]
                         ev += prob * rescue_prob * float(sol.V_normal[idx])
                     else:
-                        ev += prob * rescue_prob * bust_score
+                        ev += prob * rescue_prob * initial_bust_score
             else:
-                ev += prob * bust_score
+                ev += prob * initial_bust_score
             continue
         new_held = _add_outcome(config.initial_held, outcome)
         state = State(new_skulls, new_held, False)

@@ -39,6 +39,7 @@ def export_config(name: str, config, out_dir: Path) -> None:
             "sword_bonus": config.sword_bonus,
             "sword_penalty": config.sword_penalty,
             "skull_reroll_available": config.skull_reroll_available,
+            "treasure_island": config.treasure_island,
         },
         "states": states,
         "V_normal": [round(float(v), 6) for v in sol.V_normal],

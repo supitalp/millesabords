@@ -51,6 +51,7 @@ class TurnConfig(NamedTuple):
     sword_bonus: int = 0
     sword_penalty: int = 0
     skull_reroll_available: bool = False
+    treasure_island: bool = False
 
 
 DEFAULT_CONFIG = TurnConfig()
@@ -73,6 +74,7 @@ CARD_CONFIGS: dict[str, TurnConfig] = {
     "pirate-ship-2": TurnConfig(required_swords=2, sword_bonus=300,  sword_penalty=300),
     "pirate-ship-3": TurnConfig(required_swords=3, sword_bonus=500,  sword_penalty=500),
     "pirate-ship-4": TurnConfig(required_swords=4, sword_bonus=1000, sword_penalty=1000),
+    "treasure-island": TurnConfig(treasure_island=True),
 }
 
 

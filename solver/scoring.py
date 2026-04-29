@@ -1,13 +1,51 @@
 from .model import Face, COMBO_SCORE, WIN_SCORE, TurnConfig, DEFAULT_CONFIG
 
 
+def _score_combos(held: tuple, config: TurnConfig) -> int:
+    """
+    Compute combo + coin/diamond individual bonuses + sword bonus/penalty + multiplier.
+    Does NOT check for Pirate's Magic (9-of-a-kind) or full-chest bonus; those are
+    caller responsibilities. Safe to call on a busted hand (with n_skulls >= 3).
+    """
+    total = 0
+
+    if config.merge_animals:
+        animal_count = held[Face.MONKEY] + held[Face.PARROT]
+        for face in range(1, 6):  # skip SKULL
+            if face in (Face.MONKEY, Face.PARROT):
+                continue
+            count = held[face]
+            total += COMBO_SCORE.get(count, 0)
+            if face in (Face.COIN, Face.DIAMOND):
+                total += 100 * count
+        total += COMBO_SCORE.get(animal_count, 0)
+    else:
+        for face in range(1, 6):  # skip SKULL (index 0)
+            count = held[face]
+            total += COMBO_SCORE.get(count, 0)
+            if face in (Face.COIN, Face.DIAMOND):
+                total += 100 * count
+
+    # Pirate Ship: sword requirement not met → fixed penalty, no multiplier.
+    if config.required_swords > 0 and held[Face.SWORD] < config.required_swords:
+        return -config.sword_penalty
+
+    total += config.sword_bonus
+    return total * config.score_multiplier
+
+
 def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> int:
     """
     Compute the score for a completed turn.
-    Returns 0 if n_skulls >= 3 (should not normally be called in that case).
+    Returns 0 if n_skulls >= 3 (bust), except with the Treasure Island card which scores
+    the held dice even on a bust.
     Returns WIN_SCORE if 9 identical dice are achieved (Pirate's Magic instant win).
     """
     if n_skulls >= 3:
+        if config.treasure_island:
+            # Score the held dice even on bust. Full-chest and Pirate's Magic are impossible
+            # with 3+ skulls, so we skip those checks and go straight to combo scoring.
+            return _score_combos(held, config)
         return -config.sword_penalty if config.sword_penalty else 0
 
     # Pirate's Magic: exactly 9 identical dice = instant game win.

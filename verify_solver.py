@@ -108,8 +108,6 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
       - instant win        → 0  (WIN_SCORE events excluded from normal EV)
       - normal stop        → stop score
     """
-    bust_score = float(-config.sword_penalty if config.sword_penalty else 0)
-
     # ── Initial roll ──────────────────────────────────────────────────────────
     n_initial = config.total_dice - config.initial_n_skulls - sum(config.initial_held)
     outcome   = _sample(n_initial, rng)
@@ -118,13 +116,17 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
     new_held   = _add_outcome(config.initial_held, outcome)
 
     if new_skulls >= 3:
+        # On the initial roll the player has not yet placed anything on Treasure
+        # Island, so the bust score is based on config.initial_held only (= 0
+        # for the standard TI card).
+        initial_bust = float(score(new_skulls, config.initial_held, config))
         if config.skull_reroll_available and new_skulls == 3:
             rescue = _sample(1, rng)
             if rescue[Face.SKULL]:
-                return bust_score
+                return initial_bust
             state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
         else:
-            return bust_score
+            return initial_bust
     else:
         state = State(new_skulls, new_held, skull_reroll_used=False)
 
@@ -175,10 +177,10 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
             if can_rescue:
                 rescue = _sample(1, rng)
                 if rescue[Face.SKULL]:
-                    return bust_score
+                    return float(score(new_skulls, new_held, config))
                 state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
             else:
-                return bust_score
+                return float(score(new_skulls, new_held, config))
         else:
             state = State(new_skulls, new_held, skull_reroll_used=reroll_used_next)
 

@@ -103,7 +103,12 @@
             </template>
             <template v-else-if="currentScore.busted">
               <span class="dice-score-value score-busted">{{ currentScore.score }}<span class="score-unit"> pts</span></span>
-              <span class="dice-score-bust-label">💀 Busted</span>
+              <template v-if="currentScore.treasureIslandSaved > 0">
+                <span class="dice-score-bust-label">💀 Bust — 🏝️ {{ currentScore.treasureIslandSaved }} pts saved on the island</span>
+              </template>
+              <template v-else>
+                <span class="dice-score-bust-label">💀 Busted</span>
+              </template>
             </template>
             <div v-else-if="currentScore.win" class="score-win">🏆 Pirate's Magic!</div>
             <template v-else>
@@ -254,7 +259,10 @@
 
               <div v-if="strategyData.busted" class="result-banner result-bust">
                 <span class="banner-icon">💀💀💀</span>
-                <span>Three skulls — turn is lost!</span>
+                <span v-if="currentScore.treasureIslandSaved > 0">
+                  Three skulls — but 🏝️ {{ currentScore.treasureIslandSaved }} pts saved on the island!
+                </span>
+                <span v-else>Three skulls — turn is lost!</span>
               </div>
 
               <div v-else-if="strategyData.win" class="result-banner result-win">

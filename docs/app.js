@@ -23,7 +23,8 @@ const CARD_OPTIONS = [
   { value: 'guardian',      name: 'Guardian',       icon: '🛡️',          desc: 'Reroll 1 skull once per turn',         label: 'Guardian (reroll 1 skull once)'       },
   { value: 'pirate-ship-2', name: 'Pirate Ship',    icon: '⚔️⚔️',        desc: '≥2 swords: +300 pts, else −300 pts',   label: 'Pirate Ship (+300 / −300)'   },
   { value: 'pirate-ship-3', name: 'Pirate Ship',    icon: '⚔️⚔️⚔️',      desc: '≥3 swords: +500 pts, else −500 pts',   label: 'Pirate Ship (+500 / −500)'   },
-  { value: 'pirate-ship-4', name: 'Pirate Ship',    icon: '⚔️⚔️⚔️⚔️',    desc: '≥4 swords: +1000 pts, else −1000 pts',  label: 'Pirate Ship (+1000 / −1000)' },
+  { value: 'pirate-ship-4',    name: 'Pirate Ship',    icon: '⚔️⚔️⚔️⚔️',    desc: '≥4 swords: +1000 pts, else −1000 pts',  label: 'Pirate Ship (+1000 / −1000)' },
+  { value: 'treasure-island', name: 'Treasure Island', icon: '🏝️',           desc: 'Kept dice still score even if you bust', label: 'Treasure Island'             },
 ];
 
 const _EMPTY_HELD = [0, 0, 0, 0, 0, 0];
@@ -44,7 +45,8 @@ const CARD_CONFIGS = {
   'guardian':       { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: true  },
   'pirate-ship-2':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 2, sword_bonus: 300,  sword_penalty: 300,  skull_reroll_available: false },
   'pirate-ship-3':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 3, sword_bonus: 500,  sword_penalty: 500,  skull_reroll_available: false },
-  'pirate-ship-4':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 4, sword_bonus: 1000, sword_penalty: 1000, skull_reroll_available: false },
+  'pirate-ship-4':    { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 4, sword_bonus: 1000, sword_penalty: 1000, skull_reroll_available: false, treasure_island: false },
+  'treasure-island':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: true  },
 };
 
 function randomDice() {
@@ -63,8 +65,9 @@ const CARD_DECK = [
   { value: 'pirate-ship-2', weight: 2 },
   { value: 'pirate-ship-3', weight: 2 },
   { value: 'pirate-ship-4', weight: 2 },
-  { value: 'skull-2',       weight: 2 },
-]; // total weight = 31
+  { value: 'skull-2',          weight: 2 },
+  { value: 'treasure-island', weight: 4 },
+]; // total weight = 35
 
 function randomCard() {
   const total = CARD_DECK.reduce((s, c) => s + c.weight, 0);
@@ -143,8 +146,34 @@ function rollOutcomes(n) {
   return results;
 }
 
+function _scoreCombos(held, config) {
+  let total = 0;
+  if (config.merge_animals) {
+    const animalCount = held[FACE.MONKEY] + held[FACE.PARROT];
+    for (let face = 1; face < NUM_FACES; face++) {
+      if (face === FACE.MONKEY || face === FACE.PARROT) continue;
+      const count = held[face];
+      total += COMBO_SCORE[count] || 0;
+      if (face === FACE.COIN || face === FACE.DIAMOND) total += 100 * count;
+    }
+    total += COMBO_SCORE[animalCount] || 0;
+  } else {
+    for (let face = 1; face < NUM_FACES; face++) {
+      const count = held[face];
+      total += COMBO_SCORE[count] || 0;
+      if (face === FACE.COIN || face === FACE.DIAMOND) total += 100 * count;
+    }
+  }
+  if (config.required_swords > 0 && held[FACE.SWORD] < config.required_swords) {
+    return -config.sword_penalty;
+  }
+  total += config.sword_bonus || 0;
+  return total * (config.score_multiplier || 1);
+}
+
 function scoreFunc(n_skulls, held, config) {
   if (n_skulls >= 3) {
+    if (config.treasure_island) return _scoreCombos(held, config);
     return config.sword_penalty ? -config.sword_penalty : 0;
   }
   // Pirate's Magic: 9 identical dice
@@ -454,6 +483,7 @@ const app = createApp({
     // 'rolling'       → dice animating (all buttons disabled)
     // 'active'        → dice settled, normal play
     const turnPhase   = ref('idle');
+    const hasRerolled = ref(false); // true once the player has made ≥1 explicit reroll decision
     const displayDice = ref(Array(8).fill(FACE_BLANK)); // visually shown faces
     const isAnimating      = ref(false);
     const displayCard      = ref(null);  // null = card back; string = card value being shown
@@ -704,6 +734,7 @@ const app = createApp({
       turnPhase.value = 'card_revealed';
       mode.value = 'play';
       guardianUsed.value = false;
+      hasRerolled.value = false;
       selectedDice.value = Array(8).fill(false);
       _clearStrategy();
 
@@ -738,6 +769,7 @@ const app = createApp({
     }
 
     async function rollSelected() {
+      hasRerolled.value = true;
       // C1: detect guardian skull reroll before overwriting dice.
       const skullWasSelected = selectedDice.value.some(
         (sel, i) => sel && dice.value[i] === FACE.SKULL
@@ -817,7 +849,14 @@ const app = createApp({
       if (state.n_skulls >= 3) {
         // Guardian card: exactly 3 skulls on first roll → player can still reroll one skull.
         const guardianCanSave = config.skull_reroll_available && !guardianUsed.value && state.n_skulls === 3;
-        return { busted: !guardianCanSave, guardianCanSave, score: scoreFunc(state.n_skulls, state.held, config) };
+        // Treasure Island: held dice score on bust ONLY if the player has had at least
+        // one explicit reroll decision (i.e., they had a chance to place dice on the island).
+        // On the initial roll, nothing is on the island yet → bust score = 0.
+        const bustScore = (config.treasure_island && !hasRerolled.value)
+          ? 0
+          : scoreFunc(state.n_skulls, state.held, config);
+        const treasureIslandSaved = (config.treasure_island && hasRerolled.value) ? bustScore : 0;
+        return { busted: !guardianCanSave, guardianCanSave, score: bustScore, treasureIslandSaved };
       }
       const score = scoreFunc(state.n_skulls, state.held, config);
       if (score === WIN_SCORE) return { win: true };
