@@ -359,6 +359,25 @@ async function loadSolution(cardName) {
   return sol;
 }
 
+// ─── Probability helpers ───────────────────────────────────────────────────────
+
+// P(exactly k skulls in n dice), skull prob = 1/6
+function pExactSkulls(n, k) {
+  if (k < 0 || k > n) return 0;
+  let coeff = 1;
+  for (let i = 0; i < k; i++) coeff = coeff * (n - i) / (i + 1);
+  return coeff * Math.pow(1/6, k) * Math.pow(5/6, n - k);
+}
+
+// P(at least `min` skulls in n dice)
+function pAtLeastSkulls(n, min) {
+  if (min <= 0) return 1;
+  if (min > n) return 0;
+  let p = 0;
+  for (let k = min; k <= n; k++) p += pExactSkulls(n, k);
+  return p;
+}
+
 // ─── Formatting helpers ────────────────────────────────────────────────────────
 
 function fmtCounts(held, includeSkull = false) {
@@ -429,6 +448,22 @@ const app = createApp({
         return "Can't reroll every die — keep at least one";
       }
       return null;
+    });
+
+    // B1: probability of immediately busting on the next roll given the current
+    // selection. null when no dice are selected, the state is already busted,
+    // or the selection is invalid.
+    const bustProbability = computed(() => {
+      if (mode.value !== 'play' || !anySelected.value || !!rollInvalidReason.value) return null;
+      const config = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+      const state = diceToState(dice.value, config);
+      if (state.n_skulls >= 3) return null;
+      // Guardian reroll: the selected skull is removed before rolling, so
+      // we start with one fewer skull in the base count.
+      const skullSelected = selectedDice.value.some((sel, i) => sel && dice.value[i] === FACE.SKULL);
+      const n_skulls_base = state.n_skulls - (skullSelected ? 1 : 0);
+      const skulls_needed = 3 - n_skulls_base;
+      return pAtLeastSkulls(selectedCount.value, skulls_needed);
     });
 
     // A4: true when strategy is loaded and the best action is "stop".
@@ -657,7 +692,7 @@ const app = createApp({
       strategyData, strategyOn, modalOpen,
       bestStrategyIsStop, bestStrategyRerollIndices,
       FACE_EMOJI, FACE_NAMES, CARD_OPTIONS,
-      mode, selectedDice, anySelected, selectedCount, rollInvalidReason,
+      mode, selectedDice, anySelected, selectedCount, rollInvalidReason, bustProbability,
       cardLocked, guardianUsed,
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, toggleStrategy, randomize,

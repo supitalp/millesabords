@@ -571,6 +571,48 @@ body {
   margin-top: 0.35rem;
 }
 
+/* ─── B1: Danger gauge ──────────────────────────────────────────────────────── */
+.danger-gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: min(280px, 90vw);
+}
+
+.danger-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.danger-pct {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.danger-track {
+  height: 6px;
+  background: var(--bg-card);
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.danger-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.25s ease, background-color 0.25s ease;
+  min-width: 4px;
+}
+
+.danger-safe   { background: var(--green); }
+.danger-low    { background: #84cc16; }   /* lime-400 */
+.danger-medium { background: var(--amber); }
+.danger-high   { background: var(--red); }
+
 /* ─── Results ───────────────────────────────────────────────────────────────── */
 .result-banner {
   display: flex;

@@ -148,6 +148,24 @@
             {{ mode === 'play' ? '🎲 New Turn' : '🎲 Randomize' }}
           </button>
         </div>
+        <!-- B1: danger gauge -->
+        <div v-if="bustProbability !== null" class="danger-gauge">
+          <div class="danger-label">
+            <span>☠️ Bust risk</span>
+            <span class="danger-pct">{{ (bustProbability * 100).toFixed(1) }}%</span>
+          </div>
+          <div class="danger-track">
+            <div
+              class="danger-fill"
+              :class="bustProbability < 0.10 ? 'danger-safe'
+                    : bustProbability < 0.30 ? 'danger-low'
+                    : bustProbability < 0.60 ? 'danger-medium'
+                                             : 'danger-high'"
+              :style="{ width: (bustProbability * 100) + '%' }"
+            ></div>
+          </div>
+        </div>
+
         <p v-if="rollInvalidReason && mode === 'play'" class="roll-invalid-hint">⚠️ {{ rollInvalidReason }}</p>
         <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
       </section>
