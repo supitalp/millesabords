@@ -97,6 +97,10 @@
             <template v-if="scoreAnimating">
               <span class="dice-score-value score-animating">{{ animatedScoreVal }}<span class="score-unit"> pts</span></span>
             </template>
+            <template v-else-if="currentScore.guardianCanSave">
+              <span class="dice-score-value score-guardian-pending">0<span class="score-unit"> pts</span></span>
+              <span class="dice-score-bust-label">🛡️ Select a skull to reroll with the Guardian!</span>
+            </template>
             <template v-else-if="currentScore.busted">
               <span class="dice-score-value score-busted">{{ currentScore.score }}<span class="score-unit"> pts</span></span>
               <span class="dice-score-bust-label">💀 Busted</span>
@@ -196,7 +200,7 @@
               class="solve-btn solve-btn-icon"
               :class="{ 'solve-btn-active': strategyOn }"
               @click="toggleStrategy"
-              :disabled="loading || isAnimating || currentScore.busted || currentScore.win"
+              :disabled="loading || isAnimating || currentScore.busted || currentScore.guardianCanSave || currentScore.win"
               :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
             >
               <span v-if="loading" class="spinner"></span>

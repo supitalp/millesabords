@@ -488,6 +488,8 @@ const app = createApp({
     // a "kept die" here — the user must keep at least one of their own 8 dice.
     const rollInvalidReason = computed(() => {
       if (!anySelected.value) return null;
+      // Guardian skull reroll: exactly 1 skull die is the intended action — always valid.
+      if (currentScore.value.guardianCanSave) return null;
       // Exactly one die selected → n_reroll=1, always forbidden.
       if (selectedCount.value === 1) {
         return "Can't reroll a single die — select at least 2";
@@ -510,7 +512,7 @@ const app = createApp({
       if (mode.value !== 'play' || turnPhase.value !== 'active' || !anySelected.value || !!rollInvalidReason.value) return null;
       const config = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
       const state = diceToState(dice.value, config);
-      if (state.n_skulls >= 3) return null;
+      if (state.n_skulls >= 3 && !currentScore.value.guardianCanSave) return null;
       // Guardian reroll: the selected skull is removed before rolling, so
       // we start with one fewer skull in the base count.
       const skullSelected = selectedDice.value.some((sel, i) => sel && dice.value[i] === FACE.SKULL);
@@ -573,6 +575,13 @@ const app = createApp({
     function isDieSelectable(i) {
       if (mode.value !== 'play') return true;
       if (currentScore.value.busted) return false;
+      // Guardian pending (exactly 3 skulls, guardian not yet used): the only valid
+      // action is to pick one skull for the guardian reroll — all other dice are locked.
+      if (currentScore.value.guardianCanSave) {
+        if (dice.value[i] !== FACE.SKULL) return false;
+        if (selectedDice.value[i]) return true;
+        return !dice.value.some((f, j) => f === FACE.SKULL && selectedDice.value[j]);
+      }
       if (dice.value[i] !== FACE.SKULL) return true;
       if (selectedCard.value !== 'guardian') return false;
       // C1: Guardian reroll already consumed → treat skulls as locked again.
@@ -798,7 +807,11 @@ const app = createApp({
     const currentScore = computed(() => {
       const config = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
       const state = diceToState(dice.value, config);
-      if (state.n_skulls >= 3) return { busted: true, score: scoreFunc(state.n_skulls, state.held, config) };
+      if (state.n_skulls >= 3) {
+        // Guardian card: exactly 3 skulls on first roll → player can still reroll one skull.
+        const guardianCanSave = config.skull_reroll_available && !guardianUsed.value && state.n_skulls === 3;
+        return { busted: !guardianCanSave, guardianCanSave, score: scoreFunc(state.n_skulls, state.held, config) };
+      }
       const score = scoreFunc(state.n_skulls, state.held, config);
       if (score === WIN_SCORE) return { win: true };
 
