@@ -103,7 +103,7 @@ def report(dice: list[Face], config: TurnConfig = DEFAULT_CONFIG, verbose: bool 
             compute_stats(state, kept, config, use_guardian=True)
             for kept in guardian_kept_options(state)
         ]
-    all_stats.sort(key=lambda s: s.ev, reverse=True)
+    all_stats.sort(key=lambda s: (-s.ev, s.p_lose))
 
     any_win_possible = any(s.p_win > 0 for s in all_stats)
 

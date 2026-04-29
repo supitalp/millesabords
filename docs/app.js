@@ -661,7 +661,10 @@ const app = createApp({
           );
         }
 
-        allStats.sort((a, b) => b.ev - a.ev);
+        allStats.sort((a, b) => {
+          const evDiff = b.ev - a.ev;
+          return Math.abs(evDiff) < 1e-9 ? a.p_lose - b.p_lose : evDiff;
+        });
 
         strategyData.value = {
           state,
