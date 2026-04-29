@@ -126,9 +126,8 @@
               🛑 <strong>Stop now</strong> — bank your {{ strategyData.stopScore }} pts
             </template>
             <template v-else>
-              ⭐ <strong>Reroll</strong> the glowing orange dice —
-              <strong>{{ Math.round(strategyData.stats[0].ev) }} pts</strong> on average
-              <span class="banner-delta">({{ strategyData.stats[0].delta_vs_stop >= 0 ? '+' : '' }}{{ Math.round(strategyData.stats[0].delta_vs_stop) }} vs. stopping now)</span>
+              ⭐ <strong>Reroll</strong>
+              ({{ strategyData.stats[0].delta_vs_stop >= 0 ? '+' : '' }}{{ Math.round(strategyData.stats[0].delta_vs_stop) }} pts exp.)
             </template>
           </div>
         </div>

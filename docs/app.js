@@ -632,8 +632,10 @@ const app = createApp({
     // then settles on the actual drawn card (same deceleration pattern as dice).
     async function _animateCardReveal() {
       const cyclePool = CARD_OPTIONS.filter(o => o.value !== 'default');
-      displayCard.value = null; // show card back briefly
-      await sleep(160);
+      // First draw: card back is already showing (displayCard is null) — brief pause
+      // so the user sees it before cycling starts.
+      // Redraw: a card face is already displayed — skip the back flash and cycle immediately.
+      if (displayCard.value === null) await sleep(160);
 
       const MIN_IV = 65, MAX_IV = 220, TOTAL_MS = 1050;
       const schedule = [];
