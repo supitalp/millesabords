@@ -393,7 +393,9 @@ const app = createApp({
     const selectedCard = ref(randomCard());
     const loading = ref(false);
     const error = ref(null);
-    const results = ref(null);  // null = not computed yet
+    const strategyData = ref(null); // null = not yet computed; cleared when dice/card change
+    const strategyOn   = ref(false);  // A4: toggle — controls die highlights + banner
+    const modalOpen    = ref(false);  // A4: details modal
 
     const mode = ref('play'); // 'play' | 'select'
     const selectedDice = ref(Array(8).fill(false));
@@ -429,10 +431,47 @@ const app = createApp({
       return null;
     });
 
+    // A4: true when strategy is loaded and the best action is "stop".
+    const bestStrategyIsStop = computed(() => {
+      if (!strategyOn.value || !strategyData.value?.stats) return false;
+      return strategyData.value.stats[0].n_reroll === 0;
+    });
+
+    // A4: Set of die indices (into dice.value) that the best strategy wants rerolled.
+    // Empty when strategy is off, busted/win, or the recommendation is "stop".
+    const bestStrategyRerollIndices = computed(() => {
+      if (!strategyOn.value || !strategyData.value?.stats) return new Set();
+      const best = strategyData.value.stats[0];
+      if (best.n_reroll === 0) return new Set();
+
+      const state = strategyData.value.state;
+      // Per-face count of dice to reroll (variable dice only; held[SKULL] is always 0).
+      const remaining = state.held.map((h, f) => h - best.kept[f]);
+      let skullsToReroll = best.use_guardian ? 1 : 0;
+
+      const rerollSet = new Set();
+      for (let i = 0; i < dice.value.length; i++) {
+        const f = dice.value[i];
+        if (f === FACE.SKULL && skullsToReroll > 0) {
+          rerollSet.add(i); skullsToReroll--;
+        } else if (f !== FACE.SKULL && remaining[f] > 0) {
+          rerollSet.add(i); remaining[f]--;
+        }
+      }
+      return rerollSet;
+    });
+
+    function _clearStrategy() {
+      strategyData.value = null;
+      strategyOn.value = false;
+      modalOpen.value = false;
+    }
+
     function setMode(m) {
       mode.value = m;
       selectedDice.value = Array(8).fill(false);
       guardianUsed.value = false;
+      _clearStrategy();
     }
 
     // Returns true if die i can be toggled for re-roll in play mode.
@@ -457,7 +496,7 @@ const app = createApp({
         selectedDice.value[i] = !selectedDice.value[i];
       } else {
         dice.value[i] = (dice.value[i] + 1) % NUM_FACES;
-        results.value = null;
+        _clearStrategy();
       }
     }
 
@@ -479,7 +518,7 @@ const app = createApp({
       }
       dice.value = newDice;
       selectedDice.value = Array(8).fill(false);
-      results.value = null;
+      _clearStrategy();
     }
 
     // Sort priority per face: skull, coin, diamond, sword, monkey, parrot
@@ -493,15 +532,15 @@ const app = createApp({
     }
 
     function onCardChange() {
-      results.value = null;
+      _clearStrategy();
     }
 
     function randomize() {
       dice.value = randomDice();
       selectedCard.value = randomCard();
       selectedDice.value = Array(8).fill(false);
-      results.value = null;
       guardianUsed.value = false;
+      _clearStrategy();
     }
 
     const currentScore = computed(() => {
@@ -524,36 +563,32 @@ const app = createApp({
       return fixed;
     });
 
-    async function showResults() {
+    // Internal: fetch + compute, populate strategyData. Does NOT touch strategyOn.
+    async function _loadStrategy() {
       loading.value = true;
       error.value = null;
-      results.value = null;
+      strategyData.value = null;
 
       try {
         const sol = await loadSolution(selectedCard.value);
         const config = sol.config;
-
         const state = diceToState(dice.value, config);
 
-        // Check for instant bust
         if (state.n_skulls >= 3) {
-          results.value = { busted: true, n_skulls: state.n_skulls, config };
+          strategyData.value = { busted: true, n_skulls: state.n_skulls, config };
           return;
         }
 
         const stopScore = scoreFunc(state.n_skulls, state.held, config);
 
-        // Check for instant win
         if (stopScore === WIN_SCORE) {
-          results.value = { win: true, config };
+          strategyData.value = { win: true, config };
           return;
         }
 
-        // Compute stats for all valid actions
         const actions = validActions(state, config);
         let allStats = actions.map(kept => computeStats(state, kept, config, sol));
 
-        // Guardian: add skull-reroll options
         if (config.skull_reroll_available && !state.skull_reroll_used && state.n_skulls >= 1) {
           const guardianOptions = guardianKeptOptions(state);
           allStats = allStats.concat(
@@ -563,19 +598,32 @@ const app = createApp({
 
         allStats.sort((a, b) => b.ev - a.ev);
 
-        const anyWinPossible = allStats.some(s => s.p_win > 0);
-
-        results.value = {
+        strategyData.value = {
           state,
           config,
           stats: allStats,
-          anyWinPossible,
+          anyWinPossible: allStats.some(s => s.p_win > 0),
           stopScore,
         };
       } catch (e) {
         error.value = e.message;
       } finally {
         loading.value = false;
+      }
+    }
+
+    // A4: toggle strategy on/off. Lazy-loads data on first activation.
+    async function toggleStrategy() {
+      if (strategyOn.value) {
+        strategyOn.value = false;
+        modalOpen.value = false;
+        return;
+      }
+      if (!strategyData.value) {
+        await _loadStrategy();
+      }
+      if (strategyData.value && !error.value) {
+        strategyOn.value = true;
       }
     }
 
@@ -605,12 +653,14 @@ const app = createApp({
     }
 
     return {
-      dice, selectedCard, loading, error, results,
+      dice, selectedCard, loading, error,
+      strategyData, strategyOn, modalOpen,
+      bestStrategyIsStop, bestStrategyRerollIndices,
       FACE_EMOJI, FACE_NAMES, CARD_OPTIONS,
       mode, selectedDice, anySelected, selectedCount, rollInvalidReason,
       cardLocked, guardianUsed,
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
-      onCardChange, showResults, randomize,
+      onCardChange, toggleStrategy, randomize,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
       fixedCardDice, currentScore, WIN_SCORE, FACE,

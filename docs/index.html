@@ -69,13 +69,33 @@
             <button
               v-for="(face, i) in dice"
               :key="i"
-              :class="['die', 'die-interactive', mode === 'play' && selectedDice[i] ? 'die-selected' : '', mode === 'play' && !isDieSelectable(i) ? 'die-skull-locked' : '']"
+              :class="[
+                'die', 'die-interactive',
+                mode === 'play' && selectedDice[i]    ? 'die-selected'        : '',
+                mode === 'play' && !isDieSelectable(i) ? 'die-skull-locked'    : '',
+                strategyOn && bestStrategyRerollIndices.has(i)                            ? 'die-strategy-reroll' : '',
+                strategyOn && !bestStrategyRerollIndices.has(i) && dice[i] !== FACE.SKULL ? 'die-strategy-keep'   : '',
+              ]"
               @click="interactDie(i)"
               :title="mode === 'play' ? (selectedDice[i] ? 'Selected — will be re-rolled' : isDieSelectable(i) ? 'Click to select for re-roll' : dice[i] === FACE.SKULL ? (guardianUsed ? 'Guardian reroll already used — skull is now locked' : selectedCard === 'guardian' ? 'Only one skull can be re-rolled with the Guardian' : 'Skulls cannot be re-rolled') : 'Cannot be re-rolled') : 'Click to change (currently: ' + FACE_NAMES[face] + ')'"
             >
               <span class="die-emoji">{{ FACE_EMOJI[face] }}</span>
               <span class="die-name">{{ FACE_NAMES[face] }}</span>
             </button>
+          </div>
+
+          <!-- Strategy banner -->
+          <div
+            v-if="strategyOn && strategyData && !strategyData.busted && !strategyData.win"
+            class="strategy-banner"
+            :class="bestStrategyIsStop ? 'strategy-banner-stop' : 'strategy-banner-reroll'"
+          >
+            <template v-if="bestStrategyIsStop">
+              🛑 <strong>Stop now</strong> — bank your {{ strategyData.stopScore }} pts
+            </template>
+            <template v-else>
+              ⭐ <strong>Reroll</strong> the glowing dice for best EV
+            </template>
           </div>
         </div>
       </section>
@@ -100,14 +120,30 @@
           >
             🎲 Roll Selected{{ anySelected ? ' (' + selectedCount + ')' : '' }}
           </button>
+
+          <!-- A4: strategy toggle -->
           <button
             class="solve-btn"
-            @click="showResults"
-            :disabled="loading"
+            :class="{ 'solve-btn-active': strategyOn }"
+            @click="toggleStrategy"
+            :disabled="loading || currentScore.busted || currentScore.win"
+            :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
           >
             <span v-if="loading" class="spinner"></span>
-            <span v-else>⚡ Show Optimal Strategy</span>
+            <span v-else-if="strategyOn">💡 Hint ON</span>
+            <span v-else>💡 Hint</span>
           </button>
+
+          <!-- A4: details modal trigger — only when strategy is active and has a table -->
+          <button
+            v-if="strategyOn && strategyData && !strategyData.busted && !strategyData.win"
+            class="details-btn"
+            @click="modalOpen = true"
+            title="View full strategy table"
+          >
+            📋 Details
+          </button>
+
           <button class="randomize-btn" @click="randomize" :disabled="loading" :title="mode === 'play' ? 'Start a new turn with random dice and card' : 'Pick random dice and card'">
             {{ mode === 'play' ? '🎲 New Turn' : '🎲 Randomize' }}
           </button>
@@ -116,86 +152,91 @@
         <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
       </section>
 
-      <!-- Results -->
-      <section v-if="results" class="section results-section">
+      <!-- A4: Strategy details modal -->
+      <Teleport to="body">
+        <div v-if="modalOpen" class="modal-overlay" @click.self="modalOpen = false">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h2 class="modal-title">Full Strategy Table</h2>
+              <button class="modal-close-btn" @click="modalOpen = false" title="Close">✕</button>
+            </div>
+            <div class="modal-body">
 
-        <!-- Bust -->
-        <div v-if="results.busted" class="result-banner result-bust">
-          <span class="banner-icon">💀💀💀</span>
-          <span>Three skulls — turn is lost!</span>
-        </div>
+              <div v-if="strategyData.busted" class="result-banner result-bust">
+                <span class="banner-icon">💀💀💀</span>
+                <span>Three skulls — turn is lost!</span>
+              </div>
 
-        <!-- Instant win -->
-        <div v-else-if="results.win" class="result-banner result-win">
-          <span class="banner-icon">🏆</span>
-          <span>9 identical dice — INSTANT WIN (Pirate's Magic)!</span>
-        </div>
+              <div v-else-if="strategyData.win" class="result-banner result-win">
+                <span class="banner-icon">🏆</span>
+                <span>9 identical dice — INSTANT WIN (Pirate's Magic)!</span>
+              </div>
 
-        <!-- Strategy table -->
-        <template v-else>
-          <div class="results-header">
-            <div class="result-meta">
-              <span class="meta-item">
-                <strong>Skulls locked:</strong>
-                <span class="skull-pip" v-for="n in results.state.n_skulls" :key="n">💀</span>
-                <span v-if="results.state.n_skulls === 0" class="none-label">none</span>
-              </span>
-              <span class="meta-sep">·</span>
-              <span class="meta-item">
-                <strong>Stop score:</strong> {{ results.stopScore }} pts
-              </span>
+              <template v-else-if="strategyData.stats">
+                <div class="result-meta modal-meta">
+                  <span class="meta-item">
+                    <strong>Skulls locked:</strong>
+                    <span class="skull-pip" v-for="n in strategyData.state.n_skulls" :key="n">💀</span>
+                    <span v-if="strategyData.state.n_skulls === 0" class="none-label">none</span>
+                  </span>
+                  <span class="meta-sep">·</span>
+                  <span class="meta-item">
+                    <strong>Stop score:</strong> {{ strategyData.stopScore }} pts
+                  </span>
+                </div>
+
+                <div class="table-wrapper">
+                  <table class="results-table">
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Keep</th>
+                        <th>Reroll</th>
+                        <th>P(lose)</th>
+                        <th>EV</th>
+                        <th v-if="strategyData.anyWinPossible">P(win)</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>Δ vs Stop</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(s, i) in strategyData.stats"
+                        :key="i"
+                        :class="rowClass(i, s)"
+                      >
+                        <td class="col-marker">{{ rowMarker(i, s) }}</td>
+                        <td class="col-emoji">{{ keepStr(strategyData.state, s, strategyData.config) }}</td>
+                        <td class="col-emoji">{{ rerollStr(strategyData.state, s) }}</td>
+                        <td class="col-num">{{ pct(s.p_lose) }}</td>
+                        <td class="col-num col-ev">{{ evFmt(s.ev) }}</td>
+                        <td v-if="strategyData.anyWinPossible" class="col-num">{{ pct(s.p_win) }}</td>
+                        <td class="col-num">{{ s.min_score }}</td>
+                        <td class="col-num">{{ maxStr(s) }}</td>
+                        <td class="col-num col-delta" :class="s.delta_vs_stop >= 0 ? 'positive' : 'negative'">
+                          {{ deltaFmt(s.delta_vs_stop) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="results-legend">
+                  <span>⭐ = recommended action</span>
+                  <span>·</span>
+                  <span>🛑 = stop &amp; bank points</span>
+                  <span>·</span>
+                  <span>Δ vs Stop = EV gain over stopping now</span>
+                  <span>·</span>
+                  <span>Min/Max = score range across outcomes</span>
+                </div>
+              </template>
+
             </div>
           </div>
-
-          <div class="table-wrapper">
-            <table class="results-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Keep</th>
-                  <th>Reroll</th>
-                  <th>P(lose)</th>
-                  <th>EV</th>
-                  <th v-if="results.anyWinPossible">P(win)</th>
-                  <th>Min</th>
-                  <th>Max</th>
-                  <th>Δ vs Stop</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(s, i) in results.stats"
-                  :key="i"
-                  :class="rowClass(i, s)"
-                >
-                  <td class="col-marker">{{ rowMarker(i, s) }}</td>
-                  <td class="col-emoji">{{ keepStr(results.state, s, results.config) }}</td>
-                  <td class="col-emoji">{{ rerollStr(results.state, s) }}</td>
-                  <td class="col-num">{{ pct(s.p_lose) }}</td>
-                  <td class="col-num col-ev">{{ evFmt(s.ev) }}</td>
-                  <td v-if="results.anyWinPossible" class="col-num">{{ pct(s.p_win) }}</td>
-                  <td class="col-num">{{ s.min_score }}</td>
-                  <td class="col-num">{{ maxStr(s) }}</td>
-                  <td class="col-num col-delta" :class="s.delta_vs_stop >= 0 ? 'positive' : 'negative'">
-                    {{ deltaFmt(s.delta_vs_stop) }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="results-legend">
-            <span>⭐ = recommended action</span>
-            <span>·</span>
-            <span>🛑 = stop &amp; bank points</span>
-            <span>·</span>
-            <span>Δ vs Stop = EV gain over stopping now</span>
-            <span>·</span>
-            <span>Min/Max = score range across outcomes</span>
-          </div>
-        </template>
-
-      </section>
+        </div>
+      </Teleport>
 
     </main>
 
