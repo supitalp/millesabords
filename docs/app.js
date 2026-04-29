@@ -379,6 +379,31 @@ const app = createApp({
     const anySelected = computed(() => selectedDice.value.some(Boolean));
     const selectedCount = computed(() => selectedDice.value.filter(Boolean).length);
 
+    // Returns a human-readable reason string when the current selection is an
+    // invalid reroll (solver forbids n_reroll=1 and n_kept=0).  Returns null
+    // when the selection is fine (or when nothing is selected yet).
+    const rollInvalidReason = computed(() => {
+      if (!anySelected.value) return null;
+      // Exactly one die selected → n_reroll=1, always forbidden.
+      if (selectedCount.value === 1) {
+        return "Can't reroll a single die — select at least 2";
+      }
+      // Check "keeping nothing": only relevant for cards that have no initial
+      // locked dice (coin/diamond cards always keep their locked die, so their
+      // n_kept ≥ 1 even if the user selects all 8 variable dice).
+      const cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+      const n_fixed = cfg.initial_held.reduce((a, b) => a + b, 0);
+      if (n_fixed > 0) return null;
+      // Count how many non-skull dice the user has selected to reroll.
+      const n_nonSkull_selected = selectedDice.value
+        .filter((sel, i) => sel && dice.value[i] !== FACE.SKULL).length;
+      const n_nonSkull_total = dice.value.filter(f => f !== FACE.SKULL).length;
+      if (n_nonSkull_total > 0 && n_nonSkull_selected === n_nonSkull_total) {
+        return "Can't reroll every die — keep at least one";
+      }
+      return null;
+    });
+
     function setMode(m) {
       mode.value = m;
       selectedDice.value = Array(8).fill(false);
@@ -541,7 +566,7 @@ const app = createApp({
     return {
       dice, selectedCard, loading, error, results,
       FACE_EMOJI, FACE_NAMES, CARD_OPTIONS,
-      mode, selectedDice, anySelected, selectedCount,
+      mode, selectedDice, anySelected, selectedCount, rollInvalidReason,
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, showResults, randomize,
       keepStr, rerollStr, rowMarker, rowClass,

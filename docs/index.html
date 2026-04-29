@@ -92,8 +92,8 @@
             v-if="mode === 'play'"
             class="roll-btn"
             @click="rollSelected"
-            :disabled="!anySelected || loading"
-            :title="anySelected ? 'Re-roll ' + selectedCount + ' selected ' + (selectedCount === 1 ? 'die' : 'dice') : 'Select dice above to re-roll'"
+            :disabled="!anySelected || !!rollInvalidReason || loading"
+            :title="rollInvalidReason ?? (anySelected ? 'Re-roll ' + selectedCount + ' selected ' + (selectedCount === 1 ? 'die' : 'dice') : 'Select dice above to re-roll')"
           >
             🎲 Roll Selected{{ anySelected ? ' (' + selectedCount + ')' : '' }}
           </button>
@@ -109,6 +109,7 @@
             {{ mode === 'play' ? '🎲 New Turn' : '🎲 Randomize' }}
           </button>
         </div>
+        <p v-if="rollInvalidReason && mode === 'play'" class="roll-invalid-hint">⚠️ {{ rollInvalidReason }}</p>
         <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
       </section>
 

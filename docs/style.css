@@ -10,6 +10,7 @@
   --accent-dim:  #a87000;
   --green:       #22c55e;
   --red:         #ef4444;
+  --amber:       #d97706;
   --text:        #e8eaf0;
   --text-muted:  #8890aa;
   --border:      #2e334d;
@@ -451,6 +452,12 @@ body {
 .error-msg {
   color: var(--red);
   font-size: 0.9rem;
+}
+
+.roll-invalid-hint {
+  color: var(--amber);
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
 }
 
 /* ─── Results ───────────────────────────────────────────────────────────────── */
