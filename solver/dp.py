@@ -106,10 +106,13 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                 new_skulls = s.n_skulls + outcome[Face.SKULL]
                 if new_skulls >= 3:
                     new_held = _add_outcome(kept, outcome)
+                    # TI bust score: only island (kept) dice count, not the rerolled dice
+                    # that happened to land non-skull before the bust was triggered.
+                    bust_held = kept if config.treasure_island else new_held
                     if config.skull_reroll_available and not s.skull_reroll_used and new_skulls == 3:
                         for rescue_outcome, rescue_prob in roll_outcomes(1):
                             if rescue_outcome[Face.SKULL] > 0:
-                                bs = _bust_score(new_skulls, new_held, config)
+                                bs = _bust_score(new_skulls, bust_held, config)
                                 bust_ev += prob * rescue_prob * bs
                                 bust_max = max(bust_max, bs)
                             else:
@@ -117,7 +120,7 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                                 j = state_to_idx[State(2, rescue_held, True)]
                                 acc[j] = acc.get(j, 0.0) + prob * rescue_prob
                     else:
-                        bs = _bust_score(new_skulls, new_held, config)
+                        bs = _bust_score(new_skulls, bust_held, config)
                         bust_ev += prob * bs
                         bust_max = max(bust_max, bs)
                     continue
@@ -141,7 +144,8 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                     new_skulls = (s.n_skulls - 1) + outcome[Face.SKULL]
                     if new_skulls >= 3:
                         new_held = _add_outcome(kept, outcome)
-                        bs = _bust_score(new_skulls, new_held, config)
+                        bust_held = kept if config.treasure_island else new_held
+                        bs = _bust_score(new_skulls, bust_held, config)
                         bust_ev += prob * bs
                         bust_max = max(bust_max, bs)
                         continue

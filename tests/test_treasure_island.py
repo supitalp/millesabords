@@ -1,10 +1,11 @@
 """Tests for the Treasure Island card (bust-score modifier)."""
 import pytest
 import numpy as np
-from solver.model import Face, NUM_FACES, TurnConfig, CARD_CONFIGS, DEFAULT_CONFIG
+from solver.model import Face, NUM_FACES, TurnConfig, CARD_CONFIGS, DEFAULT_CONFIG, State
 from solver.scoring import score
-from solver.dp import get_solution
+from solver.dp import get_solution, _precompute, _all_states, _add_outcome
 from solver.report import turn_ev
+from solver.roll import roll_outcomes
 
 TI = CARD_CONFIGS["treasure-island"]
 
@@ -123,6 +124,64 @@ def test_treasure_island_strictly_improves_some_states():
 def test_turn_ev_treasure_island_higher_than_default():
     """Whole-turn EV with Treasure Island must be strictly better than no card."""
     assert turn_ev(TI) > turn_ev(DEFAULT_CONFIG)
+
+
+# ---------------------------------------------------------------------------
+# DP transition: bust must use kept dice only, not post-roll held
+# ---------------------------------------------------------------------------
+
+def test_treasure_island_bust_transition_uses_kept_not_post_roll():
+    """
+    Regression: when the fatal reroll busts with TI, the bust score must count
+    only the dice the player had placed on the island (kept) — not the non-skull
+    faces that came out of that same reroll.
+
+    Scenario from bug report:
+      State: 2 skulls, held = coin×2 + parrot×2 + sword×1 + diamond×1
+      Player keeps coin×2 + parrot×2 on the island (score = 200) and rerolls 2 dice.
+      Some bust outcomes produce an extra coin or diamond alongside the fatal skull.
+      Correct bust score = 200 (island only).
+      Buggy bust score = higher (200 + extra coins/diamonds from the fatal roll).
+    """
+    states = _all_states(TI)
+    state_to_idx = {s: i for i, s in enumerate(states)}
+
+    hand   = held((Face.COIN, 2), (Face.PARROT, 2), (Face.SWORD, 1), (Face.DIAMOND, 1))
+    island = held((Face.COIN, 2), (Face.PARROT, 2))  # dice kept on the island
+    s = State(2, hand, False)
+    s_idx = state_to_idx[s]
+
+    n_reroll = TI.total_dice - 2 - sum(island)  # 8 - 2 skulls - 4 kept = 2
+
+    island_score = score(3, island, TI)  # 2 coins × 100 = 200
+    assert island_score == 200, "test setup error"
+
+    # Confirm that some bust outcomes would inflate the score under the buggy formula.
+    any_inflated = any(
+        score(3, _add_outcome(island, outcome), TI) != island_score
+        for outcome, _ in roll_outcomes(n_reroll)
+        if 2 + outcome[Face.SKULL] >= 3
+    )
+    assert any_inflated, "test is vacuous: no bust outcome differs between fixed and buggy"
+
+    # Correct bust_ev for the action that keeps exactly the island dice.
+    expected_bust_ev = sum(
+        prob * island_score
+        for outcome, prob in roll_outcomes(n_reroll)
+        if 2 + outcome[Face.SKULL] >= 3
+    )
+
+    # The precomputed actions must include one with bust_ev matching the correct formula.
+    actions = _precompute(states, state_to_idx, TI)
+    state_actions = [a for a in actions if a.state_idx == s_idx]
+    assert state_actions, "no actions found for this state"
+
+    assert any(
+        abs(a.bust_ev - expected_bust_ev) < 1e-9 for a in state_actions
+    ), (
+        f"No action has the correct bust_ev ({expected_bust_ev:.6f}). "
+        f"Got: {sorted(round(a.bust_ev, 6) for a in state_actions)}"
+    )
 
 
 # ---------------------------------------------------------------------------

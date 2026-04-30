@@ -216,6 +216,8 @@ def simulate(config: TurnConfig, rng: random.Random,
         outcome    = _roll(n_reroll, rng)
         new_skulls = n_skulls_base + outcome[Face.SKULL]
         new_held   = _add_outcome(kept, outcome)
+        # TI bust: only island (kept) dice score, not those rerolled this turn.
+        bust_held  = kept if config.treasure_island else new_held
         roll_num  += 1
 
         out(f"  ├─ ROLL {roll_num} ({n_reroll} dice) {'─' * max(0, W - 16 - len(str(n_reroll)))}")
@@ -227,7 +229,7 @@ def simulate(config: TurnConfig, rng: random.Random,
                 and not reroll_used_next
                 and new_skulls == 3
             )
-            bust_score = float(score(new_skulls, new_held, config))
+            bust_score = float(score(new_skulls, bust_held, config))
             out(f"  │  Result  : 💀 x{new_skulls} — BUST!")
             if can_rescue:
                 out(f"  │  Guardian: rerolling the 3rd skull...")

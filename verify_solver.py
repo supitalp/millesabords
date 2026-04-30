@@ -167,6 +167,7 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
         outcome    = _sample(n_reroll, rng)
         new_skulls = n_skulls_base + outcome[Face.SKULL]
         new_held   = _add_outcome(kept, outcome)
+        bust_held  = kept if config.treasure_island else new_held
 
         if new_skulls >= 3:
             can_rescue = (
@@ -177,10 +178,10 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
             if can_rescue:
                 rescue = _sample(1, rng)
                 if rescue[Face.SKULL]:
-                    return float(score(new_skulls, new_held, config))
+                    return float(score(new_skulls, bust_held, config))
                 state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
             else:
-                return float(score(new_skulls, new_held, config))
+                return float(score(new_skulls, bust_held, config))
         else:
             state = State(new_skulls, new_held, skull_reroll_used=reroll_used_next)
 
@@ -215,6 +216,7 @@ def _simulate_continuation(state: State, config: TurnConfig, policy: dict,
         outcome    = _sample(n_reroll, rng)
         new_skulls = n_skulls_base + outcome[Face.SKULL]
         new_held   = _add_outcome(kept, outcome)
+        bust_held  = kept if config.treasure_island else new_held
 
         if new_skulls >= 3:
             can_rescue = (
@@ -225,10 +227,10 @@ def _simulate_continuation(state: State, config: TurnConfig, policy: dict,
             if can_rescue:
                 rescue = _sample(1, rng)
                 if rescue[Face.SKULL]:
-                    return float(score(new_skulls, new_held, config))
+                    return float(score(new_skulls, bust_held, config))
                 state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
             else:
-                return float(score(new_skulls, new_held, config))
+                return float(score(new_skulls, bust_held, config))
         else:
             state = State(new_skulls, new_held, skull_reroll_used=reroll_used_next)
 
@@ -262,6 +264,7 @@ def _estimate_q(state: State, kept: tuple, use_guardian: bool,
         outcome    = _sample(n_reroll, rng)
         new_skulls = n_skulls_base + outcome[Face.SKULL]
         new_held   = _add_outcome(kept, outcome)
+        bust_held  = kept if config.treasure_island else new_held
 
         if new_skulls >= 3:
             can_rescue = (
@@ -272,12 +275,12 @@ def _estimate_q(state: State, kept: tuple, use_guardian: bool,
             if can_rescue:
                 rescue = _sample(1, rng)
                 if rescue[Face.SKULL]:
-                    results.append(float(score(new_skulls, new_held, config)))
+                    results.append(float(score(new_skulls, bust_held, config)))
                     continue
                 next_state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
                 results.append(_simulate_continuation(next_state, config, policy, rng))
             else:
-                results.append(float(score(new_skulls, new_held, config)))
+                results.append(float(score(new_skulls, bust_held, config)))
         else:
             next_state = State(new_skulls, new_held, skull_reroll_used=reroll_used_next)
             results.append(_simulate_continuation(next_state, config, policy, rng))

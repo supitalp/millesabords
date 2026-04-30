@@ -309,9 +309,8 @@ function computeStats(state, kept, config, sol, use_guardian = false) {
   for (const { outcome, prob } of rollOutcomes(n_reroll)) {
     const new_skulls = n_skulls_base + outcome[FACE.SKULL];
     if (new_skulls >= 3) {
-      const bust_held = addOutcome(kept, outcome);
-      // scoreFunc handles bust scoring naturally: 0 (or -sword_penalty) for normal
-      // cards, the held-dice score for treasure-island.
+        // TI bust score: only the island (kept) dice count, not those rerolled this turn.
+      const bust_held = config.treasure_island ? kept : addOutcome(kept, outcome);
       const this_bust_score = scoreFunc(new_skulls, bust_held, config);
       // Guardian rescue on first reroll
       if (config.skull_reroll_available && !state.skull_reroll_used && !use_guardian && new_skulls === 3) {
@@ -478,7 +477,8 @@ const app = createApp({
     // 'rolling'       → dice animating (all buttons disabled)
     // 'active'        → dice settled, normal play
     const turnPhase   = ref('idle');
-    const hasRerolled = ref(false); // true once the player has made ≥1 explicit reroll decision
+    const hasRerolled  = ref(false); // true once the player has made ≥1 explicit reroll decision
+    const islandHeld   = ref(null);  // face-count array of kept (island) dice at last reroll; TI bust only
     const displayDice = ref(Array(8).fill(FACE_BLANK)); // visually shown faces
     const isAnimating      = ref(false);
     const dieFading        = ref(Array(8).fill(false)); // true while a die is fading in
@@ -660,6 +660,7 @@ const app = createApp({
       mode.value = 'play';
       guardianUsed.value = false;
       hasRerolled.value = false;
+      islandHeld.value = null;
       selectedDice.value = Array(8).fill(false);
       _clearStrategy();
 
@@ -701,6 +702,15 @@ const app = createApp({
         // computes the correct strategy for the remainder of the turn.
         selectedCard.value = 'default';
       }
+
+      // Capture kept (island) dice for Treasure Island bust scoring, before we overwrite dice.
+      const keptCounts = new Array(NUM_FACES).fill(0);
+      for (let i = 0; i < dice.value.length; i++) {
+        if (!selectedDice.value[i] && dice.value[i] !== FACE.SKULL) {
+          keptCounts[dice.value[i]]++;
+        }
+      }
+      islandHeld.value = keptCounts;
 
       // Compute final values and commit to game state immediately
       const newDice = [...dice.value];
@@ -768,9 +778,12 @@ const app = createApp({
         // Treasure Island: held dice score on bust ONLY if the player has had at least
         // one explicit reroll decision (i.e., they had a chance to place dice on the island).
         // On the initial roll, nothing is on the island yet → bust score = 0.
+        // After a reroll, only the kept (island) dice score — not those rerolled this turn.
         const bustScore = (config.treasure_island && !hasRerolled.value)
           ? 0
-          : scoreFunc(state.n_skulls, state.held, config);
+          : (config.treasure_island && islandHeld.value)
+            ? scoreFunc(state.n_skulls, islandHeld.value, config)
+            : scoreFunc(state.n_skulls, state.held, config);
         const treasureIslandSaved = (config.treasure_island && hasRerolled.value) ? bustScore : 0;
         return { busted: !guardianCanSave, guardianCanSave, score: bustScore, treasureIslandSaved };
       }

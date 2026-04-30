@@ -138,7 +138,7 @@ The table below ranks all cards from most to least beneficial (baseline = no car
 | 🪙 Coin | **784 pts** | Extra die, pre-set to Coin |
 | 💎 Diamond | **784 pts** | Extra die, pre-set to Diamond |
 | 🦜 Animals | **735 pts** | Monkeys and Parrots form one combined combo |
-| 🏝️ Treasure Island | **718 pts** | Held dice score even on bust |
+| 🏝️ Treasure Island | **680 pts** | Held dice score even on bust |
 | 🎲 No card *(baseline)* | **579 pts** | — |
 | ⚔️⚔️ Pirate Ship (2 swords) | **443 pts** | Meet quota: +300 pts; fail: −300 pts |
 | 💀 Skull ×1 | **346 pts** | Starts with 1 extra locked skull |
