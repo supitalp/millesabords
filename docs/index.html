@@ -176,9 +176,6 @@
             <strong class="sp-action-label" :class="bestStrategyIsStop ? 'sp-label-stop' : 'sp-label-reroll'">
               {{ bestStrategyIsStop ? 'Stop now' : 'Reroll' }}
             </strong>
-            <span class="sp-reroll-dice" v-if="!bestStrategyIsStop">
-              <template v-for="(face, i) in dice" :key="i">{{ bestStrategyRerollIndices.has(i) ? FACE_EMOJI[face] : '' }}</template>
-            </span>
             <span v-if="!bestStrategyIsStop && strategyData" class="sp-gain-pill">
               {{ strategyData.stats[0].delta_vs_stop >= 0 ? '+' : '' }}{{ Math.round(strategyData.stats[0].delta_vs_stop) }} pts
             </span>
