@@ -78,6 +78,7 @@
               :class="[
                 'die', 'die-interactive',
                 displayDice[i] === FACE_BLANK                                               ? 'die-blank'          : '',
+                dieFading[i]                                                                ? 'die-fadein'         : '',
                 mode === 'play' && selectedDice[i]                                          ? 'die-selected'       : '',
                 mode === 'play' && turnPhase === 'active' && !isDieSelectable(i)            ? 'die-skull-locked'   : '',
                 turnPhase === 'active' && strategyOn && bestStrategyRerollIndices.has(i)    ? 'die-strategy-reroll': '',
@@ -92,12 +93,9 @@
             </button>
           </div>
 
-          <!-- Inline score (active phase only) -->
-          <div v-if="turnPhase === 'active'" class="dice-score-row">
-            <template v-if="scoreAnimating">
-              <span class="dice-score-value score-animating">{{ animatedScoreVal }}<span class="score-unit"> pts</span></span>
-            </template>
-            <template v-else-if="currentScore.guardianCanSave">
+          <!-- Inline score (active phase only; hidden while a reroll is animating) -->
+          <div v-if="turnPhase === 'active'" class="dice-score-row" :style="{ visibility: isAnimating ? 'hidden' : 'visible' }">
+            <template v-if="currentScore.guardianCanSave">
               <span class="dice-score-value score-guardian-pending">0<span class="score-unit"> pts</span></span>
               <span class="dice-score-bust-label">🛡️ Select a skull to reroll with the Guardian!</span>
             </template>

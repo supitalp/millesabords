@@ -481,9 +481,8 @@ const app = createApp({
     const hasRerolled = ref(false); // true once the player has made ≥1 explicit reroll decision
     const displayDice = ref(Array(8).fill(FACE_BLANK)); // visually shown faces
     const isAnimating      = ref(false);
+    const dieFading        = ref(Array(8).fill(false)); // true while a die is fading in
     const displayCard      = ref(null);  // null = card back; string = card value being shown
-    const scoreAnimating   = ref(false); // true while reroll dice are settling
-    const animatedScoreVal = ref(0);     // random number shown during score animation
 
     // ── Strategy state ────────────────────────────────────────────────────────
     const loading      = ref(false);
@@ -636,96 +635,27 @@ const app = createApp({
 
     // ── Animation engine ──────────────────────────────────────────────────────
 
-    // Slot-machine animation for a single die.
-    // Rapidly cycles through random faces (fast → decelerate → settle).
-    // startDelay: ms to wait before starting; perDieMs: total cycle duration.
-    async function _animateSingleDie(idx, finalFace, startDelay, perDieMs) {
-      if (startDelay > 0) await sleep(startDelay);
+    // Fade-in reveal for a set of dice, staggered left-to-right.
+    // Sets each die's final face then plays the CSS fade-in animation.
+    const FADEIN_MS = 320; // must match CSS animation duration
 
-      // Build schedule: fast ticks → progressively slower ticks
-      const MIN_IV  = 55;   // fastest tick interval (ms)
-      const MAX_IV  = 190;  // slowest tick before settling (ms)
-      const schedule = [];
-      let elapsed = 0;
-      const fastEnd = perDieMs * 0.62;
-
-      // Fast phase
-      while (elapsed < fastEnd) {
-        schedule.push(MIN_IV);
-        elapsed += MIN_IV;
-      }
-      // Deceleration phase
-      let iv = MIN_IV;
-      while (elapsed < perDieMs - MAX_IV) {
-        iv = Math.min(Math.round(iv * 1.5), MAX_IV);
-        schedule.push(iv);
-        elapsed += iv;
-      }
-
-      // Run cycles (all show random faces)
-      for (const interval of schedule) {
-        displayDice.value[idx] = Math.floor(Math.random() * NUM_FACES);
-        await sleep(interval);
-      }
-
-      // Settle on final face
-      displayDice.value[idx] = finalFace;
-    }
-
-    // Animate a set of dice.
-    // diceToRoll: [{idx, finalFace}, ...]
-    // perDieMs:   how long each die's slot-machine runs
-    // staggerMs:  delay between successive dice starts (0 = all simultaneous)
-    // When staggerMs > 0 the order is randomised for a pleasing cascade effect.
-    async function _animateDiceRoll(diceToRoll, perDieMs, staggerMs = 0) {
-      const order = [...diceToRoll];
-      if (staggerMs > 0) {
-        // Shuffle for random settle order
-        for (let i = order.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [order[i], order[j]] = [order[j], order[i]];
-        }
-      }
+    async function _fadeInDice(diceToReveal, staggerMs) {
       await Promise.all(
-        order.map(({ idx, finalFace }, i) =>
-          _animateSingleDie(idx, finalFace, i * staggerMs, perDieMs)
-        )
+        diceToReveal.map(async ({ idx, finalFace }, i) => {
+          await sleep(i * staggerMs);
+          displayDice.value[idx] = finalFace;
+          dieFading.value[idx] = true;
+          await sleep(FADEIN_MS);
+          dieFading.value[idx] = false;
+        })
       );
     }
 
     // ── Turn flow ─────────────────────────────────────────────────────────────
 
-    // Slot-machine reveal for the bonus card: rapidly cycles through card icons
-    // then settles on the actual drawn card (same deceleration pattern as dice).
-    async function _animateCardReveal() {
-      const cyclePool = CARD_OPTIONS.filter(o => o.value !== 'default');
-      // First draw: card back is already showing (displayCard is null) — brief pause
-      // so the user sees it before cycling starts.
-      // Redraw: a card face is already displayed — skip the back flash and cycle immediately.
-      if (displayCard.value === null) await sleep(160);
-
-      const MIN_IV = 65, MAX_IV = 220, TOTAL_MS = 1050;
-      const schedule = [];
-      let elapsed = 0;
-      while (elapsed < TOTAL_MS * 0.65) { schedule.push(MIN_IV); elapsed += MIN_IV; }
-      let iv = MIN_IV;
-      while (elapsed < TOTAL_MS - MAX_IV) {
-        iv = Math.min(Math.round(iv * 1.5), MAX_IV);
-        schedule.push(iv); elapsed += iv;
-      }
-
-      for (const interval of schedule) {
-        displayCard.value = cyclePool[Math.floor(Math.random() * cyclePool.length)].value;
-        await sleep(interval);
-      }
-      displayCard.value = selectedCard.value; // settle on drawn card
-    }
-
-    // Step 1 of a new turn: draw and reveal the bonus card, then wait for the
-    // user to click "Roll Dice!".
-    async function startNewTurn() {
+    // Step 1: draw and show the bonus card instantly, then wait for "Roll Dice!".
+    function startNewTurn() {
       if (isAnimating.value) return;
-      isAnimating.value = true;
       turnPhase.value = 'card_revealed';
       mode.value = 'play';
       guardianUsed.value = false;
@@ -736,14 +666,10 @@ const app = createApp({
       displayDice.value = Array(8).fill(FACE_BLANK);
       selectedCard.value = randomCard();
       originalCard.value = selectedCard.value;
-
-      await _animateCardReveal();
-
-      isAnimating.value = false;
-      // turnPhase remains 'card_revealed' — "Roll Dice!" button now appears
+      displayCard.value = selectedCard.value;
     }
 
-    // Step 2: roll all 8 dice with slot-machine animation, staggered (~2 s total).
+    // Step 2: fade in all 8 dice left-to-right (~1.2 s total).
     async function rollInitialDice() {
       if (isAnimating.value) return;
       isAnimating.value = true;
@@ -752,10 +678,11 @@ const app = createApp({
       const finalDice = randomDice();
       dice.value = finalDice;
 
-      // perDie = 900 ms, stagger = 150 ms → last die starts at 7×150=1050ms, ends at 1950ms ≈ 2s
-      await _animateDiceRoll(
+      await sleep(200); // brief pause before first die appears
+      // 320 ms per die, 210 ms stagger → last die finishes at 7×210+320 = 1790ms
+      await _fadeInDice(
         finalDice.map((finalFace, idx) => ({ idx, finalFace })),
-        900, 150
+        210
       );
 
       displayDice.value = [...finalDice]; // safety flush
@@ -790,20 +717,15 @@ const app = createApp({
       selectedDice.value = Array(8).fill(false);
       _clearStrategy();
 
+      // Blank selected dice simultaneously, then fade them in left-to-right
+      for (const { idx } of diceToRoll) displayDice.value[idx] = FACE_BLANK;
+
       isAnimating.value = true;
-      scoreAnimating.value = true;
-
-      // Cycle score display alongside the dice animation
-      const scoreTimer = setInterval(() => {
-        animatedScoreVal.value = Math.floor(Math.random() * 2000);
-      }, 70);
-
       try {
-        // All selected dice animate simultaneously (staggerMs = 0), ~900 ms each
-        await _animateDiceRoll(diceToRoll, 900, 0);
+        const sorted = [...diceToRoll].sort((a, b) => a.idx - b.idx);
+        await sleep(250); // brief pause so blanks are visible before first die fades in
+        await _fadeInDice(sorted, 280);
       } finally {
-        clearInterval(scoreTimer);
-        scoreAnimating.value = false;
         displayDice.value = [...dice.value]; // safety flush
         isAnimating.value = false;
       }
@@ -1100,8 +1022,7 @@ const app = createApp({
       mode, selectedDice, anySelected, selectedCount, rollInvalidReason, bustProbability,
       cardLocked, guardianUsed,
       // A7: animation state
-      turnPhase, displayDice, isAnimating, displayCard, displayCardOption,
-      scoreAnimating, animatedScoreVal,
+      turnPhase, displayDice, isAnimating, dieFading, displayCard, displayCardOption,
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, toggleStrategy, randomize,
       startNewTurn, rollInitialDice,
