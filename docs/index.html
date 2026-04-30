@@ -80,7 +80,7 @@
                 displayDice[i] === FACE_BLANK                                               ? 'die-blank'          : '',
                 dieFading[i]                                                                ? 'die-fadein'         : '',
                 mode === 'play' && selectedDice[i]                                          ? 'die-selected'       : '',
-                mode === 'play' && turnPhase === 'active' && !isDieSelectable(i)            ? 'die-skull-locked'   : '',
+                mode === 'play' && turnPhase === 'active' && !isDieSelectable(i)            ? 'die-not-selectable'  : '',
                 turnPhase === 'active' && strategyOn && bestStrategyRerollIndices.has(i)    ? 'die-strategy-reroll': '',
               ]"
               @click="interactDie(i)"

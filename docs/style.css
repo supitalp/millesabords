@@ -547,13 +547,12 @@ body {
   font-size: 0.9em;
 }
 
-/* Skull die locked in play mode */
-.die-skull-locked {
-  opacity: 0.4;
+/* Non-selectable die in play mode — no visual dimming, just suppress hover effects */
+.die-not-selectable {
   cursor: not-allowed !important;
 }
 
-.die-skull-locked:hover {
+.die-not-selectable:hover {
   background: var(--bg-card) !important;
   border-color: var(--border) !important;
   transform: none !important;
