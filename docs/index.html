@@ -58,7 +58,16 @@
         <div class="dice-section-header">
           <h2 class="section-title">Your Dice</h2>
           <div class="dice-header-controls">
-            <button class="group-icon-btn" @click="reorderDice" :disabled="isAnimating" title="Group same faces together">⊞</button>
+            <button class="group-icon-btn" :class="{ 'dice-ctrl-inactive': turnPhase !== 'active' }" @click="!isAnimating && reorderDice()" title="Group same faces together">⊞</button>
+            <button
+              class="hint-icon-btn"
+              :class="{ 'hint-icon-btn-active': strategyOn, 'dice-ctrl-inactive': turnPhase !== 'active' }"
+              @click="!loading && !isAnimating && !currentScore.busted && !currentScore.guardianCanSave && toggleStrategy()"
+              :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
+            >
+              <span v-if="loading && turnPhase === 'active'" class="spinner-sm"></span>
+              <span v-else>💡</span>
+            </button>
             <div class="mode-toggle-compact">
               <button :class="['mode-icon-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')" title="Play mode">🎮</button>
               <button :class="['mode-icon-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')" title="Edit mode">✏️</button>
@@ -219,18 +228,6 @@
               :title="rollInvalidReason ?? (anySelected ? 'Re-roll ' + selectedCount + ' selected ' + (selectedCount === 1 ? 'die' : 'dice') : 'Select dice above to re-roll')"
             >
               🎲 Roll{{ anySelected ? ' (' + selectedCount + ')' : '' }}
-            </button>
-
-            <!-- A4: strategy toggle -->
-            <button
-              class="solve-btn solve-btn-icon"
-              :class="{ 'solve-btn-active': strategyOn }"
-              @click="toggleStrategy"
-              :disabled="loading || isAnimating || currentScore.busted || currentScore.guardianCanSave"
-              :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
-            >
-              <span v-if="loading" class="spinner"></span>
-              <span v-else>💡 Hint</span>
             </button>
 
             <!-- D1: record score & end turn -->

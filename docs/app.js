@@ -372,6 +372,12 @@ function computeStats(state, kept, config, sol, use_guardian = false) {
 
 const _dataCache = new Map();
 
+// Fire-and-forget: start fetching a card's solution into the cache so it is
+// already available when the user clicks the hint button.
+function preloadSolution(cardName) {
+  loadSolution(cardName).catch(() => {});
+}
+
 async function loadSolution(cardName) {
   if (_dataCache.has(cardName)) return _dataCache.get(cardName);
   const resp = await fetch(`data/${cardName}.json`);
@@ -668,6 +674,7 @@ const app = createApp({
       selectedCard.value = randomCard();
       originalCard.value = selectedCard.value;
       displayCard.value = selectedCard.value;
+      preloadSolution(selectedCard.value);
     }
 
     // Step 2: fade in all 8 dice left-to-right (~1.2 s total).
@@ -701,6 +708,7 @@ const app = createApp({
         // The Guardian card is now spent — switch to "no card" so the solver
         // computes the correct strategy for the remainder of the turn.
         selectedCard.value = 'default';
+        preloadSolution('default');
       }
 
       // Capture kept (island) dice for Treasure Island bust scoring, before we overwrite dice.
@@ -755,6 +763,7 @@ const app = createApp({
     function onCardChange() {
       _clearStrategy();
       displayCard.value = selectedCard.value; // keep tile in sync in edit mode
+      preloadSolution(selectedCard.value);
     }
 
     // Edit-mode instant randomise (no animation)
@@ -767,6 +776,7 @@ const app = createApp({
       selectedDice.value = Array(8).fill(false);
       guardianUsed.value = false;
       _clearStrategy();
+      preloadSolution(selectedCard.value);
     }
 
     const currentScore = computed(() => {
