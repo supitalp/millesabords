@@ -678,11 +678,10 @@ const app = createApp({
       const finalDice = randomDice();
       dice.value = finalDice;
 
-      await sleep(200); // brief pause before first die appears
-      // 320 ms per die, 210 ms stagger → last die finishes at 7×210+320 = 1790ms
+      await sleep(250); // brief pause before first die appears
       await _fadeInDice(
         finalDice.map((finalFace, idx) => ({ idx, finalFace })),
-        210
+        280
       );
 
       displayDice.value = [...finalDice]; // safety flush

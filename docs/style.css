@@ -512,6 +512,11 @@ body {
   border-radius: var(--radius-sm);
   font-size: 0.95rem;
   margin-top: 0.5rem;
+  /* Fixed height: reserves space even when inner templates render nothing, and
+     prevents text from wrapping and growing the banner. */
+  height: calc(0.95rem * 1.4 + 1.2rem); /* 1 line of text + top/bottom padding */
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .strategy-banner-stop {
@@ -846,18 +851,15 @@ body {
   font-size: 0.9rem;
 }
 
-.roll-invalid-hint {
-  color: var(--amber);
-  font-size: 0.85rem;
-  margin-top: 0.35rem;
-}
-
 /* ─── B1: Danger gauge ──────────────────────────────────────────────────────── */
 .danger-gauge {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   width: min(280px, 90vw);
+  /* Fixed height: label line + gap + 6px track, so empty state reserves the same space */
+  height: calc(0.82rem * 1.4 + 0.3rem + 6px);
+  overflow: hidden;
 }
 
 .danger-label {
@@ -866,6 +868,8 @@ body {
   align-items: center;
   font-size: 0.82rem;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .danger-pct {

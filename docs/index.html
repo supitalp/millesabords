@@ -93,8 +93,8 @@
             </button>
           </div>
 
-          <!-- Inline score (active phase only; hidden while a reroll is animating) -->
-          <div v-if="turnPhase === 'active'" class="dice-score-row" :style="{ visibility: isAnimating ? 'hidden' : 'visible' }">
+          <!-- Inline score — always mounted so the section height is constant; hidden when not yet active -->
+          <div class="dice-score-row" :style="{ visibility: (turnPhase === 'active' && !isAnimating) ? 'visible' : 'hidden' }">
             <template v-if="currentScore.guardianCanSave">
               <span class="dice-score-value score-guardian-pending">0<span class="score-unit"> pts</span></span>
               <span class="dice-score-bust-label">🛡️ Select a skull to reroll with the Guardian!</span>
@@ -126,14 +126,41 @@
             </template>
           </div>
 
-          <!-- Strategy banner — always reserves space when active so buttons don't shift -->
+          <!-- B1: danger gauge / invalid-roll warning — always mounted so the section height is constant -->
           <div
-            v-if="turnPhase === 'active'"
+            class="danger-gauge"
+            :style="{ visibility: (turnPhase === 'active' && (bustProbability !== null || (rollInvalidReason && mode === 'play'))) ? 'visible' : 'hidden' }"
+          >
+            <template v-if="rollInvalidReason && mode === 'play'">
+              <div class="danger-label">
+                <span>⚠️ {{ rollInvalidReason }}</span>
+              </div>
+            </template>
+            <template v-else-if="bustProbability !== null">
+              <div class="danger-label">
+                <span>☠️ Bust risk</span>
+                <span class="danger-pct">{{ (bustProbability * 100).toFixed(1) }}%</span>
+              </div>
+              <div class="danger-track">
+                <div
+                  class="danger-fill"
+                  :class="bustProbability < 0.10 ? 'danger-safe'
+                        : bustProbability < 0.30 ? 'danger-low'
+                        : bustProbability < 0.60 ? 'danger-medium'
+                                                 : 'danger-high'"
+                  :style="{ width: (bustProbability * 100) + '%' }"
+                ></div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Strategy banner — always mounted so the section height is constant -->
+          <div
             class="strategy-banner"
             :class="bestStrategyIsStop ? 'strategy-banner-stop' : 'strategy-banner-reroll'"
             :style="{
-              visibility: (strategyOn && strategyData && !strategyData.busted) ? 'visible' : 'hidden',
-              cursor: (strategyOn && strategyData && !strategyData.busted) ? 'pointer' : 'default'
+              visibility: (turnPhase === 'active' && strategyOn && strategyData && !strategyData.busted) ? 'visible' : 'hidden',
+              cursor: (turnPhase === 'active' && strategyOn && strategyData && !strategyData.busted) ? 'pointer' : 'default'
             }"
             @click="strategyOn && strategyData && !strategyData.busted ? modalOpen = true : null"
             title="View full strategy table"
@@ -222,25 +249,6 @@
 
         </div>
 
-        <!-- B1: danger gauge (active play only) -->
-        <div v-if="turnPhase === 'active' && bustProbability !== null" class="danger-gauge">
-          <div class="danger-label">
-            <span>☠️ Bust risk</span>
-            <span class="danger-pct">{{ (bustProbability * 100).toFixed(1) }}%</span>
-          </div>
-          <div class="danger-track">
-            <div
-              class="danger-fill"
-              :class="bustProbability < 0.10 ? 'danger-safe'
-                    : bustProbability < 0.30 ? 'danger-low'
-                    : bustProbability < 0.60 ? 'danger-medium'
-                                             : 'danger-high'"
-              :style="{ width: (bustProbability * 100) + '%' }"
-            ></div>
-          </div>
-        </div>
-
-        <p v-if="turnPhase === 'active' && rollInvalidReason && mode === 'play'" class="roll-invalid-hint">⚠️ {{ rollInvalidReason }}</p>
         <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
       </section>
 
