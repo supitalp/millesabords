@@ -543,54 +543,69 @@ body {
   box-shadow: 0 0 0 2px rgba(240,165,0,0.35), 0 4px 16px rgba(240,165,0,0.2);
 }
 
-/* Strategy banner below the dice */
-.strategy-banner {
+/* ─── Strategy panel (dedicated section below dice) ─────────────────────────── */
+.strategy-panel {
+  padding: 0.55rem 1rem;
+  overflow: hidden;
+}
+
+.sp-top-row {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.6rem 1rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.95rem;
-  margin-top: 0.5rem;
-  /* Fixed height: reserves space even when inner templates render nothing, and
-     prevents text from wrapping and growing the banner. */
-  height: calc(0.95rem * 1.4 + 1.2rem); /* 1 line of text + top/bottom padding */
+  justify-content: space-between;
+  gap: 0.5rem;
+  /* Fixed height on the row (not the section) — prevents layout shift when emojis/pill appear */
+  height: calc(0.95rem * 1.4);
   overflow: hidden;
-  white-space: nowrap;
 }
 
-.strategy-banner-stop {
-  background: rgba(239,68,68,0.1);
-  border: 1px solid rgba(239,68,68,0.3);
-  color: #fca5a5;
+.sp-action {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  min-width: 0;
 }
 
-.strategy-banner-stop:hover {
-  background: rgba(239,68,68,0.16);
+.sp-action-icon { font-size: 1rem; line-height: 1; }
+
+.sp-action-label  { font-size: 0.95rem; font-weight: 700; }
+.sp-label-stop    { color: #fca5a5; }
+.sp-label-reroll  { color: var(--accent); }
+
+.sp-reroll-dice {
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
-.strategy-banner-reroll {
-  background: rgba(217,119,6,0.1);
-  border: 1px solid rgba(217,119,6,0.3);
-  color: var(--amber);
+.sp-gain-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 99px;
+  background: rgba(34,197,94,0.15);
+  color: var(--green);
+  border: 1px solid rgba(34,197,94,0.3);
 }
 
-.strategy-banner-reroll:hover {
-  background: rgba(217,119,6,0.17);
-}
-
-.banner-details-link {
-  margin-left: 0.3rem;
-  font-size: 0.85em;
-  opacity: 0.65;
+.sp-details-link {
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
   text-decoration: underline;
   text-underline-offset: 2px;
+  opacity: 0.6;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.15s, opacity 0.15s;
 }
 
-.banner-delta {
-  opacity: 0.75;
-  font-size: 0.9em;
-}
+.sp-details-link:hover { color: var(--text); opacity: 1; }
 
 /* Non-selectable die in play mode — no visual dimming, just suppress hover effects */
 .die-not-selectable {
@@ -797,21 +812,22 @@ body {
   gap: 0.35rem;
   padding: 0.55rem 1.1rem;
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 600;
   font-family: var(--font);
   background: transparent;
-  color: var(--accent);
-  border: 2px solid var(--accent);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
   border-radius: 100px;
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.15s, background 0.15s, color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.1s;
   letter-spacing: 0.02em;
 }
 
 .roll-btn:hover:not(:disabled) {
-  background: rgba(240,165,0,0.1);
+  color: var(--text);
+  border-color: var(--text-muted);
+  background: var(--bg-card);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(240,165,0,0.25);
 }
 
 .roll-btn:active:not(:disabled) { transform: translateY(0); }
@@ -897,6 +913,7 @@ body {
   flex-direction: column;
   gap: 0.3rem;
   width: min(280px, 90vw);
+  align-self: center;
   /* Fixed height: label line + gap + 6px track, so empty state reserves the same space */
   height: calc(0.82rem * 1.4 + 0.3rem + 6px);
   overflow: hidden;
@@ -1188,21 +1205,22 @@ body {
   gap: 0.35rem;
   padding: 0.55rem 1.1rem;
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 600;
   font-family: var(--font);
   background: transparent;
-  color: var(--green);
-  border: 2px solid var(--green);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
   border-radius: 100px;
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.15s, background 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.1s;
   letter-spacing: 0.02em;
 }
 
 .finish-turn-btn:hover:not(:disabled) {
-  background: rgba(34, 197, 94, 0.1);
+  color: var(--text);
+  border-color: var(--text-muted);
+  background: var(--bg-card);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.25);
 }
 
 .finish-turn-btn:active:not(:disabled) { transform: translateY(0); }

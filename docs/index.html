@@ -160,26 +160,30 @@
             </template>
           </div>
 
-          <!-- Strategy banner — always mounted so the section height is constant -->
-          <div
-            class="strategy-banner"
-            :class="bestStrategyIsStop ? 'strategy-banner-stop' : 'strategy-banner-reroll'"
-            :style="{
-              visibility: (turnPhase === 'active' && strategyOn && strategyData && !strategyData.busted) ? 'visible' : 'hidden',
-              cursor: (turnPhase === 'active' && strategyOn && strategyData && !strategyData.busted) ? 'pointer' : 'default'
-            }"
-            @click="strategyOn && strategyData && !strategyData.busted ? modalOpen = true : null"
-            title="View full strategy table"
-          >
-            <template v-if="strategyData && bestStrategyIsStop">
-              🛑 <strong>Stop now</strong> — bank your {{ strategyData.stopScore }} pts
-            </template>
-            <template v-else-if="strategyData">
-              ⭐ <strong>Reroll</strong>
-              ({{ strategyData.stats[0].delta_vs_stop >= 0 ? '+' : '' }}{{ Math.round(strategyData.stats[0].delta_vs_stop) }} pts exp.)
-              <span class="banner-details-link">→ details</span>
-            </template>
+        </div>
+      </section>
+
+      <!-- Strategy panel — always mounted to hold layout; content visible only when hint is on -->
+      <section
+        class="section strategy-panel"
+        :style="{
+          visibility: (turnPhase === 'active' && strategyOn && strategyData && !strategyData.busted) ? 'visible' : 'hidden'
+        }"
+      >
+        <div class="sp-top-row">
+          <div class="sp-action">
+            <span class="sp-action-icon">{{ bestStrategyIsStop ? '🛑' : '⭐' }}</span>
+            <strong class="sp-action-label" :class="bestStrategyIsStop ? 'sp-label-stop' : 'sp-label-reroll'">
+              {{ bestStrategyIsStop ? 'Stop now' : 'Reroll' }}
+            </strong>
+            <span class="sp-reroll-dice" v-if="!bestStrategyIsStop">
+              <template v-for="(face, i) in dice" :key="i">{{ bestStrategyRerollIndices.has(i) ? FACE_EMOJI[face] : '' }}</template>
+            </span>
+            <span v-if="!bestStrategyIsStop && strategyData" class="sp-gain-pill">
+              {{ strategyData.stats[0].delta_vs_stop >= 0 ? '+' : '' }}{{ Math.round(strategyData.stats[0].delta_vs_stop) }} pts
+            </span>
           </div>
+          <button class="sp-details-link" @click="modalOpen = true">Full strategy table →</button>
         </div>
       </section>
 
@@ -195,7 +199,7 @@
             :disabled="isAnimating"
             title="Draw a new card and roll all dice"
           >
-            🎲 New Turn
+            🔄 New Turn
           </button>
 
           <!-- Step 2: roll the dice once the card has been revealed -->
@@ -237,7 +241,7 @@
               @click="openSubmitModal"
               :disabled="isAnimating"
               title="Bank your score and pass to the next player"
-            >✓ Record</button>
+            >💾 Save</button>
 
           </template>
 
