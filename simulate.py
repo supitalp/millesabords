@@ -363,6 +363,10 @@ def main() -> None:
         "--quiet", action="store_true",
         help="Suppress per-turn traces; only show the stats summary.",
     )
+    parser.add_argument(
+        "--save", metavar="FILE", default=None,
+        help="Save per-game scores as a .npy file.",
+    )
     args = parser.parse_args()
 
     card_name = args.card or ""
@@ -381,6 +385,13 @@ def main() -> None:
             print(f"\n{'━' * 58}")
             print(f"  Turn {i + 1} / {args.n}")
         scores.append(simulate(config, rng, card_name=card_name, verbose=verbose))
+
+    if args.save:
+        import numpy as np
+        import os
+        os.makedirs(os.path.dirname(args.save), exist_ok=True) if os.path.dirname(args.save) else None
+        np.save(args.save, np.array(scores, dtype=np.float32))
+        print(f"  Saved {len(scores):,} scores → {args.save}")
 
     if args.n > 1:
         print_stats(scores, config)
