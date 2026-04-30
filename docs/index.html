@@ -432,14 +432,7 @@
                           :class="(playerTotals[p] ?? 0) >= 0 ? 'sb-total-pos' : 'sb-total-neg'"
                         >{{ playerTotals[p] ?? 0 }}</td>
                       </tr>
-                      <tr class="sb-avg-row">
-                        <td class="sb-round-td sb-avg-label">μ</td>
-                        <td
-                          v-for="p in scoreboardPlayers"
-                          :key="p"
-                          class="sb-score-td sb-avg-td"
-                        >{{ playerAverages[p] !== null ? playerAverages[p].toFixed(1) : '—' }}</td>
-                      </tr>
+
                     </tfoot>
                   </table>
                 </div>
