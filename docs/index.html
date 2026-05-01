@@ -32,19 +32,28 @@
 
           <!-- Play mode: compact inline pill -->
           <template v-if="mode === 'play'">
-            <div
-              class="card-tile"
-              :class="{ 'card-tile-settled': displayCard !== null }"
-              :title="displayCard !== null ? displayCardOption.desc : 'Draw a card to begin your turn'"
-            >
-              <template v-if="displayCard === null">
-                <span class="card-tile-back-icon">🂠</span>
-                <span class="card-tile-back-label">Draw a card</span>
-              </template>
-              <template v-else>
-                <span class="card-tile-face-icon">{{ displayCardOption.icon }}</span>
-                <span class="card-tile-face-name">{{ displayCardOption.name }}</span>
-              </template>
+            <div class="card-tile-row">
+              <button
+                v-if="turnPhase === 'card_revealed'"
+                class="card-redraw-btn"
+                @click="startNewTurn"
+                :disabled="isAnimating"
+                title="Redraw card"
+              >🔄</button>
+              <div
+                class="card-tile"
+                :class="{ 'card-tile-settled': displayCard !== null }"
+                :title="displayCard !== null ? displayCardOption.desc : 'Draw a card to begin your turn'"
+              >
+                <template v-if="displayCard === null">
+                  <span class="card-tile-back-icon">🂠</span>
+                  <span class="card-tile-back-label">Draw a card</span>
+                </template>
+                <template v-else>
+                  <span class="card-tile-face-icon">{{ displayCardOption.icon }}</span>
+                  <span class="card-tile-face-name">{{ displayCardOption.name }}</span>
+                </template>
+              </div>
             </div>
           </template>
 
@@ -220,31 +229,6 @@
       <!-- Action buttons -->
       <section class="section action-section">
         <div class="action-buttons">
-
-          <!-- ── idle / card_revealed: New Turn + Roll Dice ── -->
-          <button
-            v-if="mode === 'play' && (turnPhase === 'idle' || turnPhase === 'active')"
-            class="randomize-btn"
-            @click="startNewTurn"
-            :disabled="isAnimating"
-            title="Draw a new card and roll all dice"
-          >
-            🔄 New Turn
-          </button>
-
-          <!-- Step 2: redraw option while card is revealed (roll moved into dice section) -->
-          <template v-if="mode === 'play' && turnPhase === 'card_revealed'">
-            <button
-              class="randomize-btn"
-              @click="startNewTurn"
-              :disabled="isAnimating"
-              title="Re-draw a different card"
-            >
-              ↩ Redraw Card
-            </button>
-          </template>
-
-
         </div>
 
         <p v-if="error" class="error-msg">⚠️ {{ error }}</p>

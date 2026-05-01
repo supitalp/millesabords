@@ -1,4 +1,4 @@
-import { createApp, ref, computed, reactive } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js';
+import { createApp, ref, computed, reactive, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -972,13 +972,13 @@ const app = createApp({
       saveScores(updated);
 
       submitModalOpen.value = false;
-      _resetToIdle();
+      startNewTurn();
     }
 
     // Close modal and reset to idle without recording anything
     function discardTurn() {
       submitModalOpen.value = false;
-      _resetToIdle();
+      startNewTurn();
     }
 
     // Clear all scores (keeps player names for future turns)
@@ -1041,6 +1041,8 @@ const app = createApp({
     function maxStr(s) {
       return String(s.max_score);
     }
+
+    onMounted(() => startNewTurn());
 
     return {
       dice, selectedCard, loading, error,
