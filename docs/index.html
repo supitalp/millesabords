@@ -60,7 +60,7 @@
           <div v-else class="card-picker">
             <select v-model="selectedCard" @change="onCardChange" class="card-select">
               <option v-for="opt in CARD_OPTIONS" :key="opt.value" :value="opt.value">
-                {{ opt.icon }}  {{ opt.label }}
+                {{ opt.icon }}  {{ opt.name }}
               </option>
             </select>
           </div>
