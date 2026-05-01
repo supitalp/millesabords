@@ -14,7 +14,6 @@ A5. [x] **When the "+500 pt" bonus is enabled** (when all dice contribute a poin
 A6. [x] **When the card is pirate_ship**, show a visual indicator when the contract (number of swords) is fulfilled or not
 A6. [ ] **Add a "Share" button** — lets users share the current game state (dice + card) via a URL or clipboard link
 A7. [x] **Better dice roll animations** -- in particular when starting a new turn, we should start showing "blank" dice + gradually show them in a short animation (~1-2s). Same for when we re-roll dice + same when choosing the random "bonus card".
-A8. [ ]  Revisit how we swipe/cycle through special cards?
 
 ---
 
@@ -31,7 +30,7 @@ C1. [x] **Auto-remove Guardian card effect** when a skull is rerolled — once t
 C2. [x] **Tiebreak by safety** — when two strategies have equal EV, prefer the one with the lower probability of immediate bust
 C3. [x] **Correct random sampling for bonus cards** — the card drawn at the start of a turn should follow the real game distribution (non-uniform), not a uniform random pick
 C4. [ ] **Support "pirate island" mode** (when >= 4 skulls at the start)
-C5. [ ] **Add support for the "safe" card**
+C5. [x] **Add support for the "safe" card**
 
 ---
 
