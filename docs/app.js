@@ -975,6 +975,12 @@ const app = createApp({
       _resetToIdle();
     }
 
+    // Close modal and reset to idle without recording anything
+    function discardTurn() {
+      submitModalOpen.value = false;
+      _resetToIdle();
+    }
+
     // Clear all scores (keeps player names for future turns)
     function resetScores() {
       gameScores.value = {};
@@ -1055,7 +1061,7 @@ const app = createApp({
       savedPlayers, gameScores, submitModalOpen, submitPlayer, newPlayerName, scoreboardOpen,
       scoreToRecord, submitPlayerName, scoreboardPlayers, hasAnyScores, maxRounds,
       playerTotals, playerAverages,
-      openSubmitModal, submitScore, resetScores, scoreCellClass, formatScoreCell,
+      openSubmitModal, submitScore, resetScores, discardTurn, scoreCellClass, formatScoreCell,
     };
   },
 });

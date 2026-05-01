@@ -379,7 +379,8 @@
                   class="solve-btn"
                   @click="submitScore"
                   :disabled="!submitPlayerName"
-                >✓ Confirm</button>
+                >✓ Save score</button>
+                <button class="randomize-btn" @click="discardTurn">↩ New turn</button>
                 <button class="randomize-btn" @click="submitModalOpen = false">Cancel</button>
               </div>
 
