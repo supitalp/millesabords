@@ -148,7 +148,7 @@
               @click="openSubmitModal"
               :disabled="turnPhase !== 'active' || isAnimating"
               :title="currentScore.busted ? 'Record bust and pass to the next player' : 'Bank your score and pass to the next player'"
-            >{{ currentScore.busted && !isAnimating ? '💀' : '💰' }}</button>
+            >{{ currentScore.busted && turnPhase === 'active' && !isAnimating ? '💀' : '💰' }}</button>
           </div>
 
           <!-- Inline score — always mounted so the section height is constant; hidden when not yet active -->
