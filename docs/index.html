@@ -11,9 +11,15 @@
     <header class="site-header">
       <div class="header-inner">
         <h1>🏴‍☠️ Mille Sabords</h1>
-        <button class="scoreboard-header-btn" @click="scoreboardOpen = true" title="View scoreboard">
-          📊 <span class="scoreboard-btn-label">Scores</span>
-        </button>
+        <div class="header-right">
+          <div class="mode-toggle-compact">
+            <button :class="['mode-icon-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')" title="Play mode">🎮</button>
+            <button :class="['mode-icon-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')" title="Edit mode">✏️</button>
+          </div>
+          <button class="scoreboard-header-btn" @click="scoreboardOpen = true" title="View scoreboard">
+            📊 <span class="scoreboard-btn-label">Scores</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -68,10 +74,6 @@
               <span v-if="loading && turnPhase === 'active'" class="spinner-sm"></span>
               <span v-else>💡</span>
             </button>
-            <div class="mode-toggle-compact">
-              <button :class="['mode-icon-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')" title="Play mode">🎮</button>
-              <button :class="['mode-icon-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')" title="Edit mode">✏️</button>
-            </div>
           </div>
         </div>
 

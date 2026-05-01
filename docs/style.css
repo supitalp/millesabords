@@ -257,9 +257,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  font-size: 0.95rem;
+  width: 36px;
+  height: 36px;
+  font-size: 1.1rem;
   background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--border);
@@ -287,9 +287,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  font-size: 0.9rem;
+  width: 36px;
+  height: 36px;
+  font-size: 1.05rem;
   background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--border);
@@ -1174,6 +1174,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .scoreboard-header-btn {
