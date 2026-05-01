@@ -250,6 +250,39 @@ body {
   white-space: nowrap;
 }
 
+/* ─── Guardian power badge ───────────────────────────────────────────────── */
+.guardian-power-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.55rem;
+  height: 42px;
+  border-radius: 999px;
+  border: 1.5px solid;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+  cursor: default;
+  user-select: none;
+  transition: opacity 0.25s, color 0.25s, border-color 0.25s;
+}
+.guardian-badge-icon {
+  font-size: 0.82rem;
+  line-height: 1;
+}
+.guardian-power-available {
+  border-color: rgba(110, 210, 110, 0.55);
+  color: rgba(130, 220, 130, 0.95);
+  background: rgba(110, 210, 110, 0.08);
+}
+.guardian-power-used {
+  border-color: var(--border);
+  color: var(--text-muted);
+  opacity: 0.4;
+  background: transparent;
+}
+
 @keyframes roll-dice-pulse {
   0%, 100% { box-shadow: 0 4px 20px rgba(240,165,0,0.4); }
   50%       { box-shadow: 0 6px 30px rgba(240,165,0,0.65); }

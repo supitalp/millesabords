@@ -53,6 +53,17 @@
                   <span class="card-tile-face-name">{{ displayCardOption.name }}</span>
                 </template>
               </div>
+
+              <!-- Guardian power indicator -->
+              <div
+                v-if="displayCard === 'guardian'"
+                class="guardian-power-badge"
+                :class="guardianUsed ? 'guardian-power-used' : 'guardian-power-available'"
+                :title="guardianUsed ? 'Guardian power spent — skull reroll already used' : 'Guardian power ready — can reroll 1 skull'"
+              >
+                <span class="guardian-badge-icon">🛡️</span>
+                <span class="guardian-badge-label">{{ guardianUsed ? 'Used' : 'Ready' }}</span>
+              </div>
             </div>
           </template>
 
