@@ -491,11 +491,13 @@ body {
   font-family: inherit;
 }
 
-.die-interactive:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--accent);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(240,165,0,0.2);
+@media (hover: hover) {
+  .die-interactive:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(240,165,0,0.2);
+  }
 }
 
 .die-interactive:active {
