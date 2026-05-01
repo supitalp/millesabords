@@ -1014,8 +1014,8 @@ const app = createApp({
     function rowMarker(i, s) {
       const isStop = s.n_reroll === 0;
       const isBest = i === 0;
-      if (isStop && isBest) return '🛑⭐';
-      if (isStop) return '🛑';
+      if (isStop && isBest) return '💰⭐';
+      if (isStop) return '💰';
       if (isBest) return '⭐';
       return String(i + 1);
     }

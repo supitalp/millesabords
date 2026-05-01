@@ -129,7 +129,7 @@
               @click="openSubmitModal"
               :disabled="turnPhase !== 'active' || isAnimating"
               title="Bank your score and pass to the next player"
-            >💾</button>
+            >💰</button>
           </div>
 
           <!-- Inline score — always mounted so the section height is constant; hidden when not yet active -->
@@ -205,9 +205,9 @@
       >
         <div class="sp-top-row">
           <div class="sp-action">
-            <span class="sp-action-icon">{{ bestStrategyIsStop ? '🛑' : '⭐' }}</span>
+            <span class="sp-action-icon">{{ bestStrategyIsStop ? '💰' : '⭐' }}</span>
             <strong class="sp-action-label" :class="bestStrategyIsStop ? 'sp-label-stop' : 'sp-label-reroll'">
-              {{ bestStrategyIsStop ? 'Stop now' : 'Reroll' }}
+              {{ bestStrategyIsStop ? 'Bag it!' : 'Reroll' }}
             </strong>
             <span v-if="!bestStrategyIsStop && strategyData" class="sp-gain-pill">
               {{ strategyData.stats[0].delta_vs_stop >= 0 ? '+' : '' }}{{ Math.round(strategyData.stats[0].delta_vs_stop) }} pts
@@ -319,7 +319,7 @@
                 <div class="results-legend">
                   <span>⭐ = recommended action</span>
                   <span>·</span>
-                  <span>🛑 = stop &amp; bank points</span>
+                  <span>💰 = bag it &amp; bank points</span>
                   <span>·</span>
                   <span>Δ vs Stop = EV gain over stopping now</span>
                   <span>·</span>
