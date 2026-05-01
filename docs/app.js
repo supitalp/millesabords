@@ -476,6 +476,17 @@ const app = createApp({
 
     // Scoreboard modal
     const scoreboardOpen  = ref(false);
+    const confirmAction   = ref(null); // { type: 'delete', player, roundIdx } | { type: 'reset' }
+
+    // Edit (reassign) entry modal
+    const editTarget           = ref(null); // { player: string, roundIdx: number }
+    const editTargetPlayer     = ref('');
+    const editNewPlayerName    = ref('');
+    const editTargetPlayerName = computed(() =>
+      editTargetPlayer.value === '__new__'
+        ? editNewPlayerName.value.trim()
+        : editTargetPlayer.value
+    );
 
     // ── Turn / animation state ────────────────────────────────────────────────
     // 'idle'          → fresh page load: blank card back + blank dice
@@ -996,6 +1007,118 @@ const app = createApp({
       saveScores({});
     }
 
+    function requestReset() {
+      confirmAction.value = { type: 'reset' };
+    }
+
+    function requestDeleteEntry(player, roundIdx) {
+      confirmAction.value = { type: 'delete', player, roundIdx };
+    }
+
+    function executeConfirmAction() {
+      if (!confirmAction.value) return;
+      if (confirmAction.value.type === 'reset') {
+        resetScores();
+      } else if (confirmAction.value.type === 'delete') {
+        const { player, roundIdx } = confirmAction.value;
+        const updated = { ...gameScores.value };
+        const newTurns = [...updated[player]];
+        newTurns.splice(roundIdx, 1);
+        if (newTurns.length === 0) {
+          delete updated[player];
+        } else {
+          updated[player] = newTurns;
+        }
+        gameScores.value = updated;
+        saveScores(updated);
+      }
+      confirmAction.value = null;
+    }
+
+    function cancelConfirmAction() {
+      confirmAction.value = null;
+    }
+
+    function requestEditEntry(player, roundIdx) {
+      editTarget.value = { player, roundIdx };
+      // Pre-select first other player so the picker is already useful
+      const others = savedPlayers.value.filter(p => p !== player);
+      editTargetPlayer.value = others.length > 0 ? others[0] : savedPlayers.value[0] ?? '__new__';
+      editNewPlayerName.value = '';
+    }
+
+    function executeEditEntry() {
+      if (!editTarget.value) return;
+      const { player: fromPlayer, roundIdx } = editTarget.value;
+      const toPlayer = editTargetPlayer.value === '__new__'
+        ? editNewPlayerName.value.trim()
+        : editTargetPlayer.value;
+      if (!toPlayer || toPlayer === fromPlayer) { editTarget.value = null; return; }
+
+      if (!savedPlayers.value.includes(toPlayer)) {
+        savedPlayers.value = [...savedPlayers.value, toPlayer];
+        savePlayers(savedPlayers.value);
+      }
+
+      const updated = { ...gameScores.value };
+      const turn = updated[fromPlayer][roundIdx];
+      const newFromTurns = [...updated[fromPlayer]];
+      newFromTurns.splice(roundIdx, 1);
+      if (newFromTurns.length === 0) {
+        delete updated[fromPlayer];
+      } else {
+        updated[fromPlayer] = newFromTurns;
+      }
+      if (!updated[toPlayer]) updated[toPlayer] = [];
+      updated[toPlayer] = [...updated[toPlayer], turn];
+      gameScores.value = updated;
+      saveScores(updated);
+      editTarget.value = null;
+    }
+
+    function cancelEditEntry() {
+      editTarget.value = null;
+    }
+
+    function deleteEntryFromEdit() {
+      if (!editTarget.value) return;
+      const { player, roundIdx } = editTarget.value;
+      const updated = { ...gameScores.value };
+      const newTurns = [...updated[player]];
+      newTurns.splice(roundIdx, 1);
+      if (newTurns.length === 0) {
+        delete updated[player];
+      } else {
+        updated[player] = newTurns;
+      }
+      gameScores.value = updated;
+      saveScores(updated);
+      editTarget.value = null;
+    }
+
+    async function shareScores() {
+      const lines = ['🏴‍☠️ Mille Sabords — Game Summary', ''];
+      for (const player of scoreboardPlayers.value) {
+        const turns = gameScores.value[player] || [];
+        const total = playerTotals.value[player] ?? 0;
+        lines.push(`👤 ${player}  —  Total: ${total} pts`);
+        for (let i = 0; i < turns.length; i++) {
+          const turn = turns[i];
+          const cardOption = CARD_OPTIONS.find(o => o.value === turn.card) ?? CARD_OPTIONS[0];
+          const diceEmojis = [...turn.dice].sort((a, b) => a - b).map(f => FACE_EMOJI[f]).join(' ');
+          const pts = turn.score > 0 ? `+${turn.score}` : String(turn.score);
+          lines.push(`  Round ${i + 1}: ${cardOption.icon} ${cardOption.name} | ${diceEmojis} → ${pts} pts`);
+        }
+        lines.push('');
+      }
+      const text = lines.join('\n').trim();
+      if (navigator.share) {
+        try { await navigator.share({ text }); } catch (_) {}
+      } else {
+        try { await navigator.clipboard.writeText(text); } catch (_) {}
+      }
+    }
+
     // Scoreboard helpers
     function scoreCellClass(turn) {
       const score = turn?.score;
@@ -1073,6 +1196,9 @@ const app = createApp({
       scoreToRecord, submitPlayerName, scoreboardPlayers, hasAnyScores, maxRounds,
       playerTotals, playerAverages,
       openSubmitModal, submitScore, resetScores, discardTurn, scoreCellClass, formatScoreCell,
+      confirmAction, requestDeleteEntry, requestReset, executeConfirmAction, cancelConfirmAction, shareScores,
+      editTarget, editTargetPlayer, editNewPlayerName, editTargetPlayerName,
+      requestEditEntry, executeEditEntry, cancelEditEntry, deleteEntryFromEdit,
     };
   },
 });

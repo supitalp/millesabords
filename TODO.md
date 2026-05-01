@@ -56,11 +56,12 @@ E2. [ ] **Versioning / release strategy** — decide on a versioning scheme (sem
 
 F1. [ ] **README** — write a top-level README covering project overview, local dev setup, and how to deploy to GitHub Pages
 F2. [ ] **DP algorithm write-up** — document the dynamic-programming solver (intended as a blog post or `docs/` page)
-F3. Document our modification of not allowing direct WIN, but instead saying that 9 identical dice is 8000 points (this is functionally equivalent) + document the similar choice for the "treasure island" card where we automatically save the value of kept dice before rerolling.
+F3. [x] Document our modification of not allowing direct WIN, but instead saying that 9 identical dice is 8000 points (this is functionally equivalent) + document the similar choice for the "treasure island" card where we automatically save the value of kept dice before rerolling.
+F4. [ ] Add a page detailing what we learned about the game while solving it (EVs for each different card), showing the "heatmap" graph with the per-score frequency distribution for each card.
 
 ## Research
 
-G1. Can we express the expected values at game start as fractions (closed-form)? Not just as approximations?
+G1. [ ] Can we express the expected values at game start as fractions (closed-form)? Not just as approximations?
 
 ---
 

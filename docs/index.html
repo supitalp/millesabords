@@ -412,7 +412,17 @@
                           :key="p"
                           class="sb-score-td"
                           :class="scoreCellClass(gameScores[p]?.[r - 1])"
-                        >{{ formatScoreCell(gameScores[p]?.[r - 1]) }}</td>
+                        >
+                          <div class="sb-cell-inner">
+                            <span>{{ formatScoreCell(gameScores[p]?.[r - 1]) }}</span>
+                            <button
+                              v-if="gameScores[p]?.[r - 1] !== undefined"
+                              class="sb-edit-btn"
+                              @click.stop="requestEditEntry(p, r - 1)"
+                              title="Edit entry"
+                            >✏️</button>
+                          </div>
+                        </td>
                       </tr>
                     </tbody>
                     <tfoot>
@@ -431,9 +441,96 @@
                 </div>
               </template>
 
-              <button class="randomize-btn reset-scores-btn" @click="resetScores">
-                🗑 Reset Scores
-              </button>
+              <div class="sb-footer-actions">
+                <button v-if="hasAnyScores" class="sb-share-btn" @click="shareScores">📤 Share</button>
+                <button class="randomize-btn" @click="requestReset" :disabled="!hasAnyScores">🗑 Reset</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Confirmation modal (delete entry / reset scores) -->
+      <Teleport to="body">
+        <div v-if="confirmAction" class="modal-overlay" @click.self="cancelConfirmAction">
+          <div class="modal-card modal-sm">
+            <div class="modal-header">
+              <h2 class="modal-title">
+                {{ confirmAction.type === 'reset' ? '🗑 Reset all scores?' : '🗑 Delete entry?' }}
+              </h2>
+              <button class="modal-close-btn" @click="cancelConfirmAction" title="Close">✕</button>
+            </div>
+            <div class="modal-body">
+              <p class="confirm-message">
+                <template v-if="confirmAction.type === 'reset'">
+                  This will permanently delete all scores for all players. This cannot be undone.
+                </template>
+                <template v-else>
+                  Delete this score entry for <strong>{{ confirmAction.player }}</strong>? This cannot be undone.
+                </template>
+              </p>
+              <div class="submit-actions">
+                <button class="btn-danger" @click="executeConfirmAction">Delete</button>
+                <button class="randomize-btn" @click="cancelConfirmAction">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Edit (reassign / delete) entry modal -->
+      <Teleport to="body">
+        <div v-if="editTarget" class="modal-overlay" @click.self="cancelEditEntry">
+          <div class="modal-card modal-sm">
+            <div class="modal-header">
+              <h2 class="modal-title">✏️ Edit entry</h2>
+              <button class="modal-close-btn" @click="cancelEditEntry" title="Close">✕</button>
+            </div>
+            <div class="modal-body">
+
+              <div class="submit-score-hero">
+                <div class="submit-hero-score-row">
+                  <span
+                    class="submit-hero-number"
+                    :class="gameScores[editTarget.player]?.[editTarget.roundIdx]?.score < 0 ? 'submit-hero-neg' : gameScores[editTarget.player]?.[editTarget.roundIdx]?.score === 0 ? 'submit-hero-zero' : ''"
+                  >{{ gameScores[editTarget.player]?.[editTarget.roundIdx]?.score }}</span>
+                  <span class="submit-hero-unit">pts</span>
+                </div>
+                <span class="submit-hero-unit">assigned to <strong>{{ editTarget.player }}</strong></span>
+              </div>
+
+              <div class="submit-player-block">
+                <label class="submit-player-label">Reassign to</label>
+                <select
+                  v-if="savedPlayers.length > 0"
+                  v-model="editTargetPlayer"
+                  class="card-select"
+                >
+                  <option v-for="name in savedPlayers" :key="name" :value="name">{{ name }}</option>
+                  <option value="__new__">＋ New player…</option>
+                </select>
+                <input
+                  v-if="savedPlayers.length === 0 || editTargetPlayer === '__new__'"
+                  v-model="editNewPlayerName"
+                  class="submit-name-input"
+                  type="text"
+                  placeholder="Enter player name"
+                  @keyup.enter="executeEditEntry"
+                />
+              </div>
+
+              <div class="edit-entry-actions">
+                <button class="btn-danger" @click="deleteEntryFromEdit">🗑 Delete</button>
+                <div class="edit-right-actions">
+                  <button
+                    class="solve-btn"
+                    @click="executeEditEntry"
+                    :disabled="!editTargetPlayerName || editTargetPlayerName === editTarget.player"
+                  >✓ Reassign</button>
+                  <button class="randomize-btn" @click="cancelEditEntry">Cancel</button>
+                </div>
+              </div>
 
             </div>
           </div>
