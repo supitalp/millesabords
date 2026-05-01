@@ -600,6 +600,13 @@ const app = createApp({
           displayDice.value = [...dice.value];
         }
         displayCard.value = selectedCard.value;
+      } else if (m === 'play') {
+        // If all dice are set (manually edited or previously rolled), treat the turn as active.
+        if (!displayDice.value.includes(FACE_BLANK)) {
+          turnPhase.value = 'active';
+          originalCard.value = selectedCard.value;
+          displayCard.value = selectedCard.value;
+        }
       }
     }
 
@@ -627,14 +634,16 @@ const app = createApp({
     }
 
     function interactDie(i) {
-      // Silently ignore clicks during animation or while dice haven't been rolled yet
-      if (isAnimating.value || displayDice.value[i] === FACE_BLANK) return;
+      if (isAnimating.value) return;
+      // In edit mode, allow clicking blank dice to start from face 0
+      if (displayDice.value[i] === FACE_BLANK && mode.value !== 'select') return;
       if (mode.value === 'play') {
         if (!isDieSelectable(i)) return;
         selectedDice.value[i] = !selectedDice.value[i];
       } else {
-        dice.value[i] = (dice.value[i] + 1) % NUM_FACES;
-        displayDice.value[i] = dice.value[i]; // keep display in sync
+        // If the die was blank (never rolled), start at face 0; otherwise cycle
+        dice.value[i] = displayDice.value[i] === FACE_BLANK ? 0 : (dice.value[i] + 1) % NUM_FACES;
+        displayDice.value[i] = dice.value[i];
         _clearStrategy();
       }
     }
