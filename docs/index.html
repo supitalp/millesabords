@@ -65,15 +65,6 @@
           <h2 class="section-title">Your Dice</h2>
           <div class="dice-header-controls">
             <button class="group-icon-btn" :class="{ 'dice-ctrl-inactive': turnPhase !== 'active' }" @click="!isAnimating && reorderDice()" title="Group same faces together">⊞</button>
-            <button
-              class="hint-icon-btn"
-              :class="{ 'hint-icon-btn-active': strategyOn, 'dice-ctrl-inactive': turnPhase !== 'active' }"
-              @click="!loading && !isAnimating && !currentScore.busted && !currentScore.guardianCanSave && toggleStrategy()"
-              :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
-            >
-              <span v-if="loading && turnPhase === 'active'" class="spinner-sm"></span>
-              <span v-else>💡</span>
-            </button>
           </div>
         </div>
 
@@ -101,21 +92,44 @@
             </button>
           </div>
 
-          <!-- Big centered roll button -->
+          <!-- Three-button action row: hint | roll | save -->
           <div
-            class="dice-roll-center"
+            class="dice-action-row"
             v-if="mode === 'play' && (turnPhase === 'card_revealed' || turnPhase === 'rolling' || turnPhase === 'active')"
           >
+            <!-- Hint -->
             <button
-              class="dice-roll-btn"
-              :class="{ 'dice-roll-btn-ready': turnPhase === 'card_revealed' || (anySelected && !rollInvalidReason) }"
-              @click="turnPhase === 'card_revealed' ? rollInitialDice() : rollSelected()"
-              :disabled="(turnPhase === 'active' && (!anySelected || !!rollInvalidReason || loading)) || isAnimating"
-              :title="turnPhase === 'card_revealed' ? 'Roll all 8 dice to start your turn' : rollInvalidReason ?? (anySelected ? 'Re-roll ' + selectedCount + ' selected dice' : 'Select dice to re-roll')"
+              class="dice-side-btn"
+              :class="{ 'dice-side-btn-on': strategyOn }"
+              :disabled="turnPhase !== 'active' || currentScore.busted || currentScore.guardianCanSave || loading || isAnimating"
+              @click="toggleStrategy()"
+              :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
             >
-              <span class="dice-roll-emoji">🎲</span>
+              <span v-if="loading && turnPhase === 'active'" class="spinner-sm"></span>
+              <span v-else>💡</span>
             </button>
-            <span class="dice-roll-count" :style="{ visibility: (turnPhase === 'active' && anySelected) ? 'visible' : 'hidden' }">× {{ selectedCount }}</span>
+
+            <!-- Roll -->
+            <div class="dice-roll-col">
+              <button
+                class="dice-roll-btn"
+                :class="{ 'dice-roll-btn-ready': turnPhase === 'card_revealed' || (anySelected && !rollInvalidReason) }"
+                @click="turnPhase === 'card_revealed' ? rollInitialDice() : rollSelected()"
+                :disabled="(turnPhase === 'active' && (!anySelected || !!rollInvalidReason || loading)) || isAnimating"
+                :title="turnPhase === 'card_revealed' ? 'Roll all 8 dice to start your turn' : rollInvalidReason ?? (anySelected ? 'Re-roll ' + selectedCount + ' selected dice' : 'Select dice to re-roll')"
+              >
+                <span class="dice-roll-emoji">🎲</span>
+              </button>
+              <span class="dice-roll-count" :style="{ visibility: (turnPhase === 'active' && anySelected) ? 'visible' : 'hidden' }">× {{ selectedCount }}</span>
+            </div>
+
+            <!-- Save -->
+            <button
+              class="dice-side-btn"
+              @click="openSubmitModal"
+              :disabled="turnPhase !== 'active' || isAnimating"
+              title="Bank your score and pass to the next player"
+            >💾</button>
           </div>
 
           <!-- Inline score — always mounted so the section height is constant; hidden when not yet active -->
@@ -230,17 +244,6 @@
             </button>
           </template>
 
-          <!-- ── active play: Save ── -->
-          <template v-if="turnPhase === 'active'">
-            <!-- D1: record score & end turn -->
-            <button
-              v-if="mode === 'play'"
-              class="finish-turn-btn"
-              @click="openSubmitModal"
-              :disabled="isAnimating"
-              title="Bank your score and pass to the next player"
-            >💾 Save</button>
-          </template>
 
         </div>
 

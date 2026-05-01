@@ -862,12 +862,61 @@ body {
 }
 
 /* ─── Big centered roll button (in dice section) ─────────────────────────────── */
-.dice-roll-center {
+.dice-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0.35rem 0;
+}
+
+.dice-roll-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 0.35rem 0;
+}
+
+/* Flanking action buttons (hint, save) */
+.dice-side-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transform: translateY(-8px);
+  transition: transform 0.1s, box-shadow 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.dice-side-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (hover: hover) {
+  .dice-side-btn:not(:disabled):hover {
+    background: var(--bg-card-hover);
+    border-color: var(--text-muted);
+  }
+}
+
+.dice-side-btn:active:not(:disabled) {
+  transform: translateY(-8px) scale(0.93);
+}
+
+/* Hint: strategy ON */
+.dice-side-btn-on {
+  color: var(--green) !important;
+  border-color: var(--green) !important;
+  background: rgba(34, 197, 94, 0.12) !important;
 }
 
 .dice-roll-btn {
