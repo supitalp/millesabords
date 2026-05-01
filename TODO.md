@@ -75,7 +75,7 @@ The physical deck contains **35 cards** in total. Probabilities below are used f
 | Animals | 4 | 11.4 % |
 | Guardian | 4 | 11.4 % |
 | Pirate (×2 points) | 4 | 11.4 % |
-| Safe *(not yet implemented)* | 4 | 11.4 % |
+| Safe | 4 | 11.4 % |
 | Skull ×1 | 3 | 8.6 % |
 | Pirate Ship (≥2 swords) | 2 | 5.7 % |
 | Pirate Ship (≥3 swords) | 2 | 5.7 % |
