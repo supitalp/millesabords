@@ -269,13 +269,12 @@
                     <thead>
                       <tr>
                         <th></th>
-                        <th>Keep</th>
                         <th>Reroll</th>
+                        <th>Δ vs Stop</th>
                         <th>P(lose)</th>
                         <th>EV</th>
                         <th>Min</th>
                         <th>Max</th>
-                        <th>Δ vs Stop</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -285,15 +284,14 @@
                         :class="rowClass(i, s)"
                       >
                         <td class="col-marker">{{ rowMarker(i, s) }}</td>
-                        <td class="col-emoji">{{ keepStr(strategyData.state, s, strategyData.config) }}</td>
                         <td class="col-emoji">{{ rerollStr(strategyData.state, s) }}</td>
+                        <td class="col-num col-delta" :class="s.delta_vs_stop >= 0 ? 'positive' : 'negative'">
+                          {{ deltaFmt(s.delta_vs_stop) }}
+                        </td>
                         <td class="col-num">{{ pct(s.p_lose) }}</td>
                         <td class="col-num col-ev">{{ evFmt(s.ev) }}</td>
                         <td class="col-num">{{ s.min_score }}</td>
                         <td class="col-num">{{ maxStr(s) }}</td>
-                        <td class="col-num col-delta" :class="s.delta_vs_stop >= 0 ? 'positive' : 'negative'">
-                          {{ deltaFmt(s.delta_vs_stop) }}
-                        </td>
                       </tr>
                     </tbody>
                   </table>
