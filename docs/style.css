@@ -552,7 +552,7 @@ body {
   font-family: inherit;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .die-interactive:hover {
     background: var(--bg-card-hover);
     border-color: var(--accent);
@@ -962,7 +962,7 @@ body {
   cursor: not-allowed;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .dice-side-btn:not(:disabled):hover {
     background: var(--bg-card-hover);
     border-color: var(--text-muted);
@@ -1009,7 +1009,7 @@ body {
   animation: none;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .dice-roll-btn-ready:not(:disabled):hover {
     background: #f8b800;
     border-color: #f8b800;
