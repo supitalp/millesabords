@@ -101,6 +101,23 @@
             </button>
           </div>
 
+          <!-- Big centered roll button -->
+          <div
+            class="dice-roll-center"
+            v-if="mode === 'play' && (turnPhase === 'card_revealed' || turnPhase === 'rolling' || turnPhase === 'active')"
+          >
+            <button
+              class="dice-roll-btn"
+              :class="{ 'dice-roll-btn-ready': turnPhase === 'card_revealed' || (anySelected && !rollInvalidReason) }"
+              @click="turnPhase === 'card_revealed' ? rollInitialDice() : rollSelected()"
+              :disabled="(turnPhase === 'active' && (!anySelected || !!rollInvalidReason || loading)) || isAnimating"
+              :title="turnPhase === 'card_revealed' ? 'Roll all 8 dice to start your turn' : rollInvalidReason ?? (anySelected ? 'Re-roll ' + selectedCount + ' selected dice' : 'Select dice to re-roll')"
+            >
+              <span class="dice-roll-emoji">🎲</span>
+            </button>
+            <span class="dice-roll-count" :style="{ visibility: (turnPhase === 'active' && anySelected) ? 'visible' : 'hidden' }">× {{ selectedCount }}</span>
+          </div>
+
           <!-- Inline score — always mounted so the section height is constant; hidden when not yet active -->
           <div class="dice-score-row" :style="{ visibility: (turnPhase === 'active' && !isAnimating) ? 'visible' : 'hidden' }">
             <template v-if="currentScore.guardianCanSave">
@@ -201,16 +218,8 @@
             🔄 New Turn
           </button>
 
-          <!-- Step 2: roll the dice once the card has been revealed -->
+          <!-- Step 2: redraw option while card is revealed (roll moved into dice section) -->
           <template v-if="mode === 'play' && turnPhase === 'card_revealed'">
-            <button
-              class="roll-btn roll-btn-primary"
-              @click="rollInitialDice"
-              :disabled="isAnimating"
-              title="Roll all 8 dice to start your turn"
-            >
-              🎲 Roll
-            </button>
             <button
               class="randomize-btn"
               @click="startNewTurn"
@@ -221,18 +230,8 @@
             </button>
           </template>
 
-          <!-- ── active play: Roll Selected, Hint, Details ── -->
+          <!-- ── active play: Save ── -->
           <template v-if="turnPhase === 'active'">
-            <button
-              v-if="mode === 'play'"
-              class="roll-btn"
-              @click="rollSelected"
-              :disabled="!anySelected || !!rollInvalidReason || loading || isAnimating"
-              :title="rollInvalidReason ?? (anySelected ? 'Re-roll ' + selectedCount + ' selected ' + (selectedCount === 1 ? 'die' : 'dice') : 'Select dice above to re-roll')"
-            >
-              🎲 Roll{{ anySelected ? ' (' + selectedCount + ')' : '' }}
-            </button>
-
             <!-- D1: record score & end turn -->
             <button
               v-if="mode === 'play'"
@@ -241,7 +240,6 @@
               :disabled="isAnimating"
               title="Bank your score and pass to the next player"
             >💾 Save</button>
-
           </template>
 
         </div>
