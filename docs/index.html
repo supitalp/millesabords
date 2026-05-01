@@ -34,10 +34,9 @@
           <template v-if="mode === 'play'">
             <div class="card-tile-row">
               <button
-                v-if="turnPhase === 'card_revealed'"
                 class="card-redraw-btn"
                 @click="startNewTurn"
-                :disabled="isAnimating"
+                :disabled="turnPhase !== 'card_revealed' || isAnimating"
                 title="Redraw card"
               >🔄</button>
               <div
