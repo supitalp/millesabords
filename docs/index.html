@@ -496,12 +496,19 @@
                         </td>
                       </tr>
                     </tbody>
-                    <!-- Skull Island events: one row per event, spanning all player columns -->
+                    <!-- Skull Island events: one row per event, one cell per player -->
                     <tbody v-if="skullIslandEvents.length > 0">
                       <tr v-for="(ev, idx) in skullIslandEvents" :key="'si-' + idx" class="sb-skull-island-event-row">
                         <td class="sb-round-td">💀</td>
-                        <td :colspan="scoreboardPlayers.length" class="sb-skull-island-event-cell">
-                          <strong>{{ ev.player }}</strong> · ×{{ ev.skullCount }} skulls → −{{ ev.penalty }} pts / opponent
+                        <td
+                          v-for="p in scoreboardPlayers"
+                          :key="p"
+                          class="sb-score-td sb-skull-island-event-cell"
+                          :class="p === ev.player ? 'sb-skull-island-source' : 'sb-skull-island-deduction'"
+                          :title="p === ev.player ? '×' + ev.skullCount + ' skulls → −' + ev.penalty + ' pts / opponent' : 'Deducted from ' + ev.player + '\'s skull island (×' + ev.skullCount + ' skulls)'"
+                        >
+                          <span v-if="p === ev.player">💀 ×{{ ev.skullCount }}</span>
+                          <span v-else>−{{ ev.penalty }}</span>
                         </td>
                       </tr>
                     </tbody>

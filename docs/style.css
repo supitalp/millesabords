@@ -1864,11 +1864,19 @@ body {
 }
 
 .sb-skull-island-event-cell {
-  padding: 0.4rem 1rem;
-  font-size: 0.82rem;
-  color: #fca5a5;
-  text-align: center;
+  padding: 0.5rem 1rem;
+  text-align: right;
   border-bottom: 1px solid rgba(239, 68, 68, 0.15);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.sb-skull-island-source {
+  color: var(--text-muted);
+}
+
+.sb-skull-island-deduction {
+  color: #fca5a5;
 }
 
 /* Submit modal skull island hero */
