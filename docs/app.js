@@ -1310,7 +1310,10 @@ const app = createApp({
       return String(s.max_score);
     }
 
-    onMounted(() => startNewTurn());
+    onMounted(() => {
+      document.getElementById('app').style.display = '';
+      startNewTurn();
+    });
 
     return {
       dice, selectedCard, loading, error,
