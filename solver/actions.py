@@ -43,9 +43,10 @@ def valid_actions(state: State, config: TurnConfig = DEFAULT_CONFIG) -> list[tup
 def guardian_kept_options(state: State) -> list[tuple]:
     """
     Valid 'kept' tuples when using the Guardian skull-reroll ability.
-    Total rerolled = (sum(held) - sum(kept)) + 1 skull; must be >= 2,
-    so at least 1 non-skull die must also be rerolled.
+    Total rerolled = (sum(held) - sum(kept)) + 1 skull; must be in [2, 7]:
+    - at least 1 non-skull die must also be rerolled (sum(k) <= total_held - 1)
+    - at least 1 die must be kept, never reroll all dice (sum(k) >= 1)
     Only call when skull_reroll_available and not skull_reroll_used and n_skulls >= 1.
     """
     total_held = sum(state.held)
-    return [k for k in _sub_multisets(state.held) if sum(k) <= total_held - 1]
+    return [k for k in _sub_multisets(state.held) if 1 <= sum(k) <= total_held - 1]

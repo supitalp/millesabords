@@ -43,6 +43,20 @@ def test_guardian_options_available_with_skull():
     assert len(opts) > 0
 
 
+def test_guardian_never_rerolls_all_dice():
+    # Bug regression: with 1 skull + 7 non-skull dice, rerolling all 8 was wrongly allowed.
+    # The freed skull counts as 1 rerolled die, so n_reroll = (total_held - sum(k)) + 1.
+    # At least 1 die must always be kept, so n_reroll <= 7.
+    state = State(1, held((Face.COIN, 1), (Face.DIAMOND, 2), (Face.MONKEY, 1), (Face.PARROT, 3)))
+    opts = guardian_kept_options(state)
+    total_held = sum(state.held)  # 7
+    for k in opts:
+        n_reroll = (total_held - sum(k)) + 1
+        assert n_reroll <= 7, f"Guardian action rerolls all 8 dice (n_reroll={n_reroll})"
+    # Also verify at least 1 die is always kept
+    assert all(sum(k) >= 1 for k in opts)
+
+
 def test_no_guardian_if_already_used():
     # skull_reroll_used=True → caller should not offer Guardian
     state = State(1, held((Face.SWORD, 7)), skull_reroll_used=True)

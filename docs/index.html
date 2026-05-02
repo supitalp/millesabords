@@ -414,13 +414,13 @@
                           :class="scoreCellClass(gameScores[p]?.[r - 1])"
                         >
                           <div class="sb-cell-inner">
-                            <span>{{ formatScoreCell(gameScores[p]?.[r - 1]) }}</span>
                             <button
-                              v-if="gameScores[p]?.[r - 1] !== undefined"
                               class="sb-edit-btn"
+                              :style="{ visibility: gameScores[p]?.[r - 1] !== undefined ? 'visible' : 'hidden' }"
                               @click.stop="requestEditEntry(p, r - 1)"
                               title="Edit entry"
                             >✏️</button>
+                            <span>{{ formatScoreCell(gameScores[p]?.[r - 1]) }}</span>
                           </div>
                         </td>
                       </tr>

@@ -258,7 +258,10 @@ function validActions(state, config) {
 
 function guardianKeptOptions(state) {
   const totalHeld = state.held.reduce((a, b) => a + b, 0);
-  return subMultisets(state.held).filter(k => k.reduce((a, b) => a + b, 0) <= totalHeld - 1);
+  return subMultisets(state.held).filter(k => {
+    const s = k.reduce((a, b) => a + b, 0);
+    return s >= 1 && s <= totalHeld - 1;
+  });
 }
 
 function addOutcome(kept, outcome) {

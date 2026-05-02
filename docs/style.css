@@ -1615,10 +1615,14 @@ body {
 
 /* ─── D1: Scoreboard cell with delete button ─────────────────────────────────── */
 .sb-cell-inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
   align-items: center;
-  justify-content: flex-end;
   gap: 0.35rem;
+}
+
+.sb-cell-inner span {
+  text-align: right;
 }
 
 .sb-delete-btn {
