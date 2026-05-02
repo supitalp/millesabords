@@ -29,7 +29,7 @@ B2. [ ] **Opportunity gauge** — when the user selects a set of dice to reroll,
 C1. [x] **Auto-remove Guardian card effect** when a skull is rerolled — once the Guardian's one-time skull reroll has been used, update the state accordingly
 C2. [x] **Tiebreak by safety** — when two strategies have equal EV, prefer the one with the lower probability of immediate bust
 C3. [x] **Correct random sampling for bonus cards** — the card drawn at the start of a turn should follow the real game distribution (non-uniform), not a uniform random pick
-C4. [ ] **Support "pirate island" mode** (when >= 4 skulls at the start)
+C4. [x] **Support "pirate island" mode** (when >= 4 skulls at the start)
 C5. [x] **Add support for the "safe" card**
 
 ---
