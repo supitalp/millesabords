@@ -996,6 +996,7 @@ const app = createApp({
 
       submitModalOpen.value = false;
       startNewTurn();
+      scoreboardOpen.value = true;
     }
 
     // Close modal and reset to idle without recording anything
