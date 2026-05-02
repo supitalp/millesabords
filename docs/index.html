@@ -27,7 +27,28 @@
 
       <!-- Card picker -->
       <section class="section card-section">
-        <div class="card-section-header">
+        <div class="card-section-header" :class="{ 'card-section-skull-island': turnPhase === 'skull-island' }">
+
+          <!-- Skull Island mode: compact indicator + card tile -->
+          <template v-if="turnPhase === 'skull-island'">
+            <div class="skull-island-indicator">
+              <span class="skull-island-indicator-icon">🏴‍☠️</span>
+              <span class="skull-island-indicator-title">Skull Island!</span>
+              <span class="skull-island-indicator-skulls">💀 ×{{ skullIslandCount }}</span>
+              <span class="skull-island-indicator-penalty">−{{ skullIslandPenalty }}/opp</span>
+            </div>
+            <!-- Card tile still shown so the player knows what card they drew -->
+            <div
+              class="card-tile card-tile-settled"
+              :title="displayCardOption ? displayCardOption.desc : ''"
+            >
+              <span class="card-tile-face-icon">{{ displayCardOption?.icon }}</span>
+              <span class="card-tile-face-name">{{ displayCardOption?.name }}</span>
+            </div>
+          </template>
+
+          <!-- Normal: card title + play/edit content -->
+          <template v-else>
           <h2 class="section-title">Card</h2>
 
           <!-- Play mode: compact inline pill -->
@@ -75,14 +96,17 @@
               </option>
             </select>
           </div>
+          </template><!-- end v-else (non-skull-island) -->
         </div>
       </section>
 
       <!-- Dice panel -->
       <section class="section dice-section">
         <div class="dice-section-header">
-          <h2 class="section-title">Your Dice</h2>
-          <div class="dice-header-controls">
+          <h2 class="section-title" :class="{ 'section-title-skull-island': turnPhase === 'skull-island' }">
+            {{ turnPhase === 'skull-island' ? 'Keep rolling…' : 'Your Dice' }}
+          </h2>
+          <div class="dice-header-controls" v-if="turnPhase !== 'skull-island'">
             <button class="group-icon-btn" :class="{ 'dice-ctrl-inactive': turnPhase !== 'active' }" @click="!isAnimating && reorderDice()" title="Group same faces together">⊞</button>
           </div>
         </div>
@@ -95,11 +119,13 @@
               :key="i"
               :class="[
                 'die', 'die-interactive',
-                displayDice[i] === FACE_BLANK                                               ? 'die-blank'          : '',
-                dieFading[i]                                                                ? 'die-fadein'         : '',
-                mode === 'play' && selectedDice[i]                                          ? 'die-selected'       : '',
-                mode === 'play' && turnPhase === 'active' && !isDieSelectable(i)            ? 'die-not-selectable'  : '',
-                turnPhase === 'active' && strategyOn && bestStrategyRerollIndices.has(i)    ? 'die-strategy-reroll': '',
+                displayDice[i] === FACE_BLANK                                                                  ? 'die-blank'               : '',
+                dieFading[i]                                                                                   ? 'die-fadein'              : '',
+                mode === 'play' && selectedDice[i]                                                             ? 'die-selected'            : '',
+                mode === 'play' && turnPhase === 'active' && !isDieSelectable(i)                               ? 'die-not-selectable'       : '',
+                turnPhase === 'active' && strategyOn && bestStrategyRerollIndices.has(i)                       ? 'die-strategy-reroll'     : '',
+                turnPhase === 'skull-island' && displayDice[i] === FACE.SKULL                                  ? 'die-skull-island-locked' : '',
+                turnPhase === 'skull-island' && displayDice[i] !== FACE.SKULL && displayDice[i] !== FACE_BLANK ? 'die-skull-island-reroll' : '',
               ]"
               @click="interactDie(i)"
               :title="displayDice[i] === FACE_BLANK ? '' : mode === 'play' ? (selectedDice[i] ? 'Selected — will be re-rolled' : isDieSelectable(i) ? 'Click to select for re-roll' : dice[i] === FACE.SKULL ? (guardianUsed ? 'Guardian reroll already used — skull is now locked' : selectedCard === 'guardian' ? 'Only one skull can be re-rolled with the Guardian' : 'Skulls cannot be re-rolled') : 'Cannot be re-rolled') : 'Click to change (currently: ' + FACE_NAMES[face] + ')'"
@@ -111,10 +137,23 @@
             </button>
           </div>
 
+          <!-- Skull Island action row: single centered roll/record button -->
+          <div class="dice-action-row" v-if="mode === 'play' && turnPhase === 'skull-island'">
+            <button
+              class="dice-roll-btn"
+              :class="{ 'dice-roll-btn-ready': !isAnimating }"
+              @click="skullIslandEnded ? openSubmitModal() : rollSkullIslandDice()"
+              :disabled="isAnimating"
+              :title="skullIslandEnded ? 'Record skull island turn' : 'Roll remaining dice (skulls stay set aside)'"
+            >
+              <span class="dice-roll-emoji">💀</span>
+            </button>
+          </div>
+
           <!-- Three-button action row: hint | roll | save -->
           <div
             class="dice-action-row"
-            v-if="mode === 'play' && (turnPhase === 'card_revealed' || turnPhase === 'rolling' || turnPhase === 'active')"
+            v-else-if="mode === 'play' && (turnPhase === 'card_revealed' || turnPhase === 'rolling' || turnPhase === 'active')"
           >
             <!-- Hint -->
             <button
@@ -152,8 +191,15 @@
           </div>
 
           <!-- Inline score — always mounted so the section height is constant; hidden when not yet active -->
-          <div class="dice-score-row" :style="{ visibility: (turnPhase === 'active' && !isAnimating) ? 'visible' : 'hidden' }">
-            <template v-if="currentScore.guardianCanSave">
+          <div class="dice-score-row" :style="{ visibility: ((turnPhase === 'active' || turnPhase === 'skull-island') && !isAnimating) ? 'visible' : 'hidden' }">
+            <template v-if="turnPhase === 'skull-island'">
+              <span class="dice-score-value score-skull-island">−{{ skullIslandPenalty }}<span class="score-unit"> pts / opp</span></span>
+              <span class="dice-score-bust-label">
+                {{ skullIslandEnded ? '🏴‍☠️ Island ends!' : '💀 Skull Island —' }}
+                {{ skullIslandCount }} skull{{ skullIslandCount !== 1 ? 's' : '' }}
+              </span>
+            </template>
+            <template v-else-if="currentScore.guardianCanSave">
               <span class="dice-score-value score-guardian-pending">0<span class="score-unit"> pts</span></span>
               <span class="dice-score-bust-label">🛡️ Select a skull to reroll with the Guardian!</span>
             </template>
@@ -336,12 +382,26 @@
 
               <!-- Score hero -->
               <div class="submit-score-hero">
-                <span
-                  class="submit-hero-number"
-                  :class="scoreToRecord.score < 0 ? 'submit-hero-neg' : scoreToRecord.score === 0 ? 'submit-hero-zero' : ''"
-                >{{ scoreToRecord.score }}</span>
-                <span class="submit-hero-unit">pts</span>
-                <span v-if="currentScore.busted" class="submit-hero-bust">💀 Busted</span>
+                <!-- Skull Island variant -->
+                <template v-if="scoreToRecord.skullIsland">
+                  <span class="submit-hero-skull-icon">💀</span>
+                  <span class="submit-hero-number submit-hero-zero">0</span>
+                  <span class="submit-hero-unit">pts (you score nothing)</span>
+                  <div class="submit-skull-island-penalty">
+                    <span class="submit-skull-island-skulls">× {{ scoreToRecord.skullIsland.count }} skulls</span>
+                    <span class="submit-skull-island-arrow">→</span>
+                    <span class="submit-skull-island-amount">−{{ scoreToRecord.skullIsland.penalty }} pts for each opponent</span>
+                  </div>
+                </template>
+                <!-- Normal turn variant -->
+                <template v-else>
+                  <span
+                    class="submit-hero-number"
+                    :class="scoreToRecord.score < 0 ? 'submit-hero-neg' : scoreToRecord.score === 0 ? 'submit-hero-zero' : ''"
+                  >{{ scoreToRecord.score }}</span>
+                  <span class="submit-hero-unit">pts</span>
+                  <span v-if="currentScore.busted" class="submit-hero-bust">💀 Busted</span>
+                </template>
               </div>
 
               <!-- Player selector -->
@@ -412,11 +472,12 @@
                           :key="p"
                           class="sb-score-td"
                           :class="scoreCellClass(gameScores[p]?.[r - 1])"
+                          :title="gameScores[p]?.[r - 1]?.skullIsland ? 'Skull Island: ' + gameScores[p][r - 1].skullIsland.count + ' skulls, −' + gameScores[p][r - 1].skullIsland.penalty + ' pts / opponent' : ''"
                         >
                           <div class="sb-cell-inner">
                             <button
                               class="sb-edit-btn"
-                              :style="{ visibility: gameScores[p]?.[r - 1] !== undefined ? 'visible' : 'hidden' }"
+                              :style="{ visibility: (gameScores[p]?.[r - 1] !== undefined && !gameScores[p]?.[r - 1]?.skullIsland) ? 'visible' : 'hidden' }"
                               @click.stop="requestEditEntry(p, r - 1)"
                               title="Edit entry"
                             >✏️</button>
@@ -425,6 +486,16 @@
                         </td>
                       </tr>
                     </tbody>
+                    <!-- Skull Island events: one row per event, spanning all player columns -->
+                    <tbody v-if="skullIslandEvents.length > 0">
+                      <tr v-for="(ev, idx) in skullIslandEvents" :key="'si-' + idx" class="sb-skull-island-event-row">
+                        <td class="sb-round-td">💀</td>
+                        <td :colspan="scoreboardPlayers.length" class="sb-skull-island-event-cell">
+                          <strong>{{ ev.player }}</strong> · ×{{ ev.skullCount }} skulls → −{{ ev.penalty }} pts / opponent
+                        </td>
+                      </tr>
+                    </tbody>
+
                     <tfoot>
                       <tr class="sb-total-row">
                         <td class="sb-round-td sb-total-label">Σ</td>

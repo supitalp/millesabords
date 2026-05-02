@@ -1761,6 +1761,155 @@ body {
   gap: 0.4rem;
 }
 
+/* ─── Skull Island ───────────────────────────────────────────────────────────── */
+
+/* Card section: auto-height when skull island banner is shown */
+.card-section-skull-island {
+  height: auto !important;
+  min-height: 42px;
+}
+
+/* Compact skull island indicator — lives in the card-section-header row */
+.skull-island-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.skull-island-indicator-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.skull-island-indicator-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #fca5a5;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.skull-island-indicator-skulls {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 99px;
+  padding: 0.1rem 0.45rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.skull-island-indicator-penalty {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Skull Island section title tint */
+.section-title-skull-island {
+  color: #fca5a5 !important;
+}
+
+/* Skull dice: locked / set aside (red-dimmed) */
+.die-skull-island-locked {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  opacity: 0.65;
+  cursor: default !important;
+}
+
+.die-skull-island-locked:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Non-skull dice during skull island: pulsing amber border (will be rerolled) */
+.die-skull-island-reroll {
+  border-color: rgba(240, 165, 0, 0.5);
+  animation: skull-island-reroll-pulse 1.8s ease-in-out infinite;
+  cursor: default !important;
+}
+
+.die-skull-island-reroll:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+@keyframes skull-island-reroll-pulse {
+  0%, 100% { border-color: rgba(240, 165, 0, 0.3); box-shadow: none; }
+  50%       { border-color: rgba(240, 165, 0, 0.7); box-shadow: 0 0 8px rgba(240, 165, 0, 0.2); }
+}
+
+/* Skull Island score color */
+.score-skull-island { color: #fca5a5; }
+
+/* Scoreboard skull island cells */
+.score-cell-skull-island  { color: var(--text-muted); }
+
+/* Skull Island event rows in the scoreboard */
+.sb-skull-island-event-row {
+  background: rgba(239, 68, 68, 0.06);
+  border-top: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.sb-skull-island-event-cell {
+  padding: 0.4rem 1rem;
+  font-size: 0.82rem;
+  color: #fca5a5;
+  text-align: center;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+/* Submit modal skull island hero */
+.submit-hero-skull-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.submit-skull-island-penalty {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.submit-skull-island-skulls {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fca5a5;
+}
+
+.submit-skull-island-arrow {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.submit-skull-island-amount {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fca5a5;
+}
+
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 500px) {
   .die {

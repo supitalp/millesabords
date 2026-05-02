@@ -106,6 +106,13 @@ function loadScores() {
 function saveScores(obj) {
   localStorage.setItem('mille_sabords_scores', JSON.stringify(obj));
 }
+function loadSkullIslandEvents() {
+  try { return JSON.parse(localStorage.getItem('mille_sabords_si_events') ?? '[]'); }
+  catch { return []; }
+}
+function saveSkullIslandEvents(arr) {
+  localStorage.setItem('mille_sabords_si_events', JSON.stringify(arr));
+}
 
 // ─── Solver logic (ported from Python) ────────────────────────────────────────
 
@@ -479,8 +486,9 @@ const app = createApp({
     const guardianUsed = ref(false);                     // C1
 
     // ── Multiplayer state (D1) ────────────────────────────────────────────────
-    const savedPlayers    = ref(loadPlayers());  // string[] — persisted player names
-    const gameScores      = ref(loadScores());   // { [name]: number[] } — current game
+    const savedPlayers       = ref(loadPlayers());           // string[] — persisted player names
+    const gameScores         = ref(loadScores());            // { [name]: TurnRecord[] } — current game
+    const skullIslandEvents  = ref(loadSkullIslandEvents()); // { player, skullCount, penalty }[]
 
     // Submit-score modal
     const submitModalOpen = ref(false);
@@ -513,6 +521,8 @@ const app = createApp({
     const isAnimating      = ref(false);
     const dieFading        = ref(Array(8).fill(false)); // true while a die is fading in
     const displayCard      = ref(null);  // null = card back; string = card value being shown
+    const skullIslandEnded        = ref(false); // true once the skull island turn is over (no new skulls rolled)
+    const skullIslandInitialSkulls = ref(0);    // initial_n_skulls from the card, captured at island entry
 
     // ── Strategy state ────────────────────────────────────────────────────────
     const loading      = ref(false);
@@ -523,6 +533,18 @@ const app = createApp({
 
     const anySelected = computed(() => selectedDice.value.some(Boolean));
     const selectedCount = computed(() => selectedDice.value.filter(Boolean).length);
+
+    // Skull Island: total skulls accumulated (card initial captured at entry + dice showing skull)
+    const skullIslandCount = computed(() => {
+      if (turnPhase.value !== 'skull-island') return 0;
+      return skullIslandInitialSkulls.value + dice.value.filter(f => f === FACE.SKULL).length;
+    });
+
+    // Penalty per opponent: 200/skull with Pirate card, 100/skull otherwise
+    const skullIslandPenalty = computed(() => {
+      const perSkull = originalCard.value === 'pirate' ? 200 : 100;
+      return skullIslandCount.value * perSkull;
+    });
 
     // Current card option object (for the card tile display)
     // Card shown on the tile right now (cycles during animation, null = back of card)
@@ -625,12 +647,21 @@ const app = createApp({
         }
         displayCard.value = selectedCard.value;
       } else if (m === 'play') {
+        // Always sync originalCard when entering play — card may have changed in edit mode.
+        originalCard.value = selectedCard.value;
+        displayCard.value = selectedCard.value;
         // If all dice are set (manually edited or previously rolled), treat the turn as active.
         if (!displayDice.value.includes(FACE_BLANK)) {
-          turnPhase.value = 'active';
-          originalCard.value = selectedCard.value;
-          displayCard.value = selectedCard.value;
-          if (currentScore.value.busted) openSubmitModal();
+          // Check skull island: same condition as rollInitialDice
+          const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+          const _totalSkulls = _cfg.initial_n_skulls + dice.value.filter(f => f === FACE.SKULL).length;
+          if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship')) {
+            skullIslandInitialSkulls.value = _cfg.initial_n_skulls;
+            turnPhase.value = 'skull-island';
+          } else {
+            turnPhase.value = 'active';
+            if (currentScore.value.busted) openSubmitModal();
+          }
         }
       }
     }
@@ -640,6 +671,7 @@ const app = createApp({
     // and only if the Guardian's reroll hasn't been used yet).
     function isDieSelectable(i) {
       if (mode.value !== 'play') return true;
+      if (turnPhase.value === 'skull-island') return false;
       if (currentScore.value.busted) return false;
       // Guardian pending (exactly 3 skulls, guardian not yet used): the only valid
       // action is to pick one skull for the guardian reroll — all other dice are locked.
@@ -701,6 +733,8 @@ const app = createApp({
       guardianUsed.value = false;
       hasRerolled.value = false;
       islandHeld.value = null;
+      skullIslandEnded.value = false;
+      skullIslandInitialSkulls.value = 0;
       selectedDice.value = Array(8).fill(false);
       _clearStrategy();
 
@@ -727,9 +761,18 @@ const app = createApp({
       );
 
       displayDice.value = [...finalDice]; // safety flush
-      turnPhase.value = 'active';
+
+      // Detect Skull Island: ≥4 skulls on first roll, pirate-ship card blocks it
+      const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+      const _totalSkulls = _cfg.initial_n_skulls + finalDice.filter(f => f === FACE.SKULL).length;
+      if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship')) {
+        skullIslandInitialSkulls.value = _cfg.initial_n_skulls;
+        turnPhase.value = 'skull-island';
+      } else {
+        turnPhase.value = 'active';
+        if (currentScore.value.busted) openSubmitModal();
+      }
       isAnimating.value = false;
-      if (currentScore.value.busted) openSubmitModal();
     }
 
     async function rollSelected() {
@@ -782,6 +825,43 @@ const app = createApp({
         isAnimating.value = false;
       }
       if (currentScore.value.busted) openSubmitModal();
+    }
+
+    async function rollSkullIslandDice() {
+      if (isAnimating.value) return;
+
+      // Only non-skull dice get rerolled; skulls stay set aside
+      const newDice = [...dice.value];
+      const diceToRoll = [];
+      for (let i = 0; i < newDice.length; i++) {
+        if (newDice[i] !== FACE.SKULL) {
+          const finalFace = Math.floor(Math.random() * NUM_FACES);
+          newDice[i] = finalFace;
+          diceToRoll.push({ idx: i, finalFace });
+        }
+      }
+
+      dice.value = newDice;
+      const newSkullsThisRoll = diceToRoll.filter(d => d.finalFace === FACE.SKULL).length;
+
+      if (diceToRoll.length > 0) {
+        for (const { idx } of diceToRoll) displayDice.value[idx] = FACE_BLANK;
+        isAnimating.value = true;
+        try {
+          const sorted = [...diceToRoll].sort((a, b) => a.idx - b.idx);
+          await sleep(250);
+          await _fadeInDice(sorted, 280);
+        } finally {
+          displayDice.value = [...dice.value];
+          isAnimating.value = false;
+        }
+      }
+
+      // Turn ends when no new skulls appear (or all dice were already skulls)
+      if (newSkullsThisRoll === 0) {
+        skullIslandEnded.value = true;
+        openSubmitModal();
+      }
     }
 
     // Sort priority per face: skull, coin, diamond, sword, monkey, parrot
@@ -882,6 +962,14 @@ const app = createApp({
 
     // Full turn state to persist when the player clicks "Record Score"
     const scoreToRecord = computed(() => {
+      if (turnPhase.value === 'skull-island') {
+        return {
+          score: 0,
+          card: originalCard.value,
+          dice: [...dice.value],
+          skullIsland: { count: skullIslandCount.value, penalty: skullIslandPenalty.value },
+        };
+      }
       const score = currentScore.value.score ?? 0;
       return { score, card: originalCard.value, dice: [...dice.value] };
     });
@@ -902,11 +990,14 @@ const app = createApp({
       Math.max(0, ...Object.values(gameScores.value).map(s => s.length))
     );
 
-    // Running total per player
+    // Running total per player — includes retroactive skull island penalties
     const playerTotals = computed(() => {
       const totals = {};
       for (const [name, turns] of Object.entries(gameScores.value)) {
         totals[name] = turns.reduce((a, t) => a + t.score, 0);
+        for (const event of skullIslandEvents.value) {
+          if (event.player !== name) totals[name] -= event.penalty;
+        }
       }
       return totals;
     });
@@ -1004,8 +1095,20 @@ const app = createApp({
       const updated = { ...gameScores.value };
       if (!updated[name]) updated[name] = [];
       updated[name] = [...updated[name], scoreToRecord.value];
+
       gameScores.value = updated;
       saveScores(updated);
+
+      // Skull Island: log the event globally — penalty applied to all opponents at total-computation time
+      if (turnPhase.value === 'skull-island') {
+        const events = [...skullIslandEvents.value, {
+          player: name,
+          skullCount: skullIslandCount.value,
+          penalty: skullIslandPenalty.value,
+        }];
+        skullIslandEvents.value = events;
+        saveSkullIslandEvents(events);
+      }
 
       submitModalOpen.value = false;
       startNewTurn();
@@ -1022,6 +1125,8 @@ const app = createApp({
     function resetScores() {
       gameScores.value = {};
       saveScores({});
+      skullIslandEvents.value = [];
+      saveSkullIslandEvents([]);
     }
 
     function requestReset() {
@@ -1088,6 +1193,7 @@ const app = createApp({
       }
       if (!updated[toPlayer]) updated[toPlayer] = [];
       updated[toPlayer] = [...updated[toPlayer], turn];
+
       gameScores.value = updated;
       saveScores(updated);
       editTarget.value = null;
@@ -1108,6 +1214,7 @@ const app = createApp({
       } else {
         updated[player] = newTurns;
       }
+
       gameScores.value = updated;
       saveScores(updated);
       editTarget.value = null;
@@ -1121,10 +1228,21 @@ const app = createApp({
         lines.push(`👤 ${player}  —  Total: ${total} pts`);
         for (let i = 0; i < turns.length; i++) {
           const turn = turns[i];
-          const cardOption = CARD_OPTIONS.find(o => o.value === turn.card) ?? CARD_OPTIONS[0];
-          const diceEmojis = [...turn.dice].sort((a, b) => a - b).map(f => FACE_EMOJI[f]).join(' ');
-          const pts = turn.score > 0 ? `+${turn.score}` : String(turn.score);
-          lines.push(`  Round ${i + 1}: ${cardOption.icon} ${cardOption.name} | ${diceEmojis} → ${pts} pts`);
+          if (turn.skullIsland) {
+            lines.push(`  Round ${i + 1}: 💀 Skull Island (${turn.skullIsland.count} skulls) → 0 pts`);
+          } else {
+            const cardOption = CARD_OPTIONS.find(o => o.value === turn.card) ?? CARD_OPTIONS[0];
+            const diceEmojis = [...turn.dice].sort((a, b) => a - b).map(f => FACE_EMOJI[f]).join(' ');
+            const pts = turn.score > 0 ? `+${turn.score}` : String(turn.score);
+            lines.push(`  Round ${i + 1}: ${cardOption.icon} ${cardOption.name} | ${diceEmojis} → ${pts} pts`);
+          }
+        }
+        lines.push('');
+      }
+      if (skullIslandEvents.value.length > 0) {
+        lines.push('💀 Skull Island events:');
+        for (const ev of skullIslandEvents.value) {
+          lines.push(`  ${ev.player}: ×${ev.skullCount} skulls → −${ev.penalty} pts / opponent`);
         }
         lines.push('');
       }
@@ -1138,17 +1256,18 @@ const app = createApp({
 
     // Scoreboard helpers
     function scoreCellClass(turn) {
-      const score = turn?.score;
-      if (score === undefined || score === null) return 'score-cell-empty';
-      if (score > 0)          return 'score-cell-pos';
-      if (score < 0)          return 'score-cell-neg';
+      if (!turn) return 'score-cell-empty';
+      if (turn.skullIsland) return 'score-cell-zero score-cell-skull-island';
+      const score = turn.score;
+      if (score > 0) return 'score-cell-pos';
+      if (score < 0) return 'score-cell-neg';
       return 'score-cell-zero';
     }
 
     function formatScoreCell(turn) {
-      const score = turn?.score;
-      if (score === undefined || score === null) return '—';
-      return String(score);
+      if (!turn) return '—';
+      if (turn.skullIsland) return `💀 0`;
+      return String(turn.score);
     }
 
     // A4: toggle strategy on/off. Lazy-loads data on first activation.
@@ -1204,12 +1323,13 @@ const app = createApp({
       turnPhase, displayDice, isAnimating, dieFading, displayCard, displayCardOption,
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, toggleStrategy, randomize,
-      startNewTurn, rollInitialDice,
+      startNewTurn, rollInitialDice, rollSkullIslandDice,
+      skullIslandCount, skullIslandPenalty, skullIslandEnded,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
       fixedCardDice, currentScore, FACE,
       // D1: multiplayer
-      savedPlayers, gameScores, submitModalOpen, submitPlayer, newPlayerName, scoreboardOpen,
+      savedPlayers, gameScores, skullIslandEvents, submitModalOpen, submitPlayer, newPlayerName, scoreboardOpen,
       scoreToRecord, submitPlayerName, scoreboardPlayers, hasAnyScores, maxRounds,
       playerTotals, playerAverages,
       openSubmitModal, submitScore, resetScores, discardTurn, scoreCellClass, formatScoreCell,
