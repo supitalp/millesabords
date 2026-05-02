@@ -70,14 +70,24 @@ const CARD_DECK = [
   { value: 'treasure-island', weight: 4 },
 ]; // total weight = 35
 
-function randomCard() {
-  const total = CARD_DECK.reduce((s, c) => s + c.weight, 0);
-  let r = Math.random() * total;
+function _buildShuffledDeck() {
+  const flat = [];
   for (const { value, weight } of CARD_DECK) {
-    r -= weight;
-    if (r <= 0) return value;
+    for (let i = 0; i < weight; i++) flat.push(value);
   }
-  return CARD_DECK[CARD_DECK.length - 1].value; // float-rounding safety net
+  // Fisher-Yates shuffle
+  for (let i = flat.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [flat[i], flat[j]] = [flat[j], flat[i]];
+  }
+  return flat;
+}
+
+let _remainingDeck = [];
+
+function drawCard() {
+  if (_remainingDeck.length === 0) _remainingDeck = _buildShuffledDeck();
+  return _remainingDeck.pop();
 }
 
 // ─── Persistence helpers (D1: multiplayer) ───────────────────────────────────
@@ -620,6 +630,7 @@ const app = createApp({
           turnPhase.value = 'active';
           originalCard.value = selectedCard.value;
           displayCard.value = selectedCard.value;
+          if (currentScore.value.busted) openSubmitModal();
         }
       }
     }
@@ -694,7 +705,7 @@ const app = createApp({
       _clearStrategy();
 
       displayDice.value = Array(8).fill(FACE_BLANK);
-      selectedCard.value = randomCard();
+      selectedCard.value = drawCard();
       originalCard.value = selectedCard.value;
       displayCard.value = selectedCard.value;
       preloadSolution(selectedCard.value);
@@ -718,6 +729,7 @@ const app = createApp({
       displayDice.value = [...finalDice]; // safety flush
       turnPhase.value = 'active';
       isAnimating.value = false;
+      if (currentScore.value.busted) openSubmitModal();
     }
 
     async function rollSelected() {
@@ -769,6 +781,7 @@ const app = createApp({
         displayDice.value = [...dice.value]; // safety flush
         isAnimating.value = false;
       }
+      if (currentScore.value.busted) openSubmitModal();
     }
 
     // Sort priority per face: skull, coin, diamond, sword, monkey, parrot
@@ -793,7 +806,7 @@ const app = createApp({
     function randomize() {
       dice.value = randomDice();
       displayDice.value = [...dice.value];
-      selectedCard.value = randomCard();
+      selectedCard.value = drawCard();
       originalCard.value = selectedCard.value;
       displayCard.value = selectedCard.value;
       selectedDice.value = Array(8).fill(false);
