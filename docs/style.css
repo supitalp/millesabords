@@ -310,6 +310,7 @@ body {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 0.4rem;
+  min-height: 36px; /* reserves space for .group-icon-btn so height stays stable in skull-island mode */
 }
 
 .dice-section-header .section-title { margin-bottom: 0; }
@@ -1764,11 +1765,8 @@ body {
 
 /* ─── Skull Island ───────────────────────────────────────────────────────────── */
 
-/* Card section: auto-height when skull island banner is shown */
-.card-section-skull-island {
-  height: auto !important;
-  min-height: 42px;
-}
+/* Card section: skull island keeps the same 42px height as normal play — no override needed */
+.card-section-skull-island {}
 
 /* Compact skull island indicator — lives in the card-section-header row */
 .skull-island-indicator {

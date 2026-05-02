@@ -138,17 +138,21 @@
             </button>
           </div>
 
-          <!-- Skull Island action row: single centered roll/record button -->
+          <!-- Skull Island action row: single centered roll/record button.
+               Wrapped in .dice-roll-col with a hidden spacer so it matches the normal action row height. -->
           <div class="dice-action-row" v-if="mode === 'play' && turnPhase === 'skull-island'">
-            <button
-              class="dice-roll-btn"
-              :class="{ 'dice-roll-btn-ready': !isAnimating }"
-              @click="skullIslandEnded ? openSubmitModal() : rollSkullIslandDice()"
-              :disabled="isAnimating"
-              :title="skullIslandEnded ? 'Record skull island turn' : 'Roll remaining dice (skulls stay set aside)'"
-            >
-              <span class="dice-roll-emoji">💀</span>
-            </button>
+            <div class="dice-roll-col">
+              <button
+                class="dice-roll-btn"
+                :class="{ 'dice-roll-btn-ready': !isAnimating }"
+                @click="skullIslandEnded ? openSubmitModal() : rollSkullIslandDice()"
+                :disabled="isAnimating"
+                :title="skullIslandEnded ? 'Record skull island turn' : 'Roll remaining dice (skulls stay set aside)'"
+              >
+                <span class="dice-roll-emoji">💀</span>
+              </button>
+              <span class="dice-roll-count" aria-hidden="true" style="visibility:hidden">×</span>
+            </div>
           </div>
 
           <!-- Three-button action row: hint | roll | save -->
@@ -193,7 +197,12 @@
 
           <!-- Inline score — always mounted so the section height is constant; hidden when not yet active -->
           <div class="dice-score-row" :style="{ visibility: ((turnPhase === 'active' || turnPhase === 'skull-island') && !isAnimating) ? 'visible' : 'hidden' }">
-            <template v-if="turnPhase === 'skull-island'">
+            <!-- Pre-roll placeholder: fixed single-line height so the row never shifts when currentScore
+                 computes variable content (e.g. long guardian text) from leftover dice of the previous turn. -->
+            <template v-if="turnPhase !== 'active' && turnPhase !== 'skull-island'">
+              <span class="dice-score-value" aria-hidden="true" style="opacity:0">0<span class="score-unit"> pts</span></span>
+            </template>
+            <template v-else-if="turnPhase === 'skull-island'">
               <span class="dice-score-value score-skull-island">−{{ skullIslandPenalty }}<span class="score-unit"> pts / opp</span></span>
               <span class="dice-score-bust-label">
                 {{ skullIslandEnded ? '🏴‍☠️ Island ends!' : '💀 Skull Island —' }}
