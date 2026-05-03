@@ -5,7 +5,7 @@ Export precomputed DP solutions to JSON files for the web app.
 Run from the project root:
     python export_data.py
 
-Outputs one JSON file per card config into webapp/data/.
+Outputs one JSON file per card config into docs/data/.
 """
 import json
 from pathlib import Path
@@ -52,7 +52,7 @@ def export_config(name: str, config, out_dir: Path) -> None:
 
 
 def main():
-    out_dir = Path(__file__).parent / "webapp" / "data"
+    out_dir = Path(__file__).parent / "docs" / "data"
     out_dir.mkdir(exist_ok=True)
 
     all_configs = {"default": DEFAULT_CONFIG, **CARD_CONFIGS}
