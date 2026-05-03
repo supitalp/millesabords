@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mille Sabords — Solver</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💀</text></svg>" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="stylesheet" href="style.css" />
   <style>[v-cloak]{display:none}</style>
 </head>
@@ -637,5 +640,10 @@
   </div>
 
   <script type="module" src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
+  </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { createApp, ref, computed, reactive, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js';
+import { createApp, ref, computed, reactive, onMounted } from './vue.esm-browser.prod.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
