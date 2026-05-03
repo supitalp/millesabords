@@ -18,3 +18,9 @@ Expected score for a full turn under optimal play, for every bonus card. These a
 | ⚔️⚔️⚔️⚔️ Pirate Ship (4 swords) | **−156 pts** | Meet quota: +1 000 pts; fail: −1 000 pts |
 
 Pirate Ship (4 swords) is the only card with a **negative** expected value under optimal play — the quota is hard enough to reach that the −1 000 penalty dominates on average.
+
+## Score distributions
+
+![Score distributions heatmap](results/plots/heatmap_all_cards.png)
+
+Each row is one card, sorted from worst to best EV. Color intensity shows how frequently each score bucket occurs under the optimal strategy. The dark-red bar marks the expected value. Cards near the top have narrow, left-skewed distributions (high bust rates); cards near the bottom spread wider to the right as high-combo turns become more likely.
