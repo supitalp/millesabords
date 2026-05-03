@@ -7,7 +7,7 @@ saved on first run. Policy decisions are evaluated lazily at each step (no full
 policy pre-computation), so each turn is near-instant after the cache is warm.
 
 Usage:
-    uv run python simulate.py [--card CARD] [--seed SEED] [--n N] [--quiet]
+    uv run python analysis/simulate.py [--card CARD] [--seed SEED] [--n N] [--quiet]
 
 Options:
     --card CARD    Pirate card (default: none).
@@ -21,10 +21,10 @@ Behaviour:
     --n N --quiet  No traces, just the stats summary (good for large N).
 
 Examples:
-    uv run python simulate.py --card guardian --seed 1
-    uv run python simulate.py --card guardian --n 5 --seed 42
-    uv run python simulate.py --card pirate --n 10000 --quiet
-    uv run python simulate.py                              # no card, random seed
+    uv run python analysis/simulate.py --card guardian --seed 1
+    uv run python analysis/simulate.py --card guardian --n 5 --seed 42
+    uv run python analysis/simulate.py --card pirate --n 10000 --quiet
+    uv run python analysis/simulate.py                              # no card, random seed
 """
 import argparse
 import random

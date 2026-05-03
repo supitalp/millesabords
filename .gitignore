@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 .venv/
 *.DS_Store
+results/
+solver/.dp_cache/
+solver/HOW_IT_WORKS.md
+solver/mcts_solver.py
+analysis/compare_mcts_dp.py

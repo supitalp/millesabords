@@ -3,16 +3,12 @@
 Export precomputed DP solutions to JSON files for the web app.
 
 Run from the project root:
-    python docs/export_data.py
+    python export_data.py
 
-Outputs one JSON file per card config into docs/data/.
+Outputs one JSON file per card config into webapp/data/.
 """
 import json
-import sys
 from pathlib import Path
-
-# Ensure the project root is on the path
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from solver.model import CARD_CONFIGS, DEFAULT_CONFIG
 from solver.dp import get_solution
@@ -56,7 +52,7 @@ def export_config(name: str, config, out_dir: Path) -> None:
 
 
 def main():
-    out_dir = Path(__file__).parent / "data"
+    out_dir = Path(__file__).parent / "webapp" / "data"
     out_dir.mkdir(exist_ok=True)
 
     all_configs = {"default": DEFAULT_CONFIG, **CARD_CONFIGS}

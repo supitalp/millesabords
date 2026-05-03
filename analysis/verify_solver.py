@@ -9,16 +9,16 @@ Also supports a Q-check mode that empirically estimates Q(s, a) for every action
 at a sample of states and verifies the DP's chosen action is always the best one.
 
 Usage:
-    uv run python verify_solver.py [--card CARD] [--n N] [--seed SEED] [--all]
-    uv run python verify_solver.py --q-check [--card CARD] [--q-states N] [--q-rollouts N]
+    uv run python analysis/verify_solver.py [--card CARD] [--n N] [--seed SEED] [--all]
+    uv run python analysis/verify_solver.py --q-check [--card CARD] [--q-states N] [--q-rollouts N]
 
 Examples:
-    uv run python verify_solver.py --card pirate --n 100000
-    uv run python verify_solver.py --card guardian --n 200000
-    uv run python verify_solver.py --all --n 50000
-    uv run python verify_solver.py --n 50000                    # default (no card)
-    uv run python verify_solver.py --q-check --q-states 200 --q-rollouts 3000
-    uv run python verify_solver.py --q-check --card pirate --q-states 100
+    uv run python analysis/verify_solver.py --card pirate --n 100000
+    uv run python analysis/verify_solver.py --card guardian --n 200000
+    uv run python analysis/verify_solver.py --all --n 50000
+    uv run python analysis/verify_solver.py --n 50000                    # default (no card)
+    uv run python analysis/verify_solver.py --q-check --q-states 200 --q-rollouts 3000
+    uv run python analysis/verify_solver.py --q-check --card pirate --q-states 100
 """
 import argparse
 import random

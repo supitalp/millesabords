@@ -17,12 +17,12 @@ Strategies
 • One-shot         — stop immediately after the very first roll; never reroll.
 
 Usage:
-    uv run python compare_strategies.py [--card CARD] [--n N] [--seed SEED] [--all]
+    uv run python analysis/compare_strategies.py [--card CARD] [--n N] [--seed SEED] [--all]
 
 Examples:
-    uv run python compare_strategies.py
-    uv run python compare_strategies.py --card pirate --n 100000
-    uv run python compare_strategies.py --all --n 50000
+    uv run python analysis/compare_strategies.py
+    uv run python analysis/compare_strategies.py --card pirate --n 100000
+    uv run python analysis/compare_strategies.py --all --n 50000
 """
 
 import argparse
@@ -33,7 +33,7 @@ from solver.model import Face, CARD_CONFIGS, DEFAULT_CONFIG, TurnConfig, State, 
 from solver.scoring import score
 from solver.dp import get_solution
 from solver.report import turn_ev
-from verify_solver import build_policy, simulate_turn, _sample
+from analysis.verify_solver import build_policy, simulate_turn, _sample
 
 
 # ── Heuristic helpers ──────────────────────────────────────────────────────────
