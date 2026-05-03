@@ -15,8 +15,9 @@
   <div id="app" v-cloak style="display:none">
     <header class="site-header">
       <div class="header-inner">
-        <h1>🏴‍☠️ Mille Sabords</h1>
+        <h1>🏴‍☠️ Mille Sabords!</h1>
         <div class="header-right">
+          <button class="rules-header-btn" @click="rulesOpen = true" title="Rules">📖</button>
           <div class="mode-toggle-compact">
             <button :class="['mode-icon-btn', mode === 'play' ? 'mode-btn-active' : '']" @click="setMode('play')" title="Play mode">🎮</button>
             <button :class="['mode-icon-btn', mode === 'select' ? 'mode-btn-active' : '']" @click="setMode('select')" title="Edit mode">✏️</button>
@@ -622,6 +623,82 @@
                   >✓ Reassign</button>
                   <button class="randomize-btn" @click="cancelEditEntry">Cancel</button>
                 </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Rules modal -->
+      <Teleport to="body">
+        <div v-if="rulesOpen" class="modal-overlay" @click.self="rulesOpen = false">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h2 class="modal-title">📖 Rules</h2>
+              <button class="modal-close-btn" @click="rulesOpen = false" title="Close">✕</button>
+            </div>
+            <div class="modal-body">
+
+              <p class="rules-intro">Mille Sabords! is a push-your-luck dice game: roll dice, build combos, and know when to stop before the skulls bust you.</p>
+
+              <div class="rules-section">
+                <div class="rules-section-title">🎯 Objective</div>
+                <p>First to <strong>6,000 pts</strong> triggers the final round: everyone takes one last turn, then the pirate with the most points wins.</p>
+              </div>
+
+              <div class="rules-section">
+                <div class="rules-section-title">🎲 Your Turn</div>
+                <p>The app draws a Pirate card for you, shown in the <strong>Card</strong> section at the top (each card has special effects on your turn, see below). Then:</p>
+                <ol class="rules-list">
+                  <li>Roll all 8 dice</li>
+                  <li>Select 2 or more dice to reroll, keeping at least 1 (you can never reroll all dice at once)</li>
+                  <li>💀 Skulls are locked and <strong>cannot</strong> be rerolled</li>
+                  <li>3rd 💀 = <strong>bust</strong> → 0 pts for the turn</li>
+                </ol>
+              </div>
+
+              <div class="rules-section">
+                <div class="rules-section-title">🏆 Scoring</div>
+                <div class="rules-combos">
+                  <div class="rules-combo-row"><span class="rules-combo-desc">3 of a kind</span><span class="rules-combo-pts">100 pts</span></div>
+                  <div class="rules-combo-row"><span class="rules-combo-desc">4 of a kind</span><span class="rules-combo-pts">200 pts</span></div>
+                  <div class="rules-combo-row"><span class="rules-combo-desc">5 of a kind</span><span class="rules-combo-pts">500 pts</span></div>
+                  <div class="rules-combo-row"><span class="rules-combo-desc">6 of a kind</span><span class="rules-combo-pts">1,000 pts</span></div>
+                  <div class="rules-combo-row"><span class="rules-combo-desc">7 of a kind</span><span class="rules-combo-pts">2,000 pts</span></div>
+                  <div class="rules-combo-row"><span class="rules-combo-desc">8 of a kind</span><span class="rules-combo-pts">4,000 pts</span></div>
+                  <div class="rules-combo-row"><span class="rules-combo-desc">9 of a kind</span><span class="rules-combo-pts">8,000 pts</span></div>
+                </div>
+                <p>💎 Diamond &amp; 🪙 Coin: <strong>+100 pts each</strong>, on top of any combo.<br>
+                  <span class="rules-example">e.g. 4 🪙 = 200 (combo) + 400 (4×100) = 600 pts</span></p>
+                <p>All 8 dice score with no 💀: <strong>+500 Full Chest bonus</strong>.</p>
+              </div>
+
+              <div class="rules-section">
+                <div class="rules-section-title">🏝️ Skull Island</div>
+                <p>4+ 💀 on your <strong>first roll</strong> → Skull Island! Set aside skulls and keep rolling. Stop when no skull appears. Score 0 pts, but each opponent loses <strong>100 pts per skull</strong>.</p>
+              </div>
+
+              <div class="rules-section">
+                <div class="rules-section-title">🕹️ App Controls</div>
+                <ul class="rules-list rules-controls-list">
+                  <li><span class="rules-ctrl-btn">🎲</span> <strong>Roll</strong>: roll all 8 dice at the start, or reroll the dice you've selected by tapping them</li>
+                  <li><span class="rules-ctrl-btn">💡</span> <strong>Hint</strong>: shows the optimal play; dice to reroll will glow amber. If none are highlighted, the best move is to stop and bank. Tap <em>Full strategy table</em> for a breakdown of every possible reroll with expected values</li>
+                  <li><span class="rules-ctrl-btn">💰</span> <strong>Bank</strong>: end your turn and save your score. Turns to 💀 if you've busted</li>
+                </ul>
+              </div>
+
+              <div class="rules-section">
+                <div class="rules-section-title">🃏 Pirate Cards</div>
+                <ul class="rules-list">
+                  <li>🏴‍☠️ <strong>Pirate</strong>: score ×2; Skull Island penalty ×2</li>
+                  <li>💀 <strong>Skull ×1 / ×2</strong>: start with extra locked skull(s)</li>
+                  <li>🛡️ <strong>Guardian</strong>: reroll 1 skull once during your turn</li>
+                  <li>⚓ <strong>Pirate Ship</strong>: hit the ⚔️ target → earn bonus; miss → 0 pts and lose the penalty; can't go to Skull Island</li>
+                  <li>🪙 <strong>Gold Coin</strong> / 💎 <strong>Diamond</strong>: start with 1 extra die (+100 pts bonus)</li>
+                  <li>🐒🦜 <strong>Animals</strong>: monkeys and parrots count as the same symbol</li>
+                  <li>🏝️ <strong>Treasure Island</strong>: any dice you choose <em>not</em> to reroll are safely parked; they score even if you bust</li>
+                </ul>
               </div>
 
             </div>

@@ -492,6 +492,7 @@ const app = createApp({
 
     // Submit-score modal
     const submitModalOpen = ref(false);
+    const rulesOpen       = ref(false);
     const submitPlayer    = ref('');   // selected name, or '__new__'
     const newPlayerName   = ref('');   // typed when creating a new player
 
@@ -1332,6 +1333,7 @@ const app = createApp({
       pct, evFmt, deltaFmt, maxStr,
       fixedCardDice, currentScore, FACE,
       // D1: multiplayer
+      rulesOpen,
       savedPlayers, gameScores, skullIslandEvents, submitModalOpen, submitPlayer, newPlayerName, scoreboardOpen,
       scoreToRecord, submitPlayerName, scoreboardPlayers, hasAnyScores, maxRounds,
       playerTotals, playerAverages,
