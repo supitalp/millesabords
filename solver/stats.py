@@ -51,7 +51,9 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
     for outcome, prob in roll_outcomes(n_reroll):
         new_skulls = n_skulls_base + outcome[Face.SKULL]
         if new_skulls >= 3:
-            bust_held = _add_outcome(kept, outcome)
+            # For Treasure Island only the island dice (kept) count on a bust,
+            # not the non-skull dice from the final roll.
+            bust_held = kept if config.treasure_island else _add_outcome(kept, outcome)
             this_bust_score = float(score(new_skulls, bust_held, config))
             if config.skull_reroll_available and not state.skull_reroll_used and not use_guardian and new_skulls == 3:
                 for rescue_outcome, rescue_prob in roll_outcomes(1):
