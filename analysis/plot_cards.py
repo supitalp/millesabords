@@ -728,8 +728,7 @@ def bubble_plotly(
         ),
         shapes=shapes,
         showlegend=False,
-        width=1440,
-        height=680,
+        autosize=True,
         margin=dict(l=100, r=60, t=100, b=70),
         hoverlabel=dict(
             bgcolor="#1e1e2e",
@@ -750,6 +749,16 @@ def bubble_plotly(
     boxShadow: '0 8px 32px rgba(0,0,0,0.7)', lineHeight: '1.5',
   });
   document.body.appendChild(popup);
+  document.body.style.background = '#0d0d10';
+  document.body.style.margin = '0';
+  document.documentElement.style.height = '100%';
+  document.body.style.height = '100%';
+
+  var plotDiv = document.getElementById('ms-plot');
+  plotDiv.style.width  = '100vw';
+  plotDiv.style.height = '100vh';
+  Plotly.Plots.resize(plotDiv);
+  window.addEventListener('resize', function () { Plotly.Plots.resize(plotDiv); });
 
   var justOpened = false;
 
