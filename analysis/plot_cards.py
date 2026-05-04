@@ -429,6 +429,92 @@ def ridgeline_all(
     print(f"  Ridgeline saved → {out}")
 
 
+def _score_to_combos(
+    card_key: str,
+    target_scores: set[int],
+    max_per_score: int = 3,
+) -> dict[int, list[str]]:
+    """
+    Enumerate final dice configurations (n_skulls, held) that produce each
+    target score for the given card.  Returns {score: [emoji_str, ...]}.
+
+    Always holds all free dice so each example shows exactly (total - base_skulls) dice.
+    Uses greedy diversity selection: each new pick maximises new face types / skull counts
+    not yet seen in the already-selected examples.
+    """
+    from solver.model import CARD_CONFIGS, DEFAULT_CONFIG
+    from solver.scoring import score as score_fn
+
+    config      = CARD_CONFIGS[card_key] if card_key else DEFAULT_CONFIG
+    total       = config.total_dice
+    base_skulls = config.initial_n_skulls
+    base_held   = list(config.initial_held)
+    base_fixed  = base_skulls + sum(base_held)
+
+    EMOJI = ['💀', '⚔️', '🪙', '💎', '🐒', '🦜']
+
+    def _parts(n: int, k: int):
+        if k == 1:
+            yield (n,)
+            return
+        for i in range(n + 1):
+            for rest in _parts(n - i, k - 1):
+                yield (i,) + rest
+
+    def _to_emoji(extra_skulls: int, held_faces: tuple) -> str:
+        parts = (
+            ['💀'] * extra_skulls
+            + [EMOJI[j + 1] for j, cnt in enumerate(held_faces) for _ in range(cnt)]
+        )
+        return ' '.join(parts) if parts else '—'
+
+    # Collect all valid (extra_skulls, held_faces) candidates per score
+    MAX_COLLECT = 600
+    candidates: dict[int, list[tuple[int, tuple]]] = {s: [] for s in target_scores}
+
+    for extra_skulls in range(total - base_fixed + 1):
+        n_skulls = base_skulls + extra_skulls
+        free     = total - base_fixed - extra_skulls
+        if free < 0:
+            break
+        for extra_combo in _parts(free, 5):
+            held = (base_held[0],) + tuple(
+                base_held[j + 1] + extra_combo[j] for j in range(5)
+            )
+            s = score_fn(n_skulls, held, config)
+            bucket = candidates.get(s)
+            if bucket is not None and len(bucket) < MAX_COLLECT:
+                bucket.append((extra_skulls, held[1:]))
+
+    def _pick_diverse(cands: list, n: int) -> list:
+        """Greedy: each step picks the candidate that introduces the most new face types / skull count."""
+        if not cands:
+            return []
+        seen_skulls: set[int] = set()
+        seen_faces:  set[int] = set()
+        selected: list = []
+        remaining = list(cands)
+        while remaining and len(selected) < n:
+            def novelty(c: tuple) -> int:
+                extra_sk, held_faces = c
+                return (
+                    (2 if extra_sk not in seen_skulls else 0)
+                    + sum(1 for f, cnt in enumerate(held_faces) if cnt > 0 and f not in seen_faces)
+                )
+            best = max(remaining, key=novelty)
+            selected.append(best)
+            extra_sk, held_faces = best
+            seen_skulls.add(extra_sk)
+            seen_faces |= {f for f, cnt in enumerate(held_faces) if cnt > 0}
+            remaining.remove(best)
+        return selected
+
+    return {
+        s: [_to_emoji(es, hf) for es, hf in _pick_diverse(cands, max_per_score)]
+        for s, cands in candidates.items()
+    }
+
+
 def bubble_plotly(
     datasets: list[tuple[str, str, np.ndarray]],
     out_dir: Path,
@@ -505,11 +591,22 @@ def bubble_plotly(
         else:
             return f"{pct:.4f}%"
 
+    # ── pre-compute dice combo examples for every visible (card, score) ─────
+    import json as _json
+    print("    computing dice combos...", end=" ", flush=True)
+    card_combos: list[dict[int, list[str]]] = []
+    for label, card_key, arr in datasets:
+        counts, _ = np.histogram(arr, bins=bin_edges, density=False)
+        freq = counts.astype(float) / len(arr)
+        visible = set(centers[freq >= min_prob].astype(int).tolist())
+        card_combos.append(_score_to_combos(card_key, visible))
+    print("done.")
+
     # ── one scatter trace per card ────────────────────────────────────────────
     traces: list[go.BaseTraceType] = []
 
-    for i, ((label, card_key, arr), elabel, color) in enumerate(
-        zip(datasets, emoji_labels, colors)
+    for i, ((label, card_key, arr), elabel, color, combos_map) in enumerate(
+        zip(datasets, emoji_labels, colors, card_combos)
     ):
         counts, _ = np.histogram(arr, bins=bin_edges, density=False)
         freq = counts.astype(float) / len(arr)
@@ -518,7 +615,8 @@ def bubble_plotly(
         x_vals = centers[mask]
         probs  = freq[mask]
 
-        prob_strs = [_fmt_prob(p) for p in probs]
+        prob_strs  = [_fmt_prob(p) for p in probs]
+        combo_strs = [_json.dumps(combos_map.get(int(x), [])) for x in x_vals]
 
         traces.append(go.Scatter(
             x=x_vals.tolist(),
@@ -535,7 +633,7 @@ def bubble_plotly(
                 opacity=0.88,
                 line=dict(width=0),
             ),
-            customdata=[[s] for s in prob_strs],
+            customdata=[[ps, cs] for ps, cs in zip(prob_strs, combo_strs)],
             hovertemplate=(
                 f"<b>{elabel}</b><br>"
                 "Score: <b>%{x:,} pts</b><br>"
@@ -607,9 +705,8 @@ def bubble_plotly(
         plot_bgcolor=PLOT_BG,
         title=dict(
             text=(
-                "Mille Sabords — score distributions under optimal strategy<br>"
-                "<sup>bubble area ∝ probability per 100-pt bin  ·  "
-                "dark red = bust/penalty zone  ·  hover for exact probability</sup>"
+                "Mille Sabords! — score distributions under optimal strategy<br>"
+                "<sup>bubble area ∝ probability per 100-pt bin  ·  click a bubble for example dice combinations</sup>"
             ),
             font=dict(color="#cccccc", size=15, family="sans-serif"),
             x=0.5, xanchor="center",
@@ -627,7 +724,7 @@ def bubble_plotly(
             gridcolor="#1e1e28",
             categoryorder="array",
             categoryarray=emoji_labels_bottom_to_top,
-            tickfont=dict(size=12, color="#cccccc"),
+            tickfont=dict(size=20, color="#cccccc"),
         ),
         shapes=shapes,
         showlegend=False,
@@ -641,9 +738,99 @@ def bubble_plotly(
         ),
     )
 
-    out = out_dir / "bubble_chart.html"
-    fig.write_html(str(out), include_plotlyjs="cdn")
-    print(f"  Bubble chart saved → {out}")
+    POPUP_JS = """
+(function () {
+  var popup = document.createElement('div');
+  popup.id = 'ms-combo-popup';
+  Object.assign(popup.style, {
+    display: 'none', position: 'fixed', zIndex: '9999',
+    background: '#1a1a2e', border: '1px solid rgba(160,160,200,0.35)',
+    borderRadius: '10px', padding: '14px 18px', color: '#fff',
+    fontFamily: 'sans-serif', maxWidth: '360px', pointerEvents: 'auto',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.7)', lineHeight: '1.5',
+  });
+  document.body.appendChild(popup);
+
+  var justOpened = false;
+
+  document.addEventListener('click', function () {
+    if (justOpened) { justOpened = false; return; }
+    popup.style.display = 'none';
+  });
+
+  var plotDiv = document.getElementById('ms-plot');
+  plotDiv.on('plotly_click', function (data) {
+    var pt = data.points[0];
+    // Only react to bubble traces (customdata has 2 elements: [prob_str, combos_json])
+    if (!pt.customdata || pt.customdata.length < 2) return;
+    var combosJson = pt.customdata[1];
+    if (typeof combosJson !== 'string') return;
+    var combos;
+    try { combos = JSON.parse(combosJson); } catch (e) { return; }
+
+    var score = Math.round(pt.x);
+    var prob  = pt.customdata[0];
+
+    var rows = combos.length === 0
+      ? '<div style="color:#888;font-size:12px">no examples found</div>'
+      : combos.map(function (c) {
+          return '<div style="font-size:22px;margin:3px 0;letter-spacing:3px">' + c + '</div>';
+        }).join('');
+
+    popup.innerHTML =
+      '<div style="font-size:11px;color:#aaa;margin-bottom:10px">' +
+        pt.y + ' &nbsp;·&nbsp; <b>' + score.toLocaleString() + ' pts</b>' +
+        ' &nbsp;·&nbsp; ' + prob +
+      '</div>' +
+      rows +
+      '<div style="font-size:9px;color:#555;margin-top:10px;text-align:right">click elsewhere to close</div>';
+
+    // Position near cursor, keeping within viewport
+    var ex = data.event.clientX, ey = data.event.clientY;
+    var pw = 380, ph = popup.scrollHeight || 200;
+    var left = ex + 16, top = ey - 20;
+    if (left + pw > window.innerWidth)  left = ex - pw - 8;
+    if (top  + ph > window.innerHeight) top  = ey - ph - 8;
+    popup.style.left = left + 'px';
+    popup.style.top  = top  + 'px';
+    popup.style.display = 'block';
+
+    justOpened = true;
+  });
+})();
+"""
+
+    html_name = "score_distributions.html"
+    png_name  = "score_distributions.png"
+
+    out_html = out_dir / html_name
+    fig.write_html(
+        str(out_html),
+        include_plotlyjs="cdn",
+        div_id="ms-plot",
+        post_script=POPUP_JS,
+    )
+    print(f"  Bubble chart saved → {out_html}")
+
+    # Mirror to docs/ for GitHub Pages
+    docs_dir = Path(__file__).parent.parent / "docs"
+    if docs_dir.exists():
+        docs_html = docs_dir / html_name
+        fig.write_html(
+            str(docs_html),
+            include_plotlyjs="cdn",
+            div_id="ms-plot",
+            post_script=POPUP_JS,
+        )
+        print(f"  Bubble chart mirrored → {docs_html}")
+
+    # Static PNG for README / GitHub embedding
+    out_png = out_dir / png_name
+    try:
+        fig.write_image(str(out_png), scale=2)
+        print(f"  PNG snapshot saved  → {out_png}")
+    except Exception as e:
+        print(f"  PNG export skipped ({e})")
 
 
 def ridgeline_3d(
