@@ -35,6 +35,7 @@ ALL_CARDS: list[tuple[str, str]] = [
     ("skull ×2",       "skull-2"),          # EV   113 pts
     ("ship ×3",        "pirate-ship-3"),   # EV   249 pts
     ("skull ×1",       "skull-1"),          # EV   346 pts
+    ("zombie",         "zombie"),           # EV  ~436 pts
     ("ship ×2",        "pirate-ship-2"),   # EV   443 pts
     ("peace",          "peace"),            # EV   521 pts
     ("no card",        ""),                 # EV   579 pts
@@ -52,17 +53,43 @@ def npy_path(card_key: str) -> Path:
     return RESULTS_DIR / ((card_key or "no_card").replace("-", "_") + ".npy")
 
 
-def run_simulation(label: str, card_key: str, n: int, seed: int | None) -> np.ndarray:
-    config = CARD_CONFIGS[card_key] if card_key else DEFAULT_CONFIG
-    print(f"  [{label}] Loading DP solution...", end=" ", flush=True)
-    get_solution(config)
-    print("done.")
+def _simulate_zombie_turn(rng: random.Random) -> float:
+    """Direct zombie simulation — no DP needed, no player choices."""
+    n_skulls = 0
+    n_swords = 0
+    n_reroll = 8
+    while n_reroll > 0:
+        for _ in range(n_reroll):
+            face = rng.randint(0, 5)
+            if face == 0:
+                n_skulls += 1
+            elif face == 1:
+                n_swords += 1
+        # Early-exit: ≥4 skulls means max possible swords < 5 → guaranteed fail.
+        if 8 - n_skulls < 5:
+            return 0.0
+        n_reroll = 8 - n_skulls - n_swords
+    return 1200.0 if n_swords >= 5 else 0.0
 
+
+def run_simulation(label: str, card_key: str, n: int, seed: int | None) -> np.ndarray:
     rng = random.Random(seed)
     scores: list[float] = []
     print(f"  [{label}] Simulating {n:,} turns...", end=" ", flush=True)
-    for _ in range(n):
-        scores.append(simulate(config, rng, card_name=label, verbose=False))
+
+    if card_key == 'zombie':
+        for _ in range(n):
+            scores.append(_simulate_zombie_turn(rng))
+    else:
+        config = CARD_CONFIGS[card_key] if card_key else DEFAULT_CONFIG
+        print()
+        print(f"  [{label}] Loading DP solution...", end=" ", flush=True)
+        get_solution(config)
+        print("done.")
+        print(f"  [{label}] Simulating {n:,} turns...", end=" ", flush=True)
+        for _ in range(n):
+            scores.append(simulate(config, rng, card_name=label, verbose=False))
+
     arr = np.array(scores, dtype=np.float32)
     print("done.")
 
@@ -551,6 +578,7 @@ def bubble_plotly(
         "pirate":          ("🏴‍☠️",         "Pirate",             "Score × 2"),
         "peace":           ("🕊️",          "Peace",              "No swords: −1,000 pts per sword (BGA variant)"),
         "storm":           ("⛈️",          "After the Storm",    "One reroll; only coins & diamonds score (×2)"),
+        "zombie":          ("🧟",          "Zombie Attack",       "≥5 swords: 1200 pts, else bust"),
     }
     default_meta = lambda lbl: (lbl, lbl, "")
     card_meta    = [_META.get(ck, default_meta(lbl)) for lbl, ck, _ in datasets]

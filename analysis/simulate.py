@@ -10,7 +10,7 @@ Usage:
     uv run python analysis/simulate.py [--card CARD] [--seed SEED] [--n N] [--quiet]
 
 Options:
-    --card CARD    Pirate card (default: none).
+    --card CARD    Fortune card (default: none).
     --seed SEED    Random seed for reproducibility.
     --n N          Number of turns to simulate (default: 1).
     --quiet        Suppress per-turn traces; only show the stats summary.
@@ -98,6 +98,18 @@ def _best_action(state: State, config: TurnConfig) -> tuple:
     if key in _policy_memo:
         return _policy_memo[key]
 
+    # Zombie: no player choice — always keep swords, reroll everything else.
+    # Stop when n_reroll==0 (all dice settled) OR when ≥4 skulls (guaranteed fail).
+    if config.zombie:
+        n_swords = state.held[Face.SWORD]
+        n_reroll = config.total_dice - state.n_skulls - n_swords
+        kept = tuple(state.held[f] if f == Face.SWORD else 0 for f in range(NUM_FACES))
+        guaranteed_fail = (config.total_dice - state.n_skulls) < 5  # max possible swords < 5
+        is_stop = n_reroll == 0 or guaranteed_fail
+        result = kept, False, is_stop
+        _policy_memo[key] = result
+        return result
+
     # Storm card: reroll already used → only the stop action is available.
     if config.one_reroll_only and state.reroll_used:
         result = state.held, False, True  # kept=held, use_guardian=False, is_stop=True
@@ -171,7 +183,13 @@ def simulate(config: TurnConfig, rng: random.Random,
     out(f"\n  ┌─ ROLL {roll_num} ({n_initial} dice) {'─' * max(0, W - 16 - len(str(n_initial)))}")
     out(f"  │  Rolled  : {_fmt(outcome)}")
 
-    if new_skulls >= 3:
+    if config.zombie:
+        # No bust; only track skulls and swords — other faces will be rerolled.
+        zombie_held = [0] * NUM_FACES
+        zombie_held[Face.SWORD] = new_held[Face.SWORD]
+        state = State(new_skulls, tuple(zombie_held), False, False)
+        _show_state(state.n_skulls, state.held, False)
+    elif new_skulls >= 3:
         initial_bust = float(score(new_skulls, config.initial_held, config))
         out(f"  │  Result  : 💀 x{new_skulls} — BUST immediately!")
         if config.skull_reroll_available and new_skulls == 3:
@@ -243,7 +261,13 @@ def simulate(config: TurnConfig, rng: random.Random,
         out(f"  ├─ ROLL {roll_num} ({n_reroll} dice) {'─' * max(0, W - 16 - len(str(n_reroll)))}")
         out(f"  │  Rolled  : {_fmt(outcome)}")
 
-        if new_skulls >= 3:
+        if config.zombie:
+            # No bust; accumulate skulls and swords only; discard other faces.
+            zombie_held = [0] * NUM_FACES
+            zombie_held[Face.SWORD] = kept[Face.SWORD] + outcome[Face.SWORD]
+            state = State(new_skulls, tuple(zombie_held), False, False)
+            _show_state(state.n_skulls, state.held, False)
+        elif new_skulls >= 3:
             can_rescue = (
                 config.skull_reroll_available
                 and not skull_reroll_used_next
@@ -373,8 +397,8 @@ def main() -> None:
         description="Simulate turns under the optimal DP policy, with optional tracing."
     )
     parser.add_argument(
-        "--card", default=None, choices=list(CARD_CONFIGS),
-        help="Pirate card to use (default: none).",
+        "--card", default=None, choices=[*CARD_CONFIGS, 'zombie'],
+        help="Fortune card to use (default: none).",
     )
     parser.add_argument(
         "--seed", type=int, default=None,
@@ -395,12 +419,13 @@ def main() -> None:
     args = parser.parse_args()
 
     card_name = args.card or ""
-    config    = CARD_CONFIGS[args.card] if args.card else DEFAULT_CONFIG
+    config    = TurnConfig(zombie=True) if args.card == 'zombie' else (CARD_CONFIGS[args.card] if args.card else DEFAULT_CONFIG)
     verbose   = not args.quiet
 
-    print(f"  Loading DP solution for '{card_name or 'default'}'...", end=" ", flush=True)
-    get_solution(config)
-    print("done.")
+    if not config.zombie:
+        print(f"  Loading DP solution for '{card_name or 'default'}'...", end=" ", flush=True)
+        get_solution(config)
+        print("done.")
 
     rng    = random.Random(args.seed)
     scores: list[float] = []

@@ -8,7 +8,7 @@ for a fresh turn under optimal play.
 Each die value is one of: skull, sword, coin, diamond, monkey, parrot
 You may also use shorthand letters: k=skull x=sword c=coin d=diamond m=monkey p=parrot
 Shorthands can be combined into a single string, e.g. "kkxxxcdp" expands to 8 dice.
-Optional --card selects the active Pirate card (default: none).
+Optional --card selects the active Fortune card (default: none).
 Optional --verbose shows additional columns (EV|safe, Min, Max, P(win)).
 
 Available cards:

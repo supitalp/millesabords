@@ -169,9 +169,9 @@
             <button
               class="dice-side-btn"
               :class="{ 'dice-side-btn-on': strategyOn }"
-              :disabled="turnPhase !== 'active' || currentScore.busted || rerollExhausted || loading || isAnimating"
+              :disabled="turnPhase !== 'active' || currentScore.busted || rerollExhausted || loading || isAnimating || selectedCard === 'zombie'"
               @click="toggleStrategy()"
-              :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
+              :title="selectedCard === 'zombie' ? 'No hints — zombie card has no choices' : (strategyOn ? 'Hide hint' : 'Show optimal play hint')"
             >
               <span v-if="loading && turnPhase === 'active'" class="spinner-sm"></span>
               <span v-else>💡</span>
@@ -195,9 +195,9 @@
             <button
               class="dice-side-btn"
               @click="openSubmitModal"
-              :disabled="turnPhase !== 'active' || isAnimating"
-              :title="currentScore.busted ? 'Record bust and pass to the next player' : 'Bank your score and pass to the next player'"
-            >{{ currentScore.busted && turnPhase === 'active' && !isAnimating ? '💀' : '💰' }}</button>
+              :disabled="turnPhase !== 'active' || isAnimating || (selectedCard === 'zombie' && !zombieManualEndAllowed)"
+              :title="currentScore.busted ? 'Record bust and pass to the next player' : selectedCard === 'zombie' && !zombieManualEndAllowed ? 'Turn ends automatically for the Zombie card' : 'Bank your score and pass to the next player'"
+            >{{ (currentScore.busted || (zombieStopReason && zombieStopReason !== 'win')) && turnPhase === 'active' ? '💀' : '💰' }}</button>
           </div>
 
           <!-- Inline score — always mounted so the section height is constant; hidden when not yet active -->
@@ -360,7 +360,7 @@
                         <th></th>
                         <th>Reroll</th>
                         <th>Δ vs Stop</th>
-                        <th>P(lose)</th>
+                        <th>P(fail)</th>
                         <th>EV</th>
                         <th>Min</th>
                         <th>Max</th>
@@ -404,11 +404,11 @@
 
       <!-- D1: Record Score modal -->
       <Teleport to="body">
-        <div v-if="submitModalOpen" class="modal-overlay" @click.self="submitModalOpen = false">
+        <div v-if="submitModalOpen" class="modal-overlay" @click.self="closeSubmitModal()">
           <div class="modal-card modal-sm">
             <div class="modal-header">
               <h2 class="modal-title">Record Score</h2>
-              <button class="modal-close-btn" @click="submitModalOpen = false" title="Close">✕</button>
+              <button class="modal-close-btn" @click="closeSubmitModal()" title="Close">✕</button>
             </div>
             <div class="modal-body">
 
@@ -442,6 +442,13 @@
                 </template>
               </div>
 
+              <!-- Zombie stop reason -->
+              <div v-if="zombieStopReason" class="submit-zombie-note">
+                <template v-if="zombieStopReason === 'win'">🧟 Reached 5+ swords — turn over!</template>
+                <template v-else-if="zombieStopReason === 'fail_skulls'">🧟 4+ skulls locked in — impossible to reach 5 swords</template>
+                <template v-else>🧟 All dice settled — fell short of 5 swords</template>
+              </div>
+
               <!-- Player selector -->
               <div class="submit-player-block">
                 <label class="submit-player-label">Who played this turn?</label>
@@ -471,7 +478,7 @@
                   :disabled="!submitPlayerName"
                 >✓ Save score</button>
                 <button class="randomize-btn" @click="discardTurn">↩ New turn</button>
-                <button class="randomize-btn" @click="submitModalOpen = false">Cancel</button>
+                <button class="randomize-btn" @click="closeSubmitModal()">Cancel</button>
               </div>
 
             </div>
@@ -672,7 +679,7 @@
 
               <div class="rules-section">
                 <div class="rules-section-title">🎲 Your Turn</div>
-                <p>The app draws a Pirate card for you, shown in the <strong>Card</strong> section at the top (each card has special effects on your turn, see below). Then:</p>
+                <p>The app draws a Fortune card for you, shown in the <strong>Card</strong> section at the top (each card has special effects on your turn, see below). Then:</p>
                 <ol class="rules-list">
                   <li>Roll all 8 dice</li>
                   <li>Select 2 or more dice to reroll, keeping at least 1 (you can never reroll all dice at once)</li>
@@ -712,7 +719,7 @@
               </div>
 
               <div class="rules-section">
-                <div class="rules-section-title">🃏 Pirate Cards</div>
+                <div class="rules-section-title">🃏 Fortune Cards</div>
                 <ul class="rules-list">
                   <li>🏴‍☠️ <strong>Pirate</strong>: score ×2; Skull Island penalty ×2</li>
                   <li>💀 <strong>Skull ×1 / ×2</strong>: start with extra locked skull(s)</li>
@@ -723,6 +730,7 @@
                   <li>🏝️ <strong>Treasure Island</strong>: any dice you choose <em>not</em> to reroll are safely parked; they score even if you bust</li>
                   <li>🕊️ <strong>Peace</strong>: end without any swords — if you do, score normally; if any sword remains, score 0 and lose −1,000 pts per sword. On Skull Island with swords: you take the penalty yourself, opponents score nothing</li>
                   <li>⛈️ <strong>After the Storm</strong>: only 2 rolls total; no Skull Island; only 💎 diamonds &amp; 🪙 coins score, ×2 (200 pts each)</li>
+                  <li>🧟 <strong>Zombie Attack</strong>: must keep rolling until all dice show a skull or sword — skulls don't bust you; get ≥5 ⚔️ swords → 1200 pts; fall short → 0 pts</li>
                 </ul>
               </div>
 

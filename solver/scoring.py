@@ -41,6 +41,11 @@ def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> in
     the held dice even on a bust. A 9-of-a-kind (reachable only with the Coin/Diamond
     card) is just the highest combo tier — no special-case win sentinel.
     """
+    # Zombie: binary outcome — 1200 pts for ≥5 swords, else 0.
+    # Only called at terminal states (all dice are skulls or swords; n_reroll == 0).
+    if config.zombie:
+        return 1200 if held[Face.SWORD] >= 5 else 0
+
     # Peace card: any held sword → penalty overrides all other scoring (including bust).
     if config.forbidden_sword_penalty > 0 and held[Face.SWORD] > 0:
         return -(config.forbidden_sword_penalty * held[Face.SWORD])

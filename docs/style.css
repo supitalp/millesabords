@@ -1476,6 +1476,13 @@ body {
   margin-top: 0.3rem;
 }
 
+.submit-zombie-note {
+  font-size: 0.82rem;
+  color: var(--text-muted, #94a3b8);
+  text-align: center;
+  margin: -0.25rem 0 0.5rem;
+}
+
 .submit-player-block {
   display: flex;
   flex-direction: column;

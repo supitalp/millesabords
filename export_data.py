@@ -40,6 +40,7 @@ def export_config(name: str, config, out_dir: Path) -> None:
             "one_reroll_only": config.one_reroll_only,
             "coins_diamonds_only": config.coins_diamonds_only,
             "no_skull_island": config.no_skull_island,
+            "zombie": config.zombie,
         },
         "states": states,
         "V": [round(float(v), 6) for v in sol.V],

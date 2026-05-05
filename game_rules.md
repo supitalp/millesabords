@@ -6,7 +6,7 @@
 
 ## Objective
 
-Ahoy, buccaneers! Step into the boots of a pirate and outsmart fate to roll the best dice combination you can. The more identical dice in your combination, the more points it earns. But every roll could cost you everything — and special Pirate cards may shake things up further.
+Ahoy, buccaneers! Step into the boots of a pirate and outsmart fate to roll the best dice combination you can. The more identical dice in your combination, the more points it earns. But every roll could cost you everything — and special Fortune cards may shake things up further.
 
 **The first pirate to reach 6,000 points wins the game.**
 
@@ -14,7 +14,7 @@ Ahoy, buccaneers! Step into the boots of a pirate and outsmart fate to roll the 
 
 ## Contents
 
-- 35 Pirate cards
+- 35 Fortune cards
 - 5 Summary cards
 - 8 Corsair dice
 
@@ -24,7 +24,7 @@ Ahoy, buccaneers! Step into the boots of a pirate and outsmart fate to roll the 
 
 One player is designated **Ship Captain**: they take a sheet of paper and write down each player's name. During the game, they also record each player's points after their turn.
 
-The Captain shuffles the Pirate cards and forms a face-down draw pile at the centre of the table. Each player then receives a **Summary card** listing the possible dice combinations and their point values.
+The Captain shuffles the Fortune cards and forms a face-down draw pile at the centre of the table. Each player then receives a **Summary card** listing the possible dice combinations and their point values.
 
 The youngest player goes first; the others follow clockwise.
 
@@ -32,11 +32,11 @@ The youngest player goes first; the others follow clockwise.
 
 ## Turn Structure
 
-On their turn, a player reveals the top Pirate card, places it face-up on the discard pile, and rolls the dice. The Pirate card affects the player's dice for that turn (see "Pirate Cards" below).
+On their turn, a player reveals the top Fortune card, places it face-up on the discard pile, and rolls the dice. The Fortune card affects the player's dice for that turn (see "Fortune Cards" below).
 
 **The first roll must always use all eight dice.** Afterwards, the player chooses how many dice to reroll. Diamonds and gold coins are especially valuable because they earn bonus points.
 
-When the player ends their turn, they discard their Pirate card face-up and pass the dice to the player on their left. The Captain records the points scored.
+When the player ends their turn, they discard their Fortune card face-up and pass the dice to the player on their left. The Captain records the points scored.
 
 If the draw pile runs out, shuffle the discard pile to form a new one.
 
@@ -101,9 +101,9 @@ The player scores no points. However, for **each skull** accumulated during thei
 
 ---
 
-## Pirate Cards
+## Fortune Cards
 
-Pirate cards affect the active player's turn and introduce bonuses or penalties.
+Fortune cards affect the active player's turn and introduce bonuses or penalties.
 
 ### Treasure Island
 After each dice roll, the player may set aside one or more dice on this card. They may take them back and reroll them on any subsequent roll. If the player accumulates a third skull during their turn, they can no longer place dice on the card and their turn ends. However, points from dice reserved on Treasure Island **are still counted**.

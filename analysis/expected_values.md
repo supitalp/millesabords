@@ -14,6 +14,7 @@ Expected score for a full turn under optimal play, for every bonus card. These a
 | 🎲 No card *(baseline)* | **579 pts** | — |
 | 🕊️ Peace | **521 pts** | No swords allowed; any sword: −1 000 pts/sword (BGA variant) |
 | ⚔️⚔️ Pirate Ship (2 swords) | **443 pts** | Meet quota: +300 pts; fail: −300 pts |
+| 🧟 Zombie Attack | **436 pts** | ≥5 swords: 1 200 pts; else 0 pts (binary outcome; no player choices) |
 | 💀 Skull ×1 | **346 pts** | Starts with 1 extra locked skull |
 | ⚔️⚔️⚔️ Pirate Ship (3 swords) | **249 pts** | Meet quota: +500 pts; fail: −500 pts |
 | 💀💀 Skull ×2 | **113 pts** | Starts with 2 extra locked skulls |

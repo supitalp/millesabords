@@ -28,6 +28,7 @@ const CARD_OPTIONS = [
   { value: 'treasure-island', name: 'Treasure Island', icon: '🏝️',           desc: 'Kept dice still score even if you bust', label: 'Treasure Island'             },
   { value: 'peace',          name: 'Peace',          icon: '🕊️',           desc: 'No swords: −1,000 pts per sword',        label: 'Peace (no swords)'            },
   { value: 'storm',          name: 'After the Storm', icon: '⛈️',           desc: 'One reroll; only coins & diamonds (×2)',  label: 'After the Storm (one reroll)' },
+  { value: 'zombie',         name: 'Zombie Attack',   icon: '🧟',           desc: '≥5 swords: 1200 pts, else bust',         label: 'Zombie Attack (5 swords or bust)'     },
 ];
 
 const _EMPTY_HELD = [0, 0, 0, 0, 0, 0];
@@ -52,6 +53,7 @@ const CARD_CONFIGS = {
   'treasure-island':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: true,  forbidden_sword_penalty: 0    },
   'peace':            { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: false, forbidden_sword_penalty: 1000 },
   'storm':            { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 2, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: false, forbidden_sword_penalty: 0,    one_reroll_only: true, coins_diamonds_only: true, no_skull_island: true },
+  'zombie':           { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, zombie: true },
 };
 
 function randomDice() {
@@ -74,7 +76,8 @@ const CARD_DECK = [
   { value: 'treasure-island', weight: 4 },
   { value: 'peace',          weight: 3 },
   { value: 'storm',          weight: 3 },
-]; // total weight = 39
+  { value: 'zombie',         weight: 3 },
+]; // total weight = 42
 
 function _buildShuffledDeck() {
   const flat = [];
@@ -196,6 +199,11 @@ function _scoreCombos(held, config) {
 }
 
 function scoreFunc(n_skulls, held, config) {
+  // Zombie: binary outcome — 1200 pts for ≥5 swords, else 0.
+  if (config.zombie) {
+    return held[FACE.SWORD] >= 5 ? 1200 : 0;
+  }
+
   // Peace card: any held sword → penalty overrides all other scoring (including bust).
   if ((config.forbidden_sword_penalty || 0) > 0 && held[FACE.SWORD] > 0) {
     return -(config.forbidden_sword_penalty * held[FACE.SWORD]);
@@ -321,6 +329,15 @@ function stateKey(n_skulls, held, skull_reroll_used, reroll_used = false) {
 }
 
 function diceToState(dice, config, reroll_used = false) {
+  if (config.zombie) {
+    // Zombie states only track skulls and swords; other faces are pending reroll.
+    let n_skulls = 0, n_swords = 0;
+    for (const f of dice) {
+      if (f === FACE.SKULL) n_skulls++;
+      else if (f === FACE.SWORD) n_swords++;
+    }
+    return { n_skulls, held: [0, n_swords, 0, 0, 0, 0], skull_reroll_used: false, reroll_used: false };
+  }
   const counts = [...config.initial_held];
   for (const f of dice) counts[f]++;
   const n_skulls = config.initial_n_skulls + counts[FACE.SKULL];
@@ -423,6 +440,8 @@ const _dataCache = new Map();
 // Fire-and-forget: start fetching a card's solution into the cache so it is
 // already available when the user clicks the hint button.
 function preloadSolution(cardName) {
+  const cfg = CARD_CONFIGS[cardName];
+  if (cfg?.zombie) return;  // zombie has no DP solution — nothing to preload
   loadSolution(cardName).catch(() => {});
 }
 
@@ -521,6 +540,8 @@ const app = createApp({
 
     // Submit-score modal
     const submitModalOpen = ref(false);
+    // For zombie: after the auto-opened modal is cancelled the player can end manually.
+    const zombieManualEndAllowed = ref(false);
     const rulesOpen       = ref(false);
     const submitPlayer    = ref('');   // selected name, or '__new__'
     const newPlayerName   = ref('');   // typed when creating a new player
@@ -608,6 +629,8 @@ const app = createApp({
     // a "kept die" here — the user must keep at least one of their own 8 dice.
     const rollInvalidReason = computed(() => {
       if (!anySelected.value) return null;
+      const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+      if (_cfg.zombie) return null;  // zombie selection is forced, always valid
       // Exactly one die selected → n_reroll=1, always forbidden.
       if (selectedCount.value === 1) {
         return "Can't reroll a single die — select at least 2";
@@ -628,6 +651,8 @@ const app = createApp({
     // or the selection is invalid.
     const bustProbability = computed(() => {
       if (mode.value !== 'play' || turnPhase.value !== 'active' || !anySelected.value || !!rollInvalidReason.value) return null;
+      const _cfgBust = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+      if (_cfgBust.zombie) return null;  // zombie has no skull bust
       const config = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
       const state = diceToState(dice.value, config);
       if (state.n_skulls >= 3 && !currentScore.value.guardianMustAct) return null;
@@ -699,15 +724,28 @@ const app = createApp({
         displayCard.value = selectedCard.value;
         // If all dice are set (manually edited or previously rolled), treat the turn as active.
         if (!displayDice.value.includes(FACE_BLANK)) {
-          // Check skull island: same condition as rollInitialDice
           const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
-          const _totalSkulls = _cfg.initial_n_skulls + dice.value.filter(f => f === FACE.SKULL).length;
-          if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship') && !_cfg.no_skull_island) {
-            skullIslandInitialSkulls.value = _cfg.initial_n_skulls;
-            turnPhase.value = 'skull-island';
-          } else {
+          if (_cfg.zombie) {
             turnPhase.value = 'active';
-            if (currentScore.value.busted) openSubmitModal();
+            const _nSkulls = dice.value.filter(f => f === FACE.SKULL).length;
+            const _nSwords = dice.value.filter(f => f === FACE.SWORD).length;
+            const _maxPossible = _cfg.total_dice - _nSkulls;
+            const _nReroll = _cfg.total_dice - _nSkulls - _nSwords;
+            if (_nSwords >= 5 || _maxPossible < 5 || _nReroll === 0) {
+              openSubmitModal();
+            } else {
+              selectedDice.value = dice.value.map(f => f !== FACE.SKULL && f !== FACE.SWORD);
+            }
+          } else {
+            // Check skull island: same condition as rollInitialDice
+            const _totalSkulls = _cfg.initial_n_skulls + dice.value.filter(f => f === FACE.SKULL).length;
+            if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship') && !_cfg.no_skull_island) {
+              skullIslandInitialSkulls.value = _cfg.initial_n_skulls;
+              turnPhase.value = 'skull-island';
+            } else {
+              turnPhase.value = 'active';
+              if (currentScore.value.busted) openSubmitModal();
+            }
           }
         }
       }
@@ -723,6 +761,8 @@ const app = createApp({
       // Storm card: one reroll already used → all dice locked.
       const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
       if (_cfg.one_reroll_only && hasRerolled.value) return false;
+      // Zombie: all selection is auto-managed; user cannot toggle dice manually.
+      if (_cfg.zombie) return false;
       if (dice.value[i] !== FACE.SKULL) return true;
       if (selectedCard.value !== 'guardian') return false;
       // C1: Guardian reroll already consumed → treat skulls as locked again.
@@ -778,6 +818,7 @@ const app = createApp({
       islandHeld.value = null;
       skullIslandEnded.value = false;
       skullIslandInitialSkulls.value = 0;
+      zombieManualEndAllowed.value = false;
       selectedDice.value = Array(8).fill(false);
       _clearStrategy();
 
@@ -805,15 +846,28 @@ const app = createApp({
 
       displayDice.value = [...finalDice]; // safety flush
 
-      // Detect Skull Island: ≥4 skulls on first roll, pirate-ship and storm cards block it
+      // Detect Skull Island: ≥4 skulls on first roll, pirate-ship / storm / zombie cards block it
       const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
-      const _totalSkulls = _cfg.initial_n_skulls + finalDice.filter(f => f === FACE.SKULL).length;
-      if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship') && !_cfg.no_skull_island) {
-        skullIslandInitialSkulls.value = _cfg.initial_n_skulls;
-        turnPhase.value = 'skull-island';
-      } else {
+      if (_cfg.zombie) {
         turnPhase.value = 'active';
-        if (currentScore.value.busted) openSubmitModal();
+        const _nSkulls = finalDice.filter(f => f === FACE.SKULL).length;
+        const _nSwords = finalDice.filter(f => f === FACE.SWORD).length;
+        const _maxPossible = _cfg.total_dice - _nSkulls;  // best case: all remaining dice become swords
+        if (_nSwords >= 5 || _maxPossible < 5) {
+          // Turn over: either already won (≥5 swords) or impossible to reach 5 (≥4 skulls)
+          openSubmitModal();
+        } else {
+          selectedDice.value = finalDice.map(f => f !== FACE.SKULL && f !== FACE.SWORD);
+        }
+      } else {
+        const _totalSkulls = _cfg.initial_n_skulls + finalDice.filter(f => f === FACE.SKULL).length;
+        if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship') && !_cfg.no_skull_island) {
+          skullIslandInitialSkulls.value = _cfg.initial_n_skulls;
+          turnPhase.value = 'skull-island';
+        } else {
+          turnPhase.value = 'active';
+          if (currentScore.value.busted) openSubmitModal();
+        }
       }
       isAnimating.value = false;
     }
@@ -876,7 +930,18 @@ const app = createApp({
         isAnimating.value = false;
       }
       const _cfg2 = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
-      if (currentScore.value.busted || _cfg2.one_reroll_only) openSubmitModal();
+      if (_cfg2.zombie) {
+        const _nSkulls2 = dice.value.filter(f => f === FACE.SKULL).length;
+        const _nSwords2 = dice.value.filter(f => f === FACE.SWORD).length;
+        const _maxPossible2 = _cfg2.total_dice - _nSkulls2;
+        if (_nSwords2 >= 5 || _maxPossible2 < 5) {
+          openSubmitModal();
+        } else {
+          selectedDice.value = dice.value.map(f => f !== FACE.SKULL && f !== FACE.SWORD);
+        }
+      } else if (currentScore.value.busted || _cfg2.one_reroll_only) {
+        openSubmitModal();
+      }
     }
 
     async function rollSkullIslandDice() {
@@ -950,6 +1015,15 @@ const app = createApp({
     const currentScore = computed(() => {
       const config = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
       const state = diceToState(dice.value, config);
+      if (config.zombie) {
+        const n_swords = state.held[FACE.SWORD];
+        const n_reroll = config.total_dice - state.n_skulls - n_swords;
+        const max_possible = config.total_dice - state.n_skulls; // best case: all remaining → swords
+        // Turn is over when: all dice settled, ≥5 swords already won, or ≥4 skulls guaranteed fail.
+        const isComplete = n_reroll === 0 || n_swords >= 5 || max_possible < 5;
+        const zombieScore = isComplete ? scoreFunc(state.n_skulls, state.held, config) : 0;
+        return { score: zombieScore, busted: false, guardianMustAct: false, fullChest: false, fullChestBonus: 500, pirateShip: null };
+      }
       if (state.n_skulls >= 3) {
         // Guardian card: exactly 3 skulls on first roll → player can still reroll one skull.
         const guardianMustAct = config.skull_reroll_available && !guardianUsed.value && state.n_skulls === 3;
@@ -999,6 +1073,23 @@ const app = createApp({
       } : null;
 
       return { score, fullChest, fullChestBonus, pirateShip };
+    });
+
+    // Zombie: reason the turn ended (used in the submit modal and button icon).
+    // null when not zombie OR when the turn is still ongoing (more dice to roll).
+    // Only non-null at terminal states: 'win' (≥5 swords), 'fail_skulls' (≥4 skulls), 'fail_swords' (all settled, <5 swords).
+    const zombieStopReason = computed(() => {
+      if (originalCard.value !== 'zombie') return null;
+      const cfg = CARD_CONFIGS['zombie'] ?? CARD_CONFIGS['default'];
+      const n_skulls = dice.value.filter(f => f === FACE.SKULL).length;
+      const n_swords = dice.value.filter(f => f === FACE.SWORD).length;
+      const n_reroll  = cfg.total_dice - n_skulls - n_swords;
+      const max_possible = cfg.total_dice - n_skulls;
+      const isComplete = n_reroll === 0 || n_swords >= 5 || max_possible < 5;
+      if (!isComplete) return null;
+      if (n_swords >= 5) return 'win';
+      if (max_possible < 5) return 'fail_skulls';
+      return 'fail_swords';
     });
 
     // Fixed card dice to display alongside the 8 interactive dice
@@ -1081,12 +1172,19 @@ const app = createApp({
       strategyData.value = null;
 
       try {
+        const _cfgCheck = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+        if (_cfgCheck.zombie) {
+          // Zombie has no player choices — strategy hints are not applicable.
+          strategyData.value = { busted: false, noStrategy: true, config: _cfgCheck };
+          return;
+        }
+
         const sol = await loadSolution(selectedCard.value);
         const config = sol.config;
         const reroll_used = (config.one_reroll_only && hasRerolled.value) ? true : false;
         const state = diceToState(dice.value, config, reroll_used);
 
-        if (state.n_skulls >= 3) {
+        if (state.n_skulls >= 3 && !config.zombie) {
           const guardianMustAct = config.skull_reroll_available && !state.skull_reroll_used && state.n_skulls === 3;
           if (!guardianMustAct) {
             strategyData.value = { busted: true, n_skulls: state.n_skulls, config };
@@ -1155,9 +1253,18 @@ const app = createApp({
 
     // Open the "Record Score" modal, pre-selecting the first saved player
     function openSubmitModal() {
-      submitPlayer.value    = savedPlayers.value.length > 0 ? savedPlayers.value[0] : '__new__';
-      newPlayerName.value   = '';
-      submitModalOpen.value = true;
+      submitPlayer.value         = savedPlayers.value.length > 0 ? savedPlayers.value[0] : '__new__';
+      newPlayerName.value        = '';
+      zombieManualEndAllowed.value = false;
+      submitModalOpen.value      = true;
+    }
+
+    // Dismiss the modal without saving — for zombie turns this unlocks the manual end button.
+    function closeSubmitModal() {
+      submitModalOpen.value = false;
+      if (originalCard.value === 'zombie') {
+        zombieManualEndAllowed.value = true;
+      }
     }
 
     // Confirm and persist the current score, then reset for the next player
@@ -1413,13 +1520,14 @@ const app = createApp({
       skullIslandCount, skullIslandPenalty, skullIslandEnded, peaceSwordsOnIsland,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
-      fixedCardDice, currentScore, FACE,
+      fixedCardDice, currentScore, zombieStopReason, FACE,
       // D1: multiplayer
       rulesOpen,
       savedPlayers, gameScores, skullIslandEvents, submitModalOpen, submitPlayer, newPlayerName, scoreboardOpen,
       scoreToRecord, submitPlayerName, scoreboardPlayers, hasAnyScores, maxRounds,
       playerTotals, playerAverages,
-      openSubmitModal, submitScore, resetScores, discardTurn, scoreCellClass, formatScoreCell,
+      openSubmitModal, closeSubmitModal, submitScore, resetScores, discardTurn, scoreCellClass, formatScoreCell,
+      zombieManualEndAllowed,
       confirmAction, requestDeleteEntry, requestReset, executeConfirmAction, cancelConfirmAction, shareScores,
       editTarget, editTargetPlayer, editNewPlayerName, editTargetPlayerName,
       requestEditEntry, executeEditEntry, cancelEditEntry, deleteEntryFromEdit,

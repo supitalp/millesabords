@@ -61,6 +61,7 @@ class TurnConfig(NamedTuple):
     one_reroll_only: bool = False
     coins_diamonds_only: bool = False
     no_skull_island: bool = False
+    zombie: bool = False  # must roll until all skulls/swords; ≥5 swords → 1200 pts, else 0
 
 
 DEFAULT_CONFIG = TurnConfig()
@@ -99,7 +100,7 @@ class State(NamedTuple):
 
     Invariant: n_skulls + sum(held) == config.total_dice at every decision point.
     """
-    n_skulls: int
-    held: tuple  # length NUM_FACES, index = Face value
+    n_skulls: int  # normal cards: 0–2 (3 ends turn); zombie: 0–8 (no bust)
+    held: tuple  # length NUM_FACES, index = Face value; held[SKULL] always 0
     skull_reroll_used: bool = False
     reroll_used: bool = False
