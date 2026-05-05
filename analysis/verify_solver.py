@@ -58,6 +58,11 @@ def build_policy(config: TurnConfig) -> dict:
     policy: dict[State, tuple] = {}
 
     for state in sol.states:
+        # Storm card: reroll already used → only stop is available.
+        if config.one_reroll_only and state.reroll_used:
+            policy[state] = (state.held, False, True)
+            continue
+
         candidates = [
             compute_stats(state, kept, config)
             for kept in valid_actions(state, config)
@@ -125,11 +130,11 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
             rescue = _sample(1, rng)
             if rescue[Face.SKULL]:
                 return initial_bust
-            state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
+            state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True, reroll_used=False)
         else:
             return initial_bust
     else:
-        state = State(new_skulls, new_held, skull_reroll_used=False)
+        state = State(new_skulls, new_held, skull_reroll_used=False, reroll_used=False)
 
     if debug:
         _check_state(state, config, "after initial roll")
@@ -158,11 +163,12 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
         if use_guardian:
             n_reroll       = (sum(state.held) - sum(kept)) + 1
             n_skulls_base  = state.n_skulls - 1
-            reroll_used_next = True
+            skull_reroll_used_next = True
         else:
             n_reroll       = config.total_dice - state.n_skulls - sum(kept)
             n_skulls_base  = state.n_skulls
-            reroll_used_next = state.skull_reroll_used
+            skull_reroll_used_next = state.skull_reroll_used
+        storm_reroll_used_next = True if config.one_reroll_only else state.reroll_used
 
         outcome    = _sample(n_reroll, rng)
         new_skulls = n_skulls_base + outcome[Face.SKULL]
@@ -172,18 +178,18 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
         if new_skulls >= 3:
             can_rescue = (
                 config.skull_reroll_available
-                and not reroll_used_next
+                and not skull_reroll_used_next
                 and new_skulls == 3
             )
             if can_rescue:
                 rescue = _sample(1, rng)
                 if rescue[Face.SKULL]:
                     return float(score(new_skulls, bust_held, config))
-                state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
+                state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True, reroll_used=storm_reroll_used_next)
             else:
                 return float(score(new_skulls, bust_held, config))
         else:
-            state = State(new_skulls, new_held, skull_reroll_used=reroll_used_next)
+            state = State(new_skulls, new_held, skull_reroll_used=skull_reroll_used_next, reroll_used=storm_reroll_used_next)
 
         if debug:
             _check_state(state, config, "after reroll")
@@ -207,11 +213,12 @@ def _simulate_continuation(state: State, config: TurnConfig, policy: dict,
         if use_guardian:
             n_reroll      = (sum(state.held) - sum(kept)) + 1
             n_skulls_base = state.n_skulls - 1
-            reroll_used_next = True
+            skull_reroll_used_next = True
         else:
             n_reroll      = config.total_dice - state.n_skulls - sum(kept)
             n_skulls_base = state.n_skulls
-            reroll_used_next = state.skull_reroll_used
+            skull_reroll_used_next = state.skull_reroll_used
+        storm_reroll_used_next = True if config.one_reroll_only else state.reroll_used
 
         outcome    = _sample(n_reroll, rng)
         new_skulls = n_skulls_base + outcome[Face.SKULL]
@@ -221,18 +228,18 @@ def _simulate_continuation(state: State, config: TurnConfig, policy: dict,
         if new_skulls >= 3:
             can_rescue = (
                 config.skull_reroll_available
-                and not reroll_used_next
+                and not skull_reroll_used_next
                 and new_skulls == 3
             )
             if can_rescue:
                 rescue = _sample(1, rng)
                 if rescue[Face.SKULL]:
                     return float(score(new_skulls, bust_held, config))
-                state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
+                state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True, reroll_used=storm_reroll_used_next)
             else:
                 return float(score(new_skulls, bust_held, config))
         else:
-            state = State(new_skulls, new_held, skull_reroll_used=reroll_used_next)
+            state = State(new_skulls, new_held, skull_reroll_used=skull_reroll_used_next, reroll_used=storm_reroll_used_next)
 
 
 def _estimate_q(state: State, kept: tuple, use_guardian: bool,
@@ -248,13 +255,14 @@ def _estimate_q(state: State, kept: tuple, use_guardian: bool,
     with sem=0.
     """
     if use_guardian:
-        n_reroll         = (sum(state.held) - sum(kept)) + 1
-        n_skulls_base    = state.n_skulls - 1
-        reroll_used_next = True
+        n_reroll              = (sum(state.held) - sum(kept)) + 1
+        n_skulls_base         = state.n_skulls - 1
+        skull_reroll_used_next = True
     else:
-        n_reroll         = config.total_dice - state.n_skulls - sum(kept)
-        n_skulls_base    = state.n_skulls
-        reroll_used_next = state.skull_reroll_used
+        n_reroll              = config.total_dice - state.n_skulls - sum(kept)
+        n_skulls_base         = state.n_skulls
+        skull_reroll_used_next = state.skull_reroll_used
+    storm_reroll_used_next = True if config.one_reroll_only else state.reroll_used
 
     if n_reroll == 0:
         return float(score(state.n_skulls, state.held, config)), 0.0
@@ -269,7 +277,7 @@ def _estimate_q(state: State, kept: tuple, use_guardian: bool,
         if new_skulls >= 3:
             can_rescue = (
                 config.skull_reroll_available
-                and not reroll_used_next
+                and not skull_reroll_used_next
                 and new_skulls == 3
             )
             if can_rescue:
@@ -277,12 +285,12 @@ def _estimate_q(state: State, kept: tuple, use_guardian: bool,
                 if rescue[Face.SKULL]:
                     results.append(float(score(new_skulls, bust_held, config)))
                     continue
-                next_state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
+                next_state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True, reroll_used=storm_reroll_used_next)
                 results.append(_simulate_continuation(next_state, config, policy, rng))
             else:
                 results.append(float(score(new_skulls, bust_held, config)))
         else:
-            next_state = State(new_skulls, new_held, skull_reroll_used=reroll_used_next)
+            next_state = State(new_skulls, new_held, skull_reroll_used=skull_reroll_used_next, reroll_used=storm_reroll_used_next)
             results.append(_simulate_continuation(next_state, config, policy, rng))
 
     m   = mean(results)

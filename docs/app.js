@@ -27,6 +27,7 @@ const CARD_OPTIONS = [
   { value: 'pirate-ship-4',    name: 'Pirate Ship',    icon: '⚔️⚔️⚔️⚔️',    desc: '≥4 swords: +1000 pts, else −1000 pts',  label: 'Pirate Ship (+1000 / −1000)' },
   { value: 'treasure-island', name: 'Treasure Island', icon: '🏝️',           desc: 'Kept dice still score even if you bust', label: 'Treasure Island'             },
   { value: 'peace',          name: 'Peace',          icon: '🕊️',           desc: 'No swords: −1,000 pts per sword',        label: 'Peace (no swords)'            },
+  { value: 'storm',          name: 'After the Storm', icon: '⛈️',           desc: 'One reroll; only coins & diamonds (×2)',  label: 'After the Storm (one reroll)' },
 ];
 
 const _EMPTY_HELD = [0, 0, 0, 0, 0, 0];
@@ -50,6 +51,7 @@ const CARD_CONFIGS = {
   'pirate-ship-4':    { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 4, sword_bonus: 1000, sword_penalty: 1000, skull_reroll_available: false, treasure_island: false },
   'treasure-island':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: true,  forbidden_sword_penalty: 0    },
   'peace':            { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: false, forbidden_sword_penalty: 1000 },
+  'storm':            { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 2, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: false, forbidden_sword_penalty: 0,    one_reroll_only: true, coins_diamonds_only: true, no_skull_island: true },
 };
 
 function randomDice() {
@@ -70,8 +72,9 @@ const CARD_DECK = [
   { value: 'pirate-ship-4', weight: 2 },
   { value: 'skull-2',          weight: 2 },
   { value: 'treasure-island', weight: 4 },
-  { value: 'peace',          weight: 2 },
-]; // total weight = 37
+  { value: 'peace',          weight: 3 },
+  { value: 'storm',          weight: 3 },
+]; // total weight = 39
 
 function _buildShuffledDeck() {
   const flat = [];
@@ -203,6 +206,22 @@ function scoreFunc(n_skulls, held, config) {
     return config.sword_penalty ? -config.sword_penalty : 0;
   }
 
+  // After the Storm: only coins and diamonds score (combos + individual bonuses), doubled.
+  // Full chest bonus applies if all dice are coins/diamonds (no skulls, no swords/animals).
+  if (config.coins_diamonds_only) {
+    let total = 0;
+    for (const face of [FACE.COIN, FACE.DIAMOND]) {
+      const count = held[face];
+      total += (COMBO_SCORE[count] || 0) + 100 * count;
+    }
+    const totalHeld = held.reduce((a, b) => a + b, 0);
+    if (n_skulls === 0 && totalHeld === config.total_dice
+        && held[FACE.SWORD] === 0 && held[FACE.MONKEY] === 0 && held[FACE.PARROT] === 0) {
+      total += 500;
+    }
+    return total * (config.score_multiplier || 1);
+  }
+
   let total = 0;
   if (config.merge_animals) {
     const animalCount = held[FACE.MONKEY] + held[FACE.PARROT];
@@ -297,16 +316,16 @@ function addOutcome(kept, outcome) {
   return result;
 }
 
-function stateKey(n_skulls, held, skull_reroll_used) {
-  return `${n_skulls}:${held.join(',')}:${skull_reroll_used ? 1 : 0}`;
+function stateKey(n_skulls, held, skull_reroll_used, reroll_used = false) {
+  return `${n_skulls}:${held.join(',')}:${skull_reroll_used ? 1 : 0}:${reroll_used ? 1 : 0}`;
 }
 
-function diceToState(dice, config) {
+function diceToState(dice, config, reroll_used = false) {
   const counts = [...config.initial_held];
   for (const f of dice) counts[f]++;
   const n_skulls = config.initial_n_skulls + counts[FACE.SKULL];
   counts[FACE.SKULL] = 0;
-  return { n_skulls, held: counts, skull_reroll_used: false };
+  return { n_skulls, held: counts, skull_reroll_used: false, reroll_used };
 }
 
 function computeStats(state, kept, config, sol, use_guardian = false) {
@@ -348,7 +367,7 @@ function computeStats(state, kept, config, sol, use_guardian = false) {
             ev += prob * rProb * this_bust_score;
           } else {
             const rescue_held = addOutcome(bust_held, rOutcome);
-            const key = stateKey(2, rescue_held, true);
+            const key = stateKey(2, rescue_held, true, state.reroll_used ?? false);
             const idx = sol.stateToIdx.get(key);
             if (idx === undefined) continue;
             const val = sol.V[idx];
@@ -367,8 +386,9 @@ function computeStats(state, kept, config, sol, use_guardian = false) {
       }
     } else {
       const new_held = addOutcome(kept, outcome);
-      const new_reroll_used = use_guardian ? true : state.skull_reroll_used;
-      const key = stateKey(new_skulls, new_held, new_reroll_used);
+      const next_skull_reroll_used = use_guardian ? true : state.skull_reroll_used;
+      const next_reroll_used = config.one_reroll_only ? true : (state.reroll_used ?? false);
+      const key = stateKey(new_skulls, new_held, next_skull_reroll_used, next_reroll_used);
       const idx = sol.stateToIdx.get(key);
       if (idx === undefined) continue;
 
@@ -413,14 +433,15 @@ async function loadSolution(cardName) {
   const data = await resp.json();
 
   // Build stateToIdx map: key → index
+  // s = [n_skulls, held[0..5], skull_reroll_used, reroll_used]
   const stateToIdx = new Map();
   for (let i = 0; i < data.states.length; i++) {
     const s = data.states[i];
-    // s = [n_skulls, held[0..5], skull_reroll_used]
     const n_skulls = s[0];
     const held = s.slice(1, 7);
-    const reroll_used = s[7];
-    stateToIdx.set(stateKey(n_skulls, held, reroll_used), i);
+    const skull_reroll_used = s[7] ?? false;
+    const reroll_used = s[8] ?? false;
+    stateToIdx.set(stateKey(n_skulls, held, skull_reroll_used, reroll_used), i);
   }
 
   const sol = {
@@ -621,6 +642,12 @@ const app = createApp({
     });
 
     // A4: true when strategy is loaded and the best action is "stop".
+    // Storm card: after the one reroll is used, hinting is pointless (only action is stop).
+    const rerollExhausted = computed(() => {
+      const cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+      return !!(cfg.one_reroll_only && hasRerolled.value);
+    });
+
     const bestStrategyIsStop = computed(() => {
       if (!strategyOn.value || !strategyData.value?.stats) return false;
       return strategyData.value.stats[0].n_reroll === 0;
@@ -677,7 +704,7 @@ const app = createApp({
           // Check skull island: same condition as rollInitialDice
           const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
           const _totalSkulls = _cfg.initial_n_skulls + dice.value.filter(f => f === FACE.SKULL).length;
-          if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship')) {
+          if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship') && !_cfg.no_skull_island) {
             skullIslandInitialSkulls.value = _cfg.initial_n_skulls;
             turnPhase.value = 'skull-island';
           } else {
@@ -695,6 +722,9 @@ const app = createApp({
       if (mode.value !== 'play') return true;
       if (turnPhase.value === 'skull-island') return false;
       if (currentScore.value.busted) return false;
+      // Storm card: one reroll already used → all dice locked.
+      const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+      if (_cfg.one_reroll_only && hasRerolled.value) return false;
       // Guardian pending (exactly 3 skulls, guardian not yet used): the only valid
       // action is to pick one skull for the guardian reroll — all other dice are locked.
       if (currentScore.value.guardianCanSave) {
@@ -784,10 +814,10 @@ const app = createApp({
 
       displayDice.value = [...finalDice]; // safety flush
 
-      // Detect Skull Island: ≥4 skulls on first roll, pirate-ship card blocks it
+      // Detect Skull Island: ≥4 skulls on first roll, pirate-ship and storm cards block it
       const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
       const _totalSkulls = _cfg.initial_n_skulls + finalDice.filter(f => f === FACE.SKULL).length;
-      if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship')) {
+      if (_totalSkulls >= 4 && !selectedCard.value.startsWith('pirate-ship') && !_cfg.no_skull_island) {
         skullIslandInitialSkulls.value = _cfg.initial_n_skulls;
         turnPhase.value = 'skull-island';
       } else {
@@ -846,7 +876,8 @@ const app = createApp({
         displayDice.value = [...dice.value]; // safety flush
         isAnimating.value = false;
       }
-      if (currentScore.value.busted) openSubmitModal();
+      const _cfg2 = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
+      if (currentScore.value.busted || _cfg2.one_reroll_only) openSubmitModal();
     }
 
     async function rollSkullIslandDice() {
@@ -946,7 +977,9 @@ const app = createApp({
       if (score > 0 && state.n_skulls === 0) {
         const totalHeld = state.held.reduce((a, b) => a + b, 0);
         if (totalHeld === config.total_dice) {
-          if (config.merge_animals) {
+          if (config.coins_diamonds_only) {
+            fullChest = state.held[FACE.SWORD] === 0 && state.held[FACE.MONKEY] === 0 && state.held[FACE.PARROT] === 0;
+          } else if (config.merge_animals) {
             const animals = state.held[FACE.MONKEY] + state.held[FACE.PARROT];
             fullChest = (state.held[FACE.SWORD] === 0 || state.held[FACE.SWORD] >= 3) &&
                         (animals === 0 || animals >= 3);
@@ -1051,7 +1084,8 @@ const app = createApp({
       try {
         const sol = await loadSolution(selectedCard.value);
         const config = sol.config;
-        const state = diceToState(dice.value, config);
+        const reroll_used = (config.one_reroll_only && hasRerolled.value) ? true : false;
+        const state = diceToState(dice.value, config, reroll_used);
 
         if (state.n_skulls >= 3) {
           strategyData.value = { busted: true, n_skulls: state.n_skulls, config };
@@ -1060,7 +1094,8 @@ const app = createApp({
 
         const stopScore = scoreFunc(state.n_skulls, state.held, config);
 
-        const actions = validActions(state, config);
+        // Storm card: reroll already used → only stop action available.
+        const actions = config.one_reroll_only && reroll_used ? [] : validActions(state, config);
         let allStats = actions.map(kept => computeStats(state, kept, config, sol));
 
         if (config.skull_reroll_available && !state.skull_reroll_used && state.n_skulls >= 1) {
@@ -1350,7 +1385,7 @@ const app = createApp({
     return {
       dice, selectedCard, loading, error,
       strategyData, strategyOn, modalOpen,
-      bestStrategyIsStop, bestStrategyRerollIndices,
+      bestStrategyIsStop, bestStrategyRerollIndices, rerollExhausted, hasRerolled,
       FACE_EMOJI, FACE_NAMES, CARD_OPTIONS, FACE_BLANK,
       mode, selectedDice, anySelected, selectedCount, rollInvalidReason, bustProbability,
       cardLocked, guardianUsed,

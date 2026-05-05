@@ -6,6 +6,7 @@ Expected score for a full turn under optimal play, for every bonus card. These a
 |------|---------------:|---------|
 | 🏴‍☠️ Pirate | **1 158 pts** | Final score × 2 |
 | 🛡️ Guardian | **906 pts** | May reroll one skull once per turn |
+| ⛈️ After the Storm | **805 pts** | One reroll only; coins & diamonds score ×2; skull island disabled |
 | 🪙 Coin | **784 pts** | Extra die, pre-set to Coin |
 | 💎 Diamond | **784 pts** | Extra die, pre-set to Diamond |
 | 🦜 Animals | **735 pts** | Monkeys and Parrots form one combined combo |

@@ -42,6 +42,7 @@ ALL_CARDS: list[tuple[str, str]] = [
     ("animals",        "animals"),          # EV   735 pts
     ("diamond",        "diamond"),          # EV   784 pts
     ("coin",           "coin"),             # EV   784 pts
+    ("storm",          "storm"),            # EV   802 pts
     ("guardian",       "guardian"),         # EV   906 pts
     ("pirate ×2",      "pirate"),           # EV  1158 pts
 ]
@@ -549,6 +550,7 @@ def bubble_plotly(
         "guardian":        ("🛡️",         "Guardian",           "Reroll 1 skull once per turn"),
         "pirate":          ("🏴‍☠️",         "Pirate",             "Score × 2"),
         "peace":           ("🕊️",          "Peace",              "No swords: −1,000 pts per sword (BGA variant)"),
+        "storm":           ("⛈️",          "After the Storm",    "One reroll; only coins & diamonds score (×2)"),
     }
     default_meta = lambda lbl: (lbl, lbl, "")
     card_meta    = [_META.get(ck, default_meta(lbl)) for lbl, ck, _ in datasets]

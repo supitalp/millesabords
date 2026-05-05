@@ -29,11 +29,19 @@ _DISK_CACHE_DIR = Path(__file__).parent / ".dp_cache"
 
 def _config_key(config: TurnConfig) -> str:
     held = "".join(str(x) for x in config.initial_held)
-    return (f"d{config.total_dice}_sk{config.initial_n_skulls}_h{held}"
-            f"_ma{int(config.merge_animals)}_sm{config.score_multiplier}"
-            f"_rs{config.required_swords}_sb{config.sword_bonus}_sp{config.sword_penalty}"
-            f"_sr{int(config.skull_reroll_available)}_ti{int(config.treasure_island)}"
-            f"_fsp{config.forbidden_sword_penalty}")
+    key = (f"d{config.total_dice}_sk{config.initial_n_skulls}_h{held}"
+           f"_ma{int(config.merge_animals)}_sm{config.score_multiplier}"
+           f"_rs{config.required_swords}_sb{config.sword_bonus}_sp{config.sword_penalty}"
+           f"_sr{int(config.skull_reroll_available)}_ti{int(config.treasure_island)}"
+           f"_fsp{config.forbidden_sword_penalty}")
+    # New fields appended only when non-default to preserve existing cache filenames.
+    if config.one_reroll_only:
+        key += "_oro1"
+    if config.coins_diamonds_only:
+        key += "_cdo1"
+    if config.no_skull_island:
+        key += "_nsi1"
+    return key
 
 
 def _add_outcome(kept: tuple, outcome: tuple) -> tuple:
@@ -48,6 +56,7 @@ def _all_states(config: TurnConfig) -> list[State]:
     """All valid game states for this config: n_skulls + sum(held) == config.total_dice."""
     states = []
     skull_reroll_variants = [False, True] if config.skull_reroll_available else [False]
+    reroll_variants = [False, True] if config.one_reroll_only else [False]
     for n_skulls in range(3):
         n_held = config.total_dice - n_skulls
         if n_held < 0:
@@ -56,8 +65,9 @@ def _all_states(config: TurnConfig) -> list[State]:
             counts = [0] * NUM_FACES
             for face in combo:
                 counts[face] += 1
-            for used in skull_reroll_variants:
-                states.append(State(n_skulls, tuple(counts), used))
+            for skull_used in skull_reroll_variants:
+                for reroll_used in reroll_variants:
+                    states.append(State(n_skulls, tuple(counts), skull_used, reroll_used))
     return states
 
 
@@ -95,6 +105,10 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
     """Build sparse transition arrays for every (state, reroll-action) pair."""
     result = []
     for i, s in enumerate(states):
+        # Storm card: reroll already used → only stop action available (V stays at stop_value).
+        if config.one_reroll_only and s.reroll_used:
+            continue
+
         # Normal reroll actions
         for kept in valid_actions(s, config):
             n_reroll = config.total_dice - s.n_skulls - sum(kept)
@@ -103,6 +117,8 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
             acc: dict[int, float] = {}
             bust_ev = 0.0
             bust_max = float("-inf")
+            # After this reroll the one-time reroll is consumed (storm card).
+            new_reroll_used = True if config.one_reroll_only else s.reroll_used
             for outcome, prob in roll_outcomes(n_reroll):
                 new_skulls = s.n_skulls + outcome[Face.SKULL]
                 if new_skulls >= 3:
@@ -118,7 +134,7 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                                 bust_max = max(bust_max, bs)
                             else:
                                 rescue_held = _add_outcome(new_held, rescue_outcome)
-                                j = state_to_idx[State(2, rescue_held, True)]
+                                j = state_to_idx[State(2, rescue_held, True, s.reroll_used)]
                                 acc[j] = acc.get(j, 0.0) + prob * rescue_prob
                     else:
                         bs = _bust_score(new_skulls, bust_held, config)
@@ -126,7 +142,7 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                         bust_max = max(bust_max, bs)
                     continue
                 new_held = _add_outcome(kept, outcome)
-                j = state_to_idx[State(new_skulls, new_held, s.skull_reroll_used)]
+                j = state_to_idx[State(new_skulls, new_held, s.skull_reroll_used, new_reroll_used)]
                 acc[j] = acc.get(j, 0.0) + prob
             if acc:
                 idxs = np.array(list(acc.keys()), dtype=np.int32)
@@ -151,7 +167,7 @@ def _precompute(states: list[State], state_to_idx: dict, config: TurnConfig) -> 
                         bust_max = max(bust_max, bs)
                         continue
                     new_held = _add_outcome(kept, outcome)
-                    j = state_to_idx[State(new_skulls, new_held, True)]
+                    j = state_to_idx[State(new_skulls, new_held, True, s.reroll_used)]
                     acc[j] = acc.get(j, 0.0) + prob
                 if acc:
                     idxs = np.array(list(acc.keys()), dtype=np.int32)

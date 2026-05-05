@@ -98,6 +98,12 @@ def _best_action(state: State, config: TurnConfig) -> tuple:
     if key in _policy_memo:
         return _policy_memo[key]
 
+    # Storm card: reroll already used → only the stop action is available.
+    if config.one_reroll_only and state.reroll_used:
+        result = state.held, False, True  # kept=held, use_guardian=False, is_stop=True
+        _policy_memo[key] = result
+        return result
+
     candidates = [
         compute_stats(state, kept, config)
         for kept in valid_actions(state, config)
@@ -177,14 +183,14 @@ def simulate(config: TurnConfig, rng: random.Random,
                 out(f"  │    → Still a skull — bust confirmed.")
                 out(f"  └─ FINAL SCORE: {int(initial_bust)} pts")
                 return initial_bust
-            state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
+            state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True, reroll_used=False)
             out(f"  │    → Saved! 3rd skull removed. Continuing with 2 skulls.")
             _show_state(state.n_skulls, state.held, state.skull_reroll_used)
         else:
             out(f"  └─ FINAL SCORE: {int(initial_bust)} pts")
             return initial_bust
     else:
-        state = State(new_skulls, new_held, skull_reroll_used=False)
+        state = State(new_skulls, new_held, skull_reroll_used=False, reroll_used=False)
         _show_state(state.n_skulls, state.held, False)
 
     # ── Decision loop ─────────────────────────────────────────────────────────
@@ -200,16 +206,18 @@ def simulate(config: TurnConfig, rng: random.Random,
         kept_str, rerolled_str = _fmt_split(state.held, kept)
 
         if use_guardian:
-            n_reroll         = (sum(state.held) - sum(kept)) + 1
-            n_skulls_base    = state.n_skulls - 1
-            reroll_used_next = True
+            n_reroll              = (sum(state.held) - sum(kept)) + 1
+            n_skulls_base         = state.n_skulls - 1
+            skull_reroll_used_next = True
+            storm_reroll_used_next = state.reroll_used
             out(f"  │  Decision : Keep {kept_str}")
             out(f"  │             Reroll {rerolled_str}  +  💀 (guardian: rerolling 1 skull)")
             out(f"  │             [{n_reroll} dice total]")
         else:
-            n_reroll         = config.total_dice - state.n_skulls - sum(kept)
-            n_skulls_base    = state.n_skulls
-            reroll_used_next = state.skull_reroll_used
+            n_reroll              = config.total_dice - state.n_skulls - sum(kept)
+            n_skulls_base         = state.n_skulls
+            skull_reroll_used_next = state.skull_reroll_used
+            storm_reroll_used_next = True if config.one_reroll_only else state.reroll_used
             out(f"  │  Decision : Keep {kept_str}")
             out(f"  │             Reroll {rerolled_str}  [{n_reroll} dice]")
 
@@ -226,7 +234,7 @@ def simulate(config: TurnConfig, rng: random.Random,
         if new_skulls >= 3:
             can_rescue = (
                 config.skull_reroll_available
-                and not reroll_used_next
+                and not skull_reroll_used_next
                 and new_skulls == 3
             )
             bust_score = float(score(new_skulls, bust_held, config))
@@ -240,14 +248,17 @@ def simulate(config: TurnConfig, rng: random.Random,
                     out(f"  │    → Still a skull — bust confirmed.")
                     out(f"  └─ FINAL SCORE: {int(bust_score)} pts")
                     return bust_score
-                state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True)
+                state = State(2, _add_outcome(new_held, rescue),
+                             skull_reroll_used=True, reroll_used=storm_reroll_used_next)
                 out(f"  │    → Saved! Continuing with 2 skulls.")
                 _show_state(state.n_skulls, state.held, state.skull_reroll_used)
             else:
                 out(f"  └─ FINAL SCORE: {int(bust_score)} pts")
                 return bust_score
         else:
-            state = State(new_skulls, new_held, skull_reroll_used=reroll_used_next)
+            state = State(new_skulls, new_held,
+                         skull_reroll_used=skull_reroll_used_next,
+                         reroll_used=storm_reroll_used_next)
             _show_state(state.n_skulls, state.held, state.skull_reroll_used)
 
 

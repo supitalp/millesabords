@@ -52,6 +52,18 @@ def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> in
             return _score_combos(held, config)
         return -config.sword_penalty if config.sword_penalty else 0
 
+    # After the Storm: only coins and diamonds score (combos + individual bonuses), doubled.
+    # Full chest bonus applies if all dice are coins/diamonds (no skulls, no swords/animals).
+    if config.coins_diamonds_only:
+        total = 0
+        for face in (Face.COIN, Face.DIAMOND):
+            count = held[face]
+            total += COMBO_SCORE.get(count, 0) + 100 * count
+        if (n_skulls == 0 and sum(held) == config.total_dice
+                and held[Face.SWORD] == 0 and held[Face.MONKEY] == 0 and held[Face.PARROT] == 0):
+            total += 500
+        return total * config.score_multiplier
+
     total = 0
 
     if config.merge_animals:

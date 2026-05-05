@@ -1104,8 +1104,8 @@ body {
   gap: 0.3rem;
   width: min(280px, 90vw);
   align-self: center;
-  /* Fixed height: label line + gap + 6px track, so empty state reserves the same space */
-  height: calc(0.82rem * 1.4 + 0.3rem + 6px);
+  /* Min-height: label line + gap + 6px track, so empty state reserves the same space */
+  min-height: calc(0.82rem * 1.4 + 0.3rem + 6px);
   overflow: hidden;
 }
 
@@ -1144,6 +1144,13 @@ body {
 .danger-low    { background: #84cc16; }   /* lime-400 */
 .danger-medium { background: var(--amber); }
 .danger-high   { background: var(--red); }
+
+.danger-last-reroll {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding-top: 0.1rem;
+}
 
 /* ─── Results ───────────────────────────────────────────────────────────────── */
 .result-banner {

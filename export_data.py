@@ -19,10 +19,10 @@ def export_config(name: str, config, out_dir: Path) -> None:
     sol = get_solution(config)
     print(f"{len(sol.states)} states", end=" ", flush=True)
 
-    # States: each as [n_skulls, held[0..5], skull_reroll_used]
+    # States: each as [n_skulls, held[0..5], skull_reroll_used, reroll_used]
     states = []
     for s in sol.states:
-        states.append([s.n_skulls] + list(s.held) + [bool(s.skull_reroll_used)])
+        states.append([s.n_skulls] + list(s.held) + [bool(s.skull_reroll_used), bool(s.reroll_used)])
 
     data = {
         "config": {
@@ -37,6 +37,9 @@ def export_config(name: str, config, out_dir: Path) -> None:
             "skull_reroll_available": config.skull_reroll_available,
             "treasure_island": config.treasure_island,
             "forbidden_sword_penalty": config.forbidden_sword_penalty,
+            "one_reroll_only": config.one_reroll_only,
+            "coins_diamonds_only": config.coins_diamonds_only,
+            "no_skull_island": config.no_skull_island,
         },
         "states": states,
         "V": [round(float(v), 6) for v in sol.V],

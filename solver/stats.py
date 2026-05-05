@@ -62,7 +62,7 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
                         ev += prob * rescue_prob * this_bust_score
                     else:
                         rescue_held = _add_outcome(bust_held, rescue_outcome)
-                        next_state = State(2, rescue_held, True)
+                        next_state = State(2, rescue_held, True, state.reroll_used)
                         idx = sol.state_to_idx[next_state]
                         val = float(sol.V[idx])
                         ev += prob * rescue_prob * val
@@ -80,7 +80,8 @@ def compute_stats(state: State, kept: tuple, config: TurnConfig = DEFAULT_CONFIG
         else:
             new_held = _add_outcome(kept, outcome)
             new_skull_reroll_used = True if use_guardian else state.skull_reroll_used
-            next_state = State(new_skulls, new_held, new_skull_reroll_used)
+            new_reroll_used = True if config.one_reroll_only else state.reroll_used
+            next_state = State(new_skulls, new_held, new_skull_reroll_used, new_reroll_used)
             idx = sol.state_to_idx[next_state]
 
             val = float(sol.V[idx])

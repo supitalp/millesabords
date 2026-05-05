@@ -169,7 +169,7 @@
             <button
               class="dice-side-btn"
               :class="{ 'dice-side-btn-on': strategyOn }"
-              :disabled="turnPhase !== 'active' || currentScore.busted || currentScore.guardianCanSave || loading || isAnimating"
+              :disabled="turnPhase !== 'active' || currentScore.busted || currentScore.guardianCanSave || rerollExhausted || loading || isAnimating"
               @click="toggleStrategy()"
               :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
             >
@@ -257,7 +257,7 @@
           <!-- B1: danger gauge / invalid-roll warning — always mounted so the section height is constant -->
           <div
             class="danger-gauge"
-            :style="{ visibility: (turnPhase === 'active' && (bustProbability !== null || (rollInvalidReason && mode === 'play'))) ? 'visible' : 'hidden' }"
+            :style="{ visibility: (turnPhase === 'active' && (bustProbability !== null || (rollInvalidReason && mode === 'play') || (!hasRerolled && displayCard === 'storm'))) ? 'visible' : 'hidden' }"
           >
             <template v-if="rollInvalidReason && mode === 'play'">
               <div class="danger-label">
@@ -278,6 +278,14 @@
                                                  : 'danger-high'"
                   :style="{ width: (bustProbability * 100) + '%' }"
                 ></div>
+              </div>
+              <div v-if="!hasRerolled && displayCard === 'storm'" class="danger-last-reroll">
+                ⛈️ Last reroll — after the storm ends!
+              </div>
+            </template>
+            <template v-else-if="!hasRerolled && displayCard === 'storm'">
+              <div class="danger-label">
+                <span>⛈️ Last reroll — after the storm ends!</span>
               </div>
             </template>
           </div>

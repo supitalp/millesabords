@@ -40,8 +40,12 @@ class TurnConfig(NamedTuple):
     sword_penalty          : points subtracted from game score when requirement is NOT met;
                              turn contribution becomes −sword_penalty (skull busts also give −penalty).
     skull_reroll_available : once per turn the player may reroll one skull die (Guardian card).
+    treasure_island        : held dice score even on bust (Treasure Island card).
     forbidden_sword_penalty: any held sword at turn end → −(penalty × n_swords); overrides all
                              other scoring (Peace card, BGA variant — no doubling).
+    one_reroll_only        : player may reroll at most once per turn (After the Storm card).
+    coins_diamonds_only    : only coins and diamonds score; no full chest bonus (After the Storm card).
+    no_skull_island        : skull island cannot trigger this turn (After the Storm card).
     """
     total_dice: int = NUM_DICE
     initial_n_skulls: int = 0
@@ -54,6 +58,9 @@ class TurnConfig(NamedTuple):
     skull_reroll_available: bool = False
     treasure_island: bool = False
     forbidden_sword_penalty: int = 0
+    one_reroll_only: bool = False
+    coins_diamonds_only: bool = False
+    no_skull_island: bool = False
 
 
 DEFAULT_CONFIG = TurnConfig()
@@ -78,6 +85,8 @@ CARD_CONFIGS: dict[str, TurnConfig] = {
     "pirate-ship-4": TurnConfig(required_swords=4, sword_bonus=1000, sword_penalty=1000),
     "treasure-island": TurnConfig(treasure_island=True),
     "peace":           TurnConfig(forbidden_sword_penalty=1000),
+    "storm":           TurnConfig(one_reroll_only=True, coins_diamonds_only=True,
+                                  score_multiplier=2, no_skull_island=True),
 }
 
 
@@ -86,9 +95,11 @@ class State(NamedTuple):
     n_skulls: accumulated locked skulls (0–2; hitting 3 ends the turn immediately)
     held: length-NUM_FACES count vector; held[SKULL] is always 0.
     skull_reroll_used: True once the Guardian one-time skull-reroll ability has been used.
+    reroll_used: True once the one allowed reroll has been taken (After the Storm card).
 
     Invariant: n_skulls + sum(held) == config.total_dice at every decision point.
     """
     n_skulls: int
     held: tuple  # length NUM_FACES, index = Face value
     skull_reroll_used: bool = False
+    reroll_used: bool = False
