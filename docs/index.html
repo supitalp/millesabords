@@ -169,7 +169,7 @@
             <button
               class="dice-side-btn"
               :class="{ 'dice-side-btn-on': strategyOn }"
-              :disabled="turnPhase !== 'active' || currentScore.busted || currentScore.guardianCanSave || rerollExhausted || loading || isAnimating"
+              :disabled="turnPhase !== 'active' || currentScore.busted || rerollExhausted || loading || isAnimating"
               @click="toggleStrategy()"
               :title="strategyOn ? 'Hide hint' : 'Show optimal play hint'"
             >
@@ -223,9 +223,9 @@
                 </span>
               </template>
             </template>
-            <template v-else-if="currentScore.guardianCanSave">
+            <template v-else-if="currentScore.guardianMustAct">
               <span class="dice-score-value score-guardian-pending">0<span class="score-unit"> pts</span></span>
-              <span class="dice-score-bust-label">🛡️ Select a skull to reroll with the Guardian!</span>
+              <span class="dice-score-bust-label">💀 Bust - but guardian can save you!</span>
             </template>
             <template v-else-if="currentScore.busted">
               <span class="dice-score-value score-busted">{{ currentScore.score }}<span class="score-unit"> pts</span></span>

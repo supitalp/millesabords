@@ -175,16 +175,28 @@ def simulate(config: TurnConfig, rng: random.Random,
         initial_bust = float(score(new_skulls, config.initial_held, config))
         out(f"  │  Result  : 💀 x{new_skulls} — BUST immediately!")
         if config.skull_reroll_available and new_skulls == 3:
-            out(f"  │  Guardian: rerolling the 3rd skull...")
-            rescue     = _roll(1, rng)
-            rescue_sym = FACE_SYMBOL[_counts_to_faces(rescue)[0]] if sum(rescue) else "?"
-            out(f"  │    → Rolled: {rescue_sym}")
-            if rescue[Face.SKULL]:
-                out(f"  │    → Still a skull — bust confirmed.")
+            # Guardian: use skull-reroll proactively — same mechanic as any other turn.
+            # Find the best keeper choice (max EV), then apply it with a real random roll.
+            virtual_state = State(new_skulls, new_held, skull_reroll_used=False, reroll_used=False)
+            best_stats = max(
+                (compute_stats(virtual_state, kept, config, use_guardian=True)
+                 for kept in guardian_kept_options(virtual_state)),
+                key=lambda s: s.ev,
+            )
+            best_kept = best_stats.kept
+            n_reroll   = best_stats.n_reroll
+            kept_str, rerolled_str = _fmt_split(new_held, best_kept)
+            out(f"  │  Guardian: proactive reroll — keep {kept_str}, "
+                f"reroll {rerolled_str} + 💀 [{n_reroll} dice]")
+            g_roll     = _roll(n_reroll, rng)
+            out(f"  │    → Rolled: {_fmt(g_roll)}")
+            new_g_skulls = 2 + g_roll[Face.SKULL]  # 2 locked skulls + reroll result
+            if new_g_skulls >= 3:
+                out(f"  │    → Rolled a skull — bust confirmed.")
                 out(f"  └─ FINAL SCORE: {int(initial_bust)} pts")
                 return initial_bust
-            state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True, reroll_used=False)
-            out(f"  │    → Saved! 3rd skull removed. Continuing with 2 skulls.")
+            state = State(2, _add_outcome(best_kept, g_roll), skull_reroll_used=True, reroll_used=False)
+            out(f"  │    → Saved! Continuing with 2 skulls.")
             _show_state(state.n_skulls, state.held, state.skull_reroll_used)
         else:
             out(f"  └─ FINAL SCORE: {int(initial_bust)} pts")

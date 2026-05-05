@@ -127,10 +127,18 @@ def simulate_turn(config: TurnConfig, policy: dict, rng: random.Random,
         # for the standard TI card).
         initial_bust = float(score(new_skulls, config.initial_held, config))
         if config.skull_reroll_available and new_skulls == 3:
-            rescue = _sample(1, rng)
-            if rescue[Face.SKULL]:
+            # Guardian: use skull-reroll proactively — same mechanic as any other turn.
+            virtual_state = State(new_skulls, new_held, skull_reroll_used=False, reroll_used=False)
+            best_kept = max(
+                (compute_stats(virtual_state, kept, config, use_guardian=True)
+                 for kept in guardian_kept_options(virtual_state)),
+                key=lambda s: s.ev,
+            ).kept
+            n_reroll = (sum(new_held) - sum(best_kept)) + 1
+            g_roll   = _sample(n_reroll, rng)
+            if 2 + g_roll[Face.SKULL] >= 3:  # 2 locked skulls + reroll result
                 return initial_bust
-            state = State(2, _add_outcome(new_held, rescue), skull_reroll_used=True, reroll_used=False)
+            state = State(2, _add_outcome(best_kept, g_roll), skull_reroll_used=True, reroll_used=False)
         else:
             return initial_bust
     else:

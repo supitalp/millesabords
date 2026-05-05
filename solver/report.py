@@ -155,14 +155,15 @@ def turn_ev(config: TurnConfig = DEFAULT_CONFIG) -> float:
             # config.initial_held only (= 0 for the standard TI card).
             initial_bust_score = float(score(new_skulls, config.initial_held, config))
             if config.skull_reroll_available and new_skulls == 3:
-                for rescue_outcome, rescue_prob in roll_outcomes(1):
-                    if rescue_outcome[Face.SKULL] == 0:
-                        rescue_held = _add_outcome(new_held, rescue_outcome)
-                        state = State(2, rescue_held, True)
-                        idx = sol.state_to_idx[state]
-                        ev += prob * rescue_prob * float(sol.V[idx])
-                    else:
-                        ev += prob * rescue_prob * initial_bust_score
+                # Guardian: player uses skull-reroll proactively from the initial 3-skull
+                # state — same mechanic as on any other turn (choose which non-skull dice
+                # to reroll; guardian frees 1 skull into the reroll pool automatically).
+                virtual_state = State(new_skulls, new_held, skull_reroll_used=False)
+                best_ev = max(
+                    compute_stats(virtual_state, kept, config, use_guardian=True).ev
+                    for kept in guardian_kept_options(virtual_state)
+                )
+                ev += prob * best_ev
             else:
                 ev += prob * initial_bust_score
             continue
