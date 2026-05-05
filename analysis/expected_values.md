@@ -11,6 +11,7 @@ Expected score for a full turn under optimal play, for every bonus card. These a
 | 🦜 Animals | **735 pts** | Monkeys and Parrots form one combined combo |
 | 🏝️ Treasure Island | **680 pts** | Held dice score even on bust |
 | 🎲 No card *(baseline)* | **579 pts** | — |
+| 🕊️ Peace | **521 pts** | No swords allowed; any sword: −1 000 pts/sword (BGA variant) |
 | ⚔️⚔️ Pirate Ship (2 swords) | **443 pts** | Meet quota: +300 pts; fail: −300 pts |
 | 💀 Skull ×1 | **346 pts** | Starts with 1 extra locked skull |
 | ⚔️⚔️⚔️ Pirate Ship (3 swords) | **249 pts** | Meet quota: +500 pts; fail: −500 pts |

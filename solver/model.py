@@ -40,6 +40,8 @@ class TurnConfig(NamedTuple):
     sword_penalty          : points subtracted from game score when requirement is NOT met;
                              turn contribution becomes −sword_penalty (skull busts also give −penalty).
     skull_reroll_available : once per turn the player may reroll one skull die (Guardian card).
+    forbidden_sword_penalty: any held sword at turn end → −(penalty × n_swords); overrides all
+                             other scoring (Peace card, BGA variant — no doubling).
     """
     total_dice: int = NUM_DICE
     initial_n_skulls: int = 0
@@ -51,6 +53,7 @@ class TurnConfig(NamedTuple):
     sword_penalty: int = 0
     skull_reroll_available: bool = False
     treasure_island: bool = False
+    forbidden_sword_penalty: int = 0
 
 
 DEFAULT_CONFIG = TurnConfig()
@@ -74,6 +77,7 @@ CARD_CONFIGS: dict[str, TurnConfig] = {
     "pirate-ship-3": TurnConfig(required_swords=3, sword_bonus=500,  sword_penalty=500),
     "pirate-ship-4": TurnConfig(required_swords=4, sword_bonus=1000, sword_penalty=1000),
     "treasure-island": TurnConfig(treasure_island=True),
+    "peace":           TurnConfig(forbidden_sword_penalty=1000),
 }
 
 

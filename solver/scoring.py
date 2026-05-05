@@ -41,6 +41,10 @@ def score(n_skulls: int, held: tuple, config: TurnConfig = DEFAULT_CONFIG) -> in
     the held dice even on a bust. A 9-of-a-kind (reachable only with the Coin/Diamond
     card) is just the highest combo tier — no special-case win sentinel.
     """
+    # Peace card: any held sword → penalty overrides all other scoring (including bust).
+    if config.forbidden_sword_penalty > 0 and held[Face.SWORD] > 0:
+        return -(config.forbidden_sword_penalty * held[Face.SWORD])
+
     if n_skulls >= 3:
         if config.treasure_island:
             # Score the held dice even on bust. Full-chest is impossible with 3+ skulls

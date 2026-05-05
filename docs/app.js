@@ -26,6 +26,7 @@ const CARD_OPTIONS = [
   { value: 'pirate-ship-3', name: 'Pirate Ship',    icon: '⚔️⚔️⚔️',      desc: '≥3 swords: +500 pts, else −500 pts',   label: 'Pirate Ship (+500 / −500)'   },
   { value: 'pirate-ship-4',    name: 'Pirate Ship',    icon: '⚔️⚔️⚔️⚔️',    desc: '≥4 swords: +1000 pts, else −1000 pts',  label: 'Pirate Ship (+1000 / −1000)' },
   { value: 'treasure-island', name: 'Treasure Island', icon: '🏝️',           desc: 'Kept dice still score even if you bust', label: 'Treasure Island'             },
+  { value: 'peace',          name: 'Peace',          icon: '🕊️',           desc: 'No swords: −1,000 pts per sword',        label: 'Peace (no swords)'            },
 ];
 
 const _EMPTY_HELD = [0, 0, 0, 0, 0, 0];
@@ -47,7 +48,8 @@ const CARD_CONFIGS = {
   'pirate-ship-2':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 2, sword_bonus: 300,  sword_penalty: 300,  skull_reroll_available: false },
   'pirate-ship-3':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD,                merge_animals: false, score_multiplier: 1, required_swords: 3, sword_bonus: 500,  sword_penalty: 500,  skull_reroll_available: false },
   'pirate-ship-4':    { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 4, sword_bonus: 1000, sword_penalty: 1000, skull_reroll_available: false, treasure_island: false },
-  'treasure-island':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: true  },
+  'treasure-island':  { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: true,  forbidden_sword_penalty: 0    },
+  'peace':            { total_dice: 8,  initial_n_skulls: 0, initial_held: _EMPTY_HELD, merge_animals: false, score_multiplier: 1, required_swords: 0, sword_bonus: 0,    sword_penalty: 0,    skull_reroll_available: false, treasure_island: false, forbidden_sword_penalty: 1000 },
 };
 
 function randomDice() {
@@ -68,7 +70,8 @@ const CARD_DECK = [
   { value: 'pirate-ship-4', weight: 2 },
   { value: 'skull-2',          weight: 2 },
   { value: 'treasure-island', weight: 4 },
-]; // total weight = 35
+  { value: 'peace',          weight: 2 },
+]; // total weight = 37
 
 function _buildShuffledDeck() {
   const flat = [];
@@ -190,6 +193,11 @@ function _scoreCombos(held, config) {
 }
 
 function scoreFunc(n_skulls, held, config) {
+  // Peace card: any held sword → penalty overrides all other scoring (including bust).
+  if ((config.forbidden_sword_penalty || 0) > 0 && held[FACE.SWORD] > 0) {
+    return -(config.forbidden_sword_penalty * held[FACE.SWORD]);
+  }
+
   if (n_skulls >= 3) {
     if (config.treasure_island) return _scoreCombos(held, config);
     return config.sword_penalty ? -config.sword_penalty : 0;
@@ -541,10 +549,23 @@ const app = createApp({
       return skullIslandInitialSkulls.value + dice.value.filter(f => f === FACE.SKULL).length;
     });
 
-    // Penalty per opponent: 200/skull with Pirate card, 100/skull otherwise
+    // Penalty per opponent: 200/skull with Pirate card, 100/skull otherwise.
+    // Peace card with swords showing: no opponent penalty (player takes self-penalty instead).
     const skullIslandPenalty = computed(() => {
+      const cfg = CARD_CONFIGS[originalCard.value] ?? CARD_CONFIGS['default'];
+      if ((cfg.forbidden_sword_penalty || 0) > 0) {
+        if (dice.value.filter(f => f === FACE.SWORD).length > 0) return 0;
+      }
       const perSkull = originalCard.value === 'pirate' ? 200 : 100;
       return skullIslandCount.value * perSkull;
+    });
+
+    // Peace card on Skull Island with swords: the self-penalty the player incurs.
+    const peaceSwordsOnIsland = computed(() => {
+      if (turnPhase.value !== 'skull-island') return 0;
+      const cfg = CARD_CONFIGS[originalCard.value] ?? CARD_CONFIGS['default'];
+      if ((cfg.forbidden_sword_penalty || 0) === 0) return 0;
+      return dice.value.filter(f => f === FACE.SWORD).length;
     });
 
     // Current card option object (for the card tile display)
@@ -964,6 +985,15 @@ const app = createApp({
     // Full turn state to persist when the player clicks "Record Score"
     const scoreToRecord = computed(() => {
       if (turnPhase.value === 'skull-island') {
+        // Peace + swords on island: player takes self-penalty, opponents get nothing.
+        if (peaceSwordsOnIsland.value > 0) {
+          const cfg = CARD_CONFIGS[originalCard.value] ?? CARD_CONFIGS['default'];
+          return {
+            score: -(cfg.forbidden_sword_penalty * peaceSwordsOnIsland.value),
+            card: originalCard.value,
+            dice: [...dice.value],
+          };
+        }
         return {
           score: 0,
           card: originalCard.value,
@@ -1100,8 +1130,9 @@ const app = createApp({
       gameScores.value = updated;
       saveScores(updated);
 
-      // Skull Island: log the event globally — penalty applied to all opponents at total-computation time
-      if (turnPhase.value === 'skull-island') {
+      // Skull Island: log the event globally — penalty applied to all opponents at total-computation time.
+      // Peace + swords case has no opponent penalty, so skip logging.
+      if (turnPhase.value === 'skull-island' && scoreToRecord.value.skullIsland) {
         const events = [...skullIslandEvents.value, {
           player: name,
           skullCount: skullIslandCount.value,
@@ -1328,7 +1359,7 @@ const app = createApp({
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, toggleStrategy, randomize,
       startNewTurn, rollInitialDice, rollSkullIslandDice,
-      skullIslandCount, skullIslandPenalty, skullIslandEnded,
+      skullIslandCount, skullIslandPenalty, skullIslandEnded, peaceSwordsOnIsland,
       keepStr, rerollStr, rowMarker, rowClass,
       pct, evFmt, deltaFmt, maxStr,
       fixedCardDice, currentScore, FACE,

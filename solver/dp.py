@@ -32,7 +32,8 @@ def _config_key(config: TurnConfig) -> str:
     return (f"d{config.total_dice}_sk{config.initial_n_skulls}_h{held}"
             f"_ma{int(config.merge_animals)}_sm{config.score_multiplier}"
             f"_rs{config.required_swords}_sb{config.sword_bonus}_sp{config.sword_penalty}"
-            f"_sr{int(config.skull_reroll_available)}_ti{int(config.treasure_island)}")
+            f"_sr{int(config.skull_reroll_available)}_ti{int(config.treasure_island)}"
+            f"_fsp{config.forbidden_sword_penalty}")
 
 
 def _add_outcome(kept: tuple, outcome: tuple) -> tuple:

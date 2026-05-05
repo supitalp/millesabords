@@ -208,11 +208,20 @@
               <span class="dice-score-value" aria-hidden="true" style="opacity:0">0<span class="score-unit"> pts</span></span>
             </template>
             <template v-else-if="turnPhase === 'skull-island'">
-              <span class="dice-score-value score-skull-island">−{{ skullIslandPenalty }}<span class="score-unit"> pts / opp</span></span>
-              <span class="dice-score-bust-label">
-                {{ skullIslandEnded ? '🏴‍☠️ Island ends!' : '💀 Skull Island —' }}
-                {{ skullIslandCount }} skull{{ skullIslandCount !== 1 ? 's' : '' }}
-              </span>
+              <template v-if="peaceSwordsOnIsland > 0">
+                <span class="dice-score-value score-busted">−{{ peaceSwordsOnIsland * 1000 }}<span class="score-unit"> pts (you)</span></span>
+                <span class="dice-score-bust-label">
+                  🕊️ {{ skullIslandEnded ? 'Island ends — sabre penalty!' : 'Skull Island —' }}
+                  {{ peaceSwordsOnIsland }} sabre{{ peaceSwordsOnIsland !== 1 ? 's' : '' }} → you take the penalty
+                </span>
+              </template>
+              <template v-else>
+                <span class="dice-score-value score-skull-island">−{{ skullIslandPenalty }}<span class="score-unit"> pts / opp</span></span>
+                <span class="dice-score-bust-label">
+                  {{ skullIslandEnded ? '🏴‍☠️ Island ends!' : '💀 Skull Island —' }}
+                  {{ skullIslandCount }} skull{{ skullIslandCount !== 1 ? 's' : '' }}
+                </span>
+              </template>
             </template>
             <template v-else-if="currentScore.guardianCanSave">
               <span class="dice-score-value score-guardian-pending">0<span class="score-unit"> pts</span></span>
@@ -407,6 +416,12 @@
                     <span class="submit-skull-island-arrow">→</span>
                     <span class="submit-skull-island-amount">−{{ scoreToRecord.skullIsland.penalty }} pts for each opponent</span>
                   </div>
+                </template>
+                <!-- Peace card + swords on Skull Island: self-penalty, no opponent deduction -->
+                <template v-else-if="peaceSwordsOnIsland > 0">
+                  <span class="submit-hero-skull-icon">🕊️</span>
+                  <span class="submit-hero-number submit-hero-neg">{{ scoreToRecord.score }}</span>
+                  <span class="submit-hero-unit">pts (sabre penalty — opponents unaffected)</span>
                 </template>
                 <!-- Normal turn variant -->
                 <template v-else>
@@ -698,6 +713,7 @@
                   <li>🪙 <strong>Gold Coin</strong> / 💎 <strong>Diamond</strong>: start with 1 extra die (+100 pts bonus)</li>
                   <li>🐒🦜 <strong>Animals</strong>: monkeys and parrots count as the same symbol</li>
                   <li>🏝️ <strong>Treasure Island</strong>: any dice you choose <em>not</em> to reroll are safely parked; they score even if you bust</li>
+                  <li>🕊️ <strong>Peace</strong>: end without any swords — if you do, score normally; if any sword remains, score 0 and lose −1,000 pts per sword. On Skull Island with swords: you take the penalty yourself, opponents score nothing (BGA variant)</li>
                 </ul>
               </div>
 
