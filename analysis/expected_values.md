@@ -24,8 +24,6 @@ Pirate Ship (4 swords) is the only card with a **negative** expected value under
 
 ## Score distributions
 
-![Score distributions](results/plots/score_distributions.png)
+▶ [Interactive version](https://supitalp.github.io/millesabords/score_distributions.html) — hover for exact probabilities, click any bubble for example dice combinations.
 
 Each row is one card, sorted from worst to best EV. Bubble area is proportional to the probability of landing in that 100-pt bin under the optimal strategy; the triangle marker shows the expected value. Cards near the top have narrow, left-skewed distributions (high bust rates); cards near the bottom spread wider to the right as high-combo turns become more likely.
-
-▶ [Interactive version](https://supitalp.github.io/millesabords/score_distributions.html) — hover for exact probabilities, click any bubble for example dice combinations.

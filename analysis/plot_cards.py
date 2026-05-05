@@ -471,10 +471,15 @@ def _score_to_combos(
     Uses greedy diversity selection: each new pick maximises new face types / skull counts
     not yet seen in the already-selected examples.
     """
-    from solver.model import CARD_CONFIGS, DEFAULT_CONFIG
+    from solver.model import CARD_CONFIGS, DEFAULT_CONFIG, TurnConfig
     from solver.scoring import score as score_fn
 
-    config      = CARD_CONFIGS[card_key] if card_key else DEFAULT_CONFIG
+    if card_key == "zombie":
+        config = TurnConfig(zombie=True)
+    elif card_key:
+        config = CARD_CONFIGS[card_key]
+    else:
+        config = DEFAULT_CONFIG
     total       = config.total_dice
     base_skulls = config.initial_n_skulls
     base_held   = list(config.initial_held)
@@ -506,7 +511,9 @@ def _score_to_combos(
         free     = total - base_fixed - extra_skulls
         if free < 0:
             break
-        for extra_combo in _parts(free, 5):
+        # Zombie: all free dice must be swords (no coins/diamonds/monkeys/parrots)
+        extra_combos = [(free, 0, 0, 0, 0)] if config.zombie else list(_parts(free, 5))
+        for extra_combo in extra_combos:
             held = (base_held[0],) + tuple(
                 base_held[j + 1] + extra_combo[j] for j in range(5)
             )
