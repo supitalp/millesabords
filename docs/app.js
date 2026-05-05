@@ -761,8 +761,8 @@ const app = createApp({
       // Storm card: one reroll already used → all dice locked.
       const _cfg = CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default'];
       if (_cfg.one_reroll_only && hasRerolled.value) return false;
-      // Zombie: all selection is auto-managed; user cannot toggle dice manually.
-      if (_cfg.zombie) return false;
+      // Zombie: skulls/swords are locked (rerolled); other faces can be highlighted.
+      if (_cfg.zombie) return dice.value[i] !== FACE.SKULL && dice.value[i] !== FACE.SWORD;
       if (dice.value[i] !== FACE.SKULL) return true;
       if (selectedCard.value !== 'guardian') return false;
       // C1: Guardian reroll already consumed → treat skulls as locked again.
@@ -779,6 +779,8 @@ const app = createApp({
       if (displayDice.value[i] === FACE_BLANK && mode.value !== 'select') return;
       if (mode.value === 'play') {
         if (!isDieSelectable(i)) return;
+        // Zombie: dice can be highlighted but not un-highlighted.
+        if ((CARD_CONFIGS[selectedCard.value] ?? CARD_CONFIGS['default']).zombie && selectedDice.value[i]) return;
         selectedDice.value[i] = !selectedDice.value[i];
       } else {
         // If the die was blank (never rolled), start at face 0; otherwise cycle
