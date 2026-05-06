@@ -63,21 +63,21 @@ function randomDice() {
 // Deck composition (Safe card excluded — not yet implemented).
 // Source: game rulebook; see TODO.md appendix for full table.
 const CARD_DECK = [
-  { value: 'coin',          weight: 4 },
-  { value: 'diamond',       weight: 4 },
-  { value: 'animals',       weight: 4 },
-  { value: 'guardian',      weight: 4 },
-  { value: 'pirate',        weight: 4 },
+  { value: 'coin',          weight: 3 },
+  { value: 'diamond',       weight: 3 },
+  { value: 'animals',       weight: 3 },
+  { value: 'guardian',      weight: 3 },
+  { value: 'pirate',        weight: 3 },
   { value: 'skull-1',       weight: 3 },
   { value: 'pirate-ship-2', weight: 2 },
   { value: 'pirate-ship-3', weight: 2 },
   { value: 'pirate-ship-4', weight: 2 },
   { value: 'skull-2',          weight: 2 },
-  { value: 'treasure-island', weight: 4 },
+  { value: 'treasure-island', weight: 3 },
   { value: 'peace',          weight: 3 },
   { value: 'storm',          weight: 3 },
   { value: 'zombie',         weight: 3 },
-]; // total weight = 42
+]; // total weight = 38
 
 function _buildShuffledDeck() {
   const flat = [];
