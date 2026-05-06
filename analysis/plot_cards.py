@@ -744,10 +744,10 @@ def bubble_plotly(
         plot_bgcolor=PLOT_BG,
         title=dict(
             text=(
-                "Mille Sabords! — score distributions under optimal strategy<br>"
-                "<sup>bubble area ∝ probability per 100-pt bin  ·  click a bubble for example dice combinations</sup>"
+                "Piraten Kapern (Mille Sabords!) — score distributions under optimal strategy<br>"
+                "<sup>bubble area ∝ probability per 100-pt bin  ·  ▽ = expected value</sup>"
             ),
-            font=dict(color="#cccccc", size=15, family="sans-serif"),
+            font=dict(color="#cccccc", size=19, family="sans-serif"),
             x=0.5, xanchor="center",
         ),
         xaxis=dict(
@@ -756,19 +756,21 @@ def bubble_plotly(
             gridcolor="#222228",
             zeroline=False,
             tickformat=",",
-            range=[x_min - 200, 4100],
+            range=[-1100, 4100],
         ),
         yaxis=dict(
             color="#888888",
             gridcolor="#1e1e28",
             categoryorder="array",
             categoryarray=emoji_labels_bottom_to_top,
-            tickfont=dict(size=20, color="#cccccc"),
+            tickvals=emoji_labels,
+            ticktext=[f"{e}  {n}" for e, n in zip(emoji_labels, full_names)],
+            tickfont=dict(size=16, color="#cccccc"),
         ),
         shapes=shapes,
         showlegend=False,
         autosize=True,
-        margin=dict(l=100, r=60, t=100, b=70),
+        margin=dict(l=200, r=60, t=100, b=70),
         hoverlabel=dict(
             bgcolor="#1e1e2e",
             bordercolor="#555566",
