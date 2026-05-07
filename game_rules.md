@@ -14,8 +14,7 @@ Ahoy, buccaneers! Step into the boots of a pirate and outsmart fate to roll the 
 
 ## Contents
 
-- 35 Fortune cards
-- 5 Summary cards
+- 38 Fortune cards
 - 8 Corsair dice
 
 ---
@@ -74,6 +73,7 @@ To score points, the player must voluntarily stop their turn before a third skul
 | 6 identical dice    | 1,000  |
 | 7 identical dice    | 2,000  |
 | 8 identical dice    | 4,000  |
+| 9 identical dice    | 8,000  |
 
 ### Diamonds and Gold Coins
 
@@ -132,6 +132,21 @@ The player starts their turn with **one diamond**. It earns points both as part 
 
 ### Animals
 **Monkeys and parrots** count as **the same symbol** for combinations. For example, two parrots and three monkeys form a combination of 5 identical dice (500 points).
+
+### Peace
+The player must end their turn with **no swords** on the table.
+- If they succeed: they score normally.
+- If any sword remains when they stop: they score **zero points** and lose **1,000 points per sword** from their total score.
+
+> If the player is sent to Skull Island and has swords showing: they take the sword penalty themselves — opponents are unaffected (no skull deduction).
+
+### After the Storm
+The player has **only two rolls** in total (the initial roll counts as the first). Only **diamonds** and **gold coins** score, and each is worth **200 points** (×2 multiplier). Skull Island cannot be triggered with this card.
+
+### Zombie Attack
+The player must keep rolling until **every die shows either a skull or a sword**. Skulls do not cause a bust.
+- If the player accumulates **5 or more swords**: they score **1,200 points**.
+- If they fall short: they score **zero points**.
 
 ---
 
