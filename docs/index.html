@@ -68,6 +68,7 @@
               >🔄</button>
               <div
                 class="card-tile"
+                :key="cardDrawKey"
                 :class="{ 'card-tile-settled': displayCard !== null }"
                 :title="displayCard !== null ? displayCardOption.desc : 'Draw a card to begin your turn'"
               >

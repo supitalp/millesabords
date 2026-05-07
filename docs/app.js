@@ -566,6 +566,7 @@ const app = createApp({
     // 'rolling'       → dice animating (all buttons disabled)
     // 'active'        → dice settled, normal play
     const turnPhase   = ref('idle');
+    const cardDrawKey  = ref(0);
     const hasRerolled  = ref(false); // true once the player has made ≥1 explicit reroll decision
     const islandHeld   = ref(null);  // face-count array of kept (island) dice at last reroll; TI bust only
     const displayDice = ref(Array(8).fill(FACE_BLANK)); // visually shown faces
@@ -814,6 +815,7 @@ const app = createApp({
     function startNewTurn() {
       if (isAnimating.value) return;
       turnPhase.value = 'card_revealed';
+      cardDrawKey.value++;
       mode.value = 'play';
       guardianUsed.value = false;
       hasRerolled.value = false;
@@ -1515,7 +1517,7 @@ const app = createApp({
       mode, selectedDice, anySelected, selectedCount, rollInvalidReason, bustProbability,
       cardLocked, guardianUsed,
       // A7: animation state
-      turnPhase, displayDice, isAnimating, dieFading, displayCard, displayCardOption,
+      turnPhase, cardDrawKey, displayDice, isAnimating, dieFading, displayCard, displayCardOption,
       setMode, interactDie, rollSelected, isDieSelectable, reorderDice,
       onCardChange, toggleStrategy, randomize,
       startNewTurn, rollInitialDice, rollSkullIslandDice,
