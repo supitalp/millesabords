@@ -547,7 +547,7 @@ function loadCard(card, autoFlip = false) {
   cardEl.classList.toggle('flipped', flipped);
 
   frontName.textContent = card.name;
-  imgEl.src = `../fortune_cards/images/${card.id}.png`;
+  imgEl.src = `fortune_cards/images/${card.id}.png`;
   imgEl.alt = card.name;
   imgEl.className = '';
   imgEl.onerror = () => { imgEl.src = ''; imgEl.className = 'missing'; };

@@ -18,7 +18,7 @@ from pathlib import Path
 from openai import OpenAI
 
 CARDS_DIR = Path(__file__).parent / "cards"
-IMAGES_DIR = Path(__file__).parent / "images"
+IMAGES_DIR = Path(__file__).parent.parent / "docs" / "fortune_cards" / "images"
 STYLE_REF = Path.home() / "Downloads" / "20260517_152954.jpg"
 
 
