@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mille Sabords — Cartes Fortune</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --navy:       #0d1b2a;
+      --navy-mid:   #142236;
+      --navy-light: #1e3352;
+      --gold:       #c9a84c;
+      --gold-light: #e8c97a;
+      --cream:      #f0e6d3;
+      --cream-dim:  rgba(240, 230, 211, 0.55);
+      --red:        #8b1a1a;
+      --radius:     14px;
+    }
+
+    body {
+      background: var(--navy);
+      color: var(--cream);
+      font-family: Georgia, 'Times New Roman', serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ───────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(201, 168, 76, 0.18);
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 0.95rem;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+      font-weight: normal;
+    }
+
+    #favs-open-btn {
+      background: none;
+      border: 1px solid rgba(201, 168, 76, 0.45);
+      color: var(--gold);
+      font-size: 0.75rem;
+      padding: 5px 11px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Card area ────────────────────────────────────────── */
+    .card-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 20px 6px;
+      min-height: 0;
+    }
+
+    /* 3-D flip wrapper */
+    .flip-wrap {
+      perspective: 1100px;
+      /* portrait 2:3 — large enough to be comfortable, small enough to always fit */
+      width: min(300px, 80vw, calc((100dvh - 230px) * 2 / 3));
+      aspect-ratio: 2 / 3;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: var(--radius);
+    }
+
+    .card.flipped { transform: rotateY(180deg); }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.65),
+        0 0 0 1px rgba(201, 168, 76, 0.25);
+    }
+
+    /* FRONT — illustration */
+    .face-front {
+      background: #111827;
+    }
+
+    .face-front img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .face-front img.missing {
+      object-fit: contain;
+      padding: 30px;
+      opacity: 0.2;
+    }
+
+    .front-name {
+      font-size: 0.88rem;
+      color: var(--gold-light);
+      letter-spacing: 0.04em;
+      text-align: center;
+      margin-top: 10px;
+      flex-shrink: 0;
+    }
+
+    .fav-badge {
+      position: absolute;
+      top: 7px;
+      right: 8px;
+      font-size: 1.15rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      filter: drop-shadow(0 1px 3px rgba(0,0,0,0.8));
+    }
+    .fav-badge.on { opacity: 1; }
+
+    /* BACK — rule */
+    .face-back {
+      transform: rotateY(180deg);
+      background: var(--navy-mid);
+      display: flex;
+      flex-direction: column;
+      padding: 14px 13px 11px;
+    }
+
+    .back-title {
+      font-size: 1rem;
+      color: var(--gold);
+      text-align: center;
+      line-height: 1.25;
+      padding-bottom: 9px;
+      border-bottom: 1px solid rgba(201, 168, 76, 0.22);
+      flex-shrink: 0;
+    }
+
+    .back-rule {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 0.74rem;
+      line-height: 1.52;
+      color: var(--cream);
+      padding: 7px 0 3px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(201,168,76,0.3) transparent;
+    }
+
+    .back-note {
+      flex-shrink: 0;
+      margin-top: 4px;
+      padding-top: 5px;
+      border-top: 1px solid rgba(201, 168, 76, 0.15);
+    }
+
+    .back-note textarea {
+      width: 100%;
+      height: 32px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(201, 168, 76, 0.18);
+      border-radius: 7px;
+      color: var(--cream);
+      font-family: inherit;
+      font-size: 0.6rem;
+      padding: 4px 7px;
+      resize: none;
+      line-height: 1.4;
+    }
+    .back-note textarea::placeholder { color: rgba(240, 230, 211, 0.3); }
+    .back-note textarea:focus {
+      outline: none;
+      border-color: rgba(201, 168, 76, 0.5);
+      height: 52px;
+      transition: height 0.2s;
+    }
+
+    /* ── Hint ─────────────────────────────────────────────── */
+    .hint {
+      margin-top: 9px;
+      font-size: 0.68rem;
+      color: var(--cream-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    /* ── Action bar ───────────────────────────────────────── */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 20px 18px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.12s, opacity 0.12s;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .btn:active { transform: scale(0.93); }
+
+    .btn-main {
+      background: var(--gold);
+      color: var(--navy);
+      font-size: 0.92rem;
+      font-weight: bold;
+      padding: 13px 28px;
+      letter-spacing: 0.02em;
+      flex: 1;
+      max-width: 210px;
+    }
+
+    .btn-icon {
+      width: 50px;
+      height: 50px;
+      font-size: 1.3rem;
+      background: rgba(201, 168, 76, 0.1);
+      border: 1px solid rgba(201, 168, 76, 0.28);
+      color: rgba(201, 168, 76, 0.55);
+      border-radius: 13px;
+      transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.12s;
+    }
+    .btn-icon.on {
+      background: rgba(201, 168, 76, 0.22);
+      border-color: var(--gold);
+      color: var(--gold-light);
+    }
+
+    /* ── Favorites overlay ────────────────────────────────── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 12, 22, 0.92);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .overlay.open { transform: translateY(0); }
+
+    .overlay-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(201, 168, 76, 0.18);
+      flex-shrink: 0;
+    }
+    .overlay-head h2 {
+      color: var(--gold);
+      font-size: 1rem;
+      font-weight: normal;
+      letter-spacing: 0.05em;
+    }
+    .btn-close {
+      background: none;
+      border: none;
+      color: var(--cream-dim);
+      font-size: 1.6rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 4px;
+    }
+
+    .fav-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .fav-item {
+      background: var(--navy-light);
+      border: 1px solid rgba(201, 168, 76, 0.18);
+      border-radius: 11px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color 0.18s;
+    }
+    .fav-item:active { border-color: var(--gold); }
+
+    .fav-item-name {
+      color: var(--gold);
+      font-size: 0.9rem;
+    }
+    .fav-item-note {
+      color: var(--cream-dim);
+      font-size: 0.68rem;
+      margin-top: 4px;
+      white-space: pre-wrap;
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: var(--cream-dim);
+      font-size: 0.85rem;
+      margin-top: 50px;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚓ Mille Sabords</h1>
+  <button id="favs-open-btn">★ Favoris</button>
+</header>
+
+<main class="card-area">
+  <div class="flip-wrap" id="flip-wrap">
+    <div class="card" id="card">
+
+      <!-- FRONT: illustration -->
+      <div class="face face-front">
+        <img id="card-img" src="" alt="">
+        <span class="fav-badge" id="fav-badge">⭐</span>
+      </div>
+
+      <!-- BACK: rule -->
+      <div class="face face-back">
+        <div class="back-title" id="back-title"></div>
+        <div class="back-rule" id="back-rule"></div>
+        <div class="back-note">
+          <textarea id="note-ta" placeholder="Note personnelle…"></textarea>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <p class="front-name" id="front-name"></p>
+  <p class="hint" id="hint">Appuyez pour révéler</p>
+</main>
+
+<div class="action-bar">
+  <button class="btn btn-icon" id="fav-btn" title="Favori">★</button>
+  <button class="btn btn-main" id="new-btn">Nouvelle carte</button>
+</div>
+
+<!-- Favorites overlay -->
+<div class="overlay" id="fav-overlay">
+  <div class="overlay-head">
+    <h2>★ Favoris</h2>
+    <button class="btn-close" id="favs-close-btn">×</button>
+  </div>
+  <div class="fav-list" id="fav-list"></div>
+</div>
+
+<script>
+const CARDS = [
+  {
+    id: 'la_traversee',
+    name: 'La Traversée',
+    rule: 'Mettez 2 dés de côté : vous ne jouez qu\'avec 6 dés. Pour cette carte uniquement, les crânes sont relanables (ils ne se bloquent pas). Si vous terminez votre tour avec les 6 symboles différents visibles (crâne, épée, pièce d\'or, diamant, singe, perroquet), vous marquez 1 000 points. Sinon, vous marquez 0. Trois crânes visibles simultanément en fin de relance mettent fin à votre tour avec 0 point.',
+  },
+  {
+    id: 'le_grand_vent',
+    name: 'Le Grand Vent',
+    rule: 'À chaque relance, vous devez relancer au minimum 4 dés (au lieu du minimum habituel de 2). En contrepartie, chaque diamant vaut 200 points individuellement ce tour (au lieu de 100).',
+  },
+  {
+    id: 'le_chant_du_cygne',
+    name: 'Le Chant du Cygne',
+    rule: 'Vous n\'avez droit qu\'à un seul lancer ce tour — aucune relance possible. Votre score est multiplié par 3.',
+  },
+  {
+    id: 'la_malediction_doree',
+    name: 'La Malédiction Dorée',
+    rule: 'Ce tour, les pièces d\'or comptent comme des crânes : elles se bloquent dès qu\'elles apparaissent et s\'additionnent aux crânes dans la limite des 3. En revanche, si vous terminez sans être éliminé, chaque pièce d\'or rapporte tout de même 100 points individuels, en plus de toute combinaison.',
+  },
+  {
+    id: 'le_vent_arriere',
+    name: 'Le Vent Arrière',
+    rule: 'Pour votre première relance uniquement, vous pouvez relancer la totalité des 8 dés sans en conserver aucun (l\'obligation habituelle de garder au moins 1 dé ne s\'applique pas). Toutes les règles habituelles s\'appliquent ensuite.',
+  },
+  {
+    id: 'le_kraken',
+    name: 'Le Kraken',
+    rule: 'Avant de lancer, retirez 1 dé de votre choix : vous jouez ce tour avec seulement 7 dés. Si vous terminez votre tour sans avoir obtenu le moindre crâne durant tout le tour, vous gagnez 500 points bonus en plus de votre score habituel.',
+  },
+  {
+    id: 'la_sirene',
+    name: 'La Sirène',
+    rule: 'Ce tour, les perroquets comptent comme des diamants : ils forment des combinaisons avec les diamants et rapportent 100 points individuellement (comme les diamants).',
+  },
+  {
+    id: 'le_piege_a_requin',
+    name: 'Le Piège à Requin',
+    rule: 'Si vous terminez votre tour avec exactement 2 crânes visibles (ni 0, ni 1, ni 3), vous gagnez 600 points bonus en plus de votre score habituel. Sinon, score normal (ou 0 si élimination au 3ème crâne).',
+  },
+  {
+    id: 'la_maree_montante',
+    name: 'La Marée Montante',
+    rule: 'Le nombre maximum de dés que vous pouvez relancer diminue à chaque relance : 1ère relance : 6 dés max — 2ème relance : 4 dés max — 3ème relance et suivantes : 2 dés max. Le minimum reste toujours 2.',
+  },
+  {
+    id: 'la_boussole_brisee',
+    name: 'La Boussole Brisée',
+    rule: 'Ce tour, les singes et les perroquets doivent toujours être relancés — il est impossible de les conserver entre deux lancers. S\'il ne vous reste plus que des singes et/ou des perroquets à relancer, vous devez vous arrêter.',
+  },
+  {
+    id: 'le_corsaire_solitaire',
+    name: 'Le Corsaire Solitaire',
+    rule: 'Vous pouvez relancer aussi peu qu\'un seul dé à la fois (le minimum passe de 2 à 1). Pour chaque relance effectuée sans obtenir de nouveau crâne, gagnez 100 points bonus (cumulables, comptés en fin de tour si vous n\'êtes pas éliminé).',
+  },
+  {
+    id: 'la_poudre_a_canon',
+    name: 'La Poudre à Canon',
+    rule: 'Vous devez effectuer au moins une relance après le premier lancer (impossible de s\'arrêter au premier lancer). En contrepartie, si votre combinaison finale contient 5 symboles identiques ou plus, vous gagnez 500 points bonus en plus.',
+  },
+  {
+    id: 'lequipage_loyal',
+    name: 'L\'Équipage Loyal',
+    rule: 'Ce tour, les épées rapportent 100 points chacune individuellement, en plus de toute combinaison qu\'elles forment.',
+  },
+  {
+    id: 'la_vague_scelerete',
+    name: 'La Vague Scélérate',
+    rule: 'À chaque fois que vous obtenez au moins un crâne lors d\'un lancer, tous vos adversaires perdent immédiatement 100 points. Vous jouez par ailleurs normalement (crânes bloqués, élimination à 3 crânes).',
+  },
+  {
+    id: 'lalbatros',
+    name: 'L\'Albatros',
+    rule: 'En fin de tour (si vous n\'êtes pas éliminé), ajoutez à votre score : +100 points par épée visible et −100 points par crâne visible. Ces modificateurs s\'ajoutent à votre score de combinaisons habituel.',
+  },
+  {
+    id: 'le_pacte_du_diable',
+    name: 'Le Pacte du Diable',
+    rule: 'Les crânes obtenus lors de votre premier lancer uniquement rapportent 200 points chacun (au lieu de 0). Ils se bloquent normalement et comptent toujours vers l\'élimination à 3 crânes.',
+  },
+  {
+    id: 'le_drapeau_noir',
+    name: 'Le Drapeau Noir',
+    rule: 'Si vous marquez 800 points ou plus ce tour, vous recevez 500 points bonus supplémentaires. En dessous de 800 points (ou si vous êtes éliminé), votre score est normal.',
+  },
+  {
+    id: 'laube_rouge',
+    name: 'L\'Aube Rouge',
+    rule: 'Après votre premier lancer, vous devez conserver au maximum 3 dés (en relancer au moins 5). Cette contrainte s\'applique uniquement entre le 1er et le 2ème lancer. Le reste du tour est ensuite normal.',
+  },
+  {
+    id: 'le_noeud_du_marin',
+    name: 'Le Nœud du Marin',
+    rule: 'Les dés de même symbole doivent toujours être gardés ou relancés ensemble — impossible de conserver certains d\'un symbole et d\'en relancer d\'autres du même. (Ex : 3 épées → soit on garde les 3, soit on relance les 3.)',
+  },
+  {
+    id: 'la_tempete',
+    name: 'La Tempête',
+    rule: 'À chaque relance, vous devez relancer au minimum 3 dés (au lieu de 2). En contrepartie, votre score final est doublé (×2).',
+  },
+  {
+    id: 'la_carte_blanche',
+    name: 'La Carte Blanche',
+    rule: 'Avant votre premier lancer, annoncez un symbole à voix haute (crâne, épée, pièce d\'or, diamant, singe ou perroquet). Ce symbole vaut le double ce tour : ×2 dans les combinaisons ET ×2 pour les bonus individuels (pièce/diamant). Si vous choisissez le crâne, chaque crâne vaut 100 pts — mais ils causent toujours l\'élimination à 3.',
+  },
+  {
+    id: 'le_coffre_des_ames',
+    name: 'Le Coffre des Âmes',
+    rule: 'Si vous terminez votre tour sans être éliminé, chaque crâne accumulé durant votre tour vaut 200 points (au lieu de 0). Ces points s\'ajoutent à votre score de combinaisons habituel.',
+  },
+];
+
+// ── Emoji formatting ───────────────────────────────────────
+function formatRule(text) {
+  return text
+    .replace(/crânes?/g,       '💀 $&')
+    .replace(/épées?/g,        '⚔️ $&')
+    .replace(/pièces? d['']or/g, '🪙 $&')
+    .replace(/diamants?/g,     '💎 $&')
+    .replace(/singes?/g,       '🐒 $&')
+    .replace(/perroquets?/g,   '🦜 $&');
+}
+
+// ── Deck ───────────────────────────────────────────────────
+let deck = [];
+
+function shuffleDeck() {
+  deck = [...CARDS].sort(() => Math.random() - 0.5);
+  // avoid reshuffled deck starting with the card just drawn
+  if (current && deck.length > 1 && deck[deck.length - 1].id === current.id) {
+    deck.unshift(deck.pop());
+  }
+}
+
+// ── State ──────────────────────────────────────────────────
+let current = null;
+let flipped  = false;
+
+// ── DOM refs ───────────────────────────────────────────────
+const cardEl    = document.getElementById('card');
+const imgEl     = document.getElementById('card-img');
+const titleEl   = document.getElementById('back-title');
+const ruleEl    = document.getElementById('back-rule');
+const hintEl    = document.getElementById('hint');
+const frontName = document.getElementById('front-name');
+const favBadge  = document.getElementById('fav-badge');
+const favBtn    = document.getElementById('fav-btn');
+const noteTA    = document.getElementById('note-ta');
+const overlay   = document.getElementById('fav-overlay');
+const favList   = document.getElementById('fav-list');
+
+// ── Load card ──────────────────────────────────────────────
+function loadCard(card, autoFlip = false) {
+  current = card;
+  flipped  = autoFlip;
+  cardEl.classList.toggle('flipped', flipped);
+
+  frontName.textContent = card.name;
+  imgEl.src = `fortune_cards/images/${card.id}.png`;
+  imgEl.alt = card.name;
+  imgEl.className = '';
+  imgEl.onerror = () => { imgEl.src = ''; imgEl.className = 'missing'; };
+
+  titleEl.textContent = card.name;
+  ruleEl.innerHTML    = formatRule(card.rule);
+  noteTA.value = localStorage.getItem(`note_${card.id}`) || '';
+
+  updateFavUI();
+  hintEl.textContent = flipped ? 'Appuyez pour voir l\'illustration' : 'Appuyez pour révéler';
+}
+
+function newCard() {
+  if (deck.length === 0) shuffleDeck();
+  loadCard(deck.pop(), false);
+}
+
+// ── Flip ───────────────────────────────────────────────────
+document.getElementById('flip-wrap').addEventListener('click', () => {
+  flipped = !flipped;
+  cardEl.classList.toggle('flipped', flipped);
+  hintEl.textContent = flipped ? 'Appuyez pour voir l\'illustration' : 'Appuyez pour révéler';
+});
+
+// Prevent textarea clicks from flipping the card
+noteTA.addEventListener('click', e => e.stopPropagation());
+noteTA.addEventListener('touchend', e => e.stopPropagation());
+
+// ── Favorites ──────────────────────────────────────────────
+function isFav(id) { return localStorage.getItem(`fav_${id}`) === '1'; }
+
+function updateFavUI() {
+  const on = isFav(current?.id);
+  favBtn.classList.toggle('on', on);
+  favBadge.classList.toggle('on', on);
+}
+
+favBtn.addEventListener('click', () => {
+  if (!current) return;
+  const key = `fav_${current.id}`;
+  isFav(current.id) ? localStorage.removeItem(key) : localStorage.setItem(key, '1');
+  updateFavUI();
+});
+
+// ── Notes ──────────────────────────────────────────────────
+noteTA.addEventListener('input', () => {
+  if (!current) return;
+  const val = noteTA.value.trim();
+  val
+    ? localStorage.setItem(`note_${current.id}`, noteTA.value)
+    : localStorage.removeItem(`note_${current.id}`);
+});
+
+// ── Favorites overlay ──────────────────────────────────────
+function openFavs() {
+  const favCards = CARDS.filter(c => isFav(c.id));
+  favList.innerHTML = favCards.length === 0
+    ? '<p class="empty-msg">Aucun favori pour l\'instant.<br>Appuyez sur ★ pour en ajouter.</p>'
+    : favCards.map(c => {
+        const note = localStorage.getItem(`note_${c.id}`) || '';
+        return `
+          <div class="fav-item" data-id="${c.id}">
+            <div class="fav-item-name">⭐ ${c.name}</div>
+            ${note ? `<div class="fav-item-note">${note}</div>` : ''}
+          </div>`;
+      }).join('');
+
+  favList.querySelectorAll('.fav-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const card = CARDS.find(c => c.id === el.dataset.id);
+      if (card) { loadCard(card, true); closeFavs(); }
+    });
+  });
+
+  overlay.classList.add('open');
+}
+
+function closeFavs() { overlay.classList.remove('open'); }
+
+document.getElementById('favs-open-btn').addEventListener('click', openFavs);
+document.getElementById('favs-close-btn').addEventListener('click', closeFavs);
+document.getElementById('new-btn').addEventListener('click', newCard);
+
+// ── Init ───────────────────────────────────────────────────
+newCard();
+</script>
+</body>
+</html>
