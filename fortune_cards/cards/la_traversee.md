@@ -1,7 +1,7 @@
 # La Traversée
 
 ## Règle
-Mettez 2 dés de côté pour toute la durée du tour : vous ne jouez qu'avec 6 dés. Pour cette carte uniquement, **les crânes sont relanables** (ils ne se bloquent pas). Si vous terminez votre tour avec les 6 symboles différents visibles (crâne, épée, pièce d'or, diamant, singe, perroquet), vous marquez **1 000 points**. Sinon, vous marquez 0. Trois crânes visibles simultanément en fin de relance mettent toujours fin à votre tour avec 0 point.
+Mettez 2 dés de côté pour toute la durée du tour : vous ne jouez qu'avec 6 dés. Pour cette carte uniquement, **les crânes sont relançables** (ils ne se bloquent pas). Si vous terminez votre tour avec les 6 symboles différents visibles (crâne, épée, pièce d'or, diamant, singe, perroquet), vous marquez **1 000 points**. Sinon, vous marquez 0. Trois crânes visibles simultanément en fin de relance mettent toujours fin à votre tour avec 0 point.
 
 ## Stratégie induite
 Viser la diversité totale plutôt que les combinaisons ; gérer prudemment les crânes car deux simultanément rendent la victoire impossible.

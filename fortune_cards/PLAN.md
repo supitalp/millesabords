@@ -108,7 +108,7 @@ fortune_cards/
 
 ## Notes de design sur quelques cartes
 
-**La Traversée** : pour cette carte uniquement, les crânes sont **relanables** (exception à la règle normale). Cela permet de gérer librement les 6 dés pour obtenir les 6 symboles différents. Les crânes causent toujours l'élimination si 3 apparaissent *simultanément* en fin de relance.
+**La Traversée** : pour cette carte uniquement, les crânes sont **relançables** (exception à la règle normale). Cela permet de gérer librement les 6 dés pour obtenir les 6 symboles différents. Les crânes causent toujours l'élimination si 3 apparaissent *simultanément* en fin de relance.
 
 **Le Grand Vent** : minimum 4 dés par relance (au lieu de 2), les diamants valent 200 pts chacun individuellement.
 
