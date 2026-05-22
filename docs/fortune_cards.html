@@ -599,12 +599,20 @@ function animateNewCard(dir) {
     flipWrapEl.style.transform  = `translateX(${-dir * 115}%)`;
     flipWrapEl.offsetHeight; // force reflow
 
-    // Slide in
-    flipWrapEl.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
-    flipWrapEl.style.transform  = '';
-    flipWrapEl.style.opacity    = '';
+    // Slide in only once the new image is ready (avoids flicker on slow loads)
+    const slideIn = () => {
+      flipWrapEl.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
+      flipWrapEl.style.transform  = '';
+      flipWrapEl.style.opacity    = '';
+      setTimeout(() => { flipWrapEl.style.transition = ''; }, 200);
+    };
 
-    setTimeout(() => { flipWrapEl.style.transition = ''; }, 200);
+    if (imgEl.complete) {
+      slideIn();
+    } else {
+      imgEl.onload  = slideIn;
+      imgEl.onerror = slideIn; // slide in anyway if image fails
+    }
   }, 160);
 }
 
