@@ -148,7 +148,7 @@
     /* BACK — rule */
     .face-back {
       transform: rotateY(180deg);
-      background: var(--navy-mid);
+      background: #cebe98;
       display: flex;
       flex-direction: column;
       padding: 14px 13px 11px;
@@ -156,11 +156,11 @@
 
     .back-title {
       font-size: 1rem;
-      color: var(--gold);
+      color: #1a1a1a;
       text-align: center;
       line-height: 1.25;
       padding-bottom: 9px;
-      border-bottom: 1px solid rgba(201, 168, 76, 0.22);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.2);
       flex-shrink: 0;
     }
 
@@ -169,10 +169,10 @@
       overflow-y: auto;
       font-size: 0.74rem;
       line-height: 1.52;
-      color: var(--cream);
+      color: #1a1a1a;
       padding: 7px 0 3px;
       scrollbar-width: thin;
-      scrollbar-color: rgba(201,168,76,0.3) transparent;
+      scrollbar-color: rgba(0,0,0,0.2) transparent;
     }
 
     .back-note {
@@ -546,7 +546,7 @@ function loadCard(card, autoFlip = false) {
   cardEl.classList.toggle('flipped', flipped);
 
   frontName.textContent = card.name;
-  imgEl.src = `fortune_cards/images/${card.id}.png`;
+  imgEl.src = `fortune_cards/thumbs/${card.id}.jpg`;
   imgEl.alt = card.name;
   imgEl.className = '';
   imgEl.onerror = () => { imgEl.src = ''; imgEl.className = 'missing'; };
@@ -561,6 +561,10 @@ function loadCard(card, autoFlip = false) {
 
 function newCard() {
   if (deck.length === 0) shuffleDeck();
+  cardEl.style.transition = 'none';
+  cardEl.classList.remove('flipped');
+  cardEl.offsetHeight; // force reflow so the instant reset takes effect
+  cardEl.style.transition = '';
   loadCard(deck.pop(), false);
 }
 
