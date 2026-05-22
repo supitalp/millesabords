@@ -82,6 +82,7 @@
       aspect-ratio: 2 / 3;
       cursor: pointer;
       flex-shrink: 0;
+      touch-action: none;
     }
 
     .card {
@@ -237,17 +238,6 @@
     }
     .btn:active { transform: scale(0.93); }
 
-    .btn-main {
-      background: var(--gold);
-      color: var(--navy);
-      font-size: 0.92rem;
-      font-weight: bold;
-      padding: 13px 28px;
-      letter-spacing: 0.02em;
-      flex: 1;
-      max-width: 210px;
-    }
-
     .btn-icon {
       width: 50px;
       height: 50px;
@@ -369,12 +359,11 @@
     </div>
   </div>
   <p class="front-name" id="front-name"></p>
-  <p class="hint" id="hint">Appuyez pour révéler</p>
+  <p class="hint" id="hint">Glissez pour changer · Appuyez pour révéler</p>
 </main>
 
 <div class="action-bar">
   <button class="btn btn-icon" id="fav-btn" title="Favori">★</button>
-  <button class="btn btn-main" id="new-btn">Nouvelle carte</button>
 </div>
 
 <!-- Favorites overlay -->
@@ -511,20 +500,11 @@ function formatRule(text) {
     .replace(/perroquets?/g,   '🦜 $&');
 }
 
-// ── Deck ───────────────────────────────────────────────────
-let deck = [];
-
-function shuffleDeck() {
-  deck = [...CARDS].sort(() => Math.random() - 0.5);
-  // avoid reshuffled deck starting with the card just drawn
-  if (current && deck.length > 1 && deck[deck.length - 1].id === current.id) {
-    deck.unshift(deck.pop());
-  }
-}
-
 // ── State ──────────────────────────────────────────────────
 let current = null;
 let flipped  = false;
+let order    = [];   // all cards in shuffled circular order
+let histIdx  = 0;    // current position in order
 
 // ── DOM refs ───────────────────────────────────────────────
 const cardEl    = document.getElementById('card');
@@ -556,24 +536,77 @@ function loadCard(card, autoFlip = false) {
   noteTA.value = localStorage.getItem(`note_${card.id}`) || '';
 
   updateFavUI();
-  hintEl.textContent = flipped ? 'Appuyez pour voir l\'illustration' : 'Appuyez pour révéler';
+  hintEl.textContent = flipped ? 'Appuyez pour voir l\'illustration' : 'Glissez pour changer · Appuyez pour révéler';
 }
 
-function newCard() {
-  if (deck.length === 0) shuffleDeck();
-  cardEl.style.transition = 'none';
-  cardEl.classList.remove('flipped');
-  cardEl.offsetHeight; // force reflow so the instant reset takes effect
-  cardEl.style.transition = '';
-  loadCard(deck.pop(), false);
+function navigateTo(dir) {
+  histIdx = (histIdx + dir + order.length) % order.length;
+  return order[histIdx];
 }
 
-// ── Flip ───────────────────────────────────────────────────
-document.getElementById('flip-wrap').addEventListener('click', () => {
-  flipped = !flipped;
-  cardEl.classList.toggle('flipped', flipped);
-  hintEl.textContent = flipped ? 'Appuyez pour voir l\'illustration' : 'Appuyez pour révéler';
+// ── Swipe / Tap ────────────────────────────────────────────
+const flipWrapEl = document.getElementById('flip-wrap');
+let pStartX = 0, pStartY = 0, pMoved = false;
+
+flipWrapEl.addEventListener('pointerdown', e => {
+  pStartX = e.clientX;
+  pStartY = e.clientY;
+  pMoved  = false;
 });
+
+flipWrapEl.addEventListener('pointermove', e => {
+  if (Math.abs(e.clientX - pStartX) > 8) pMoved = true;
+});
+
+flipWrapEl.addEventListener('pointerup', e => {
+  const dx = e.clientX - pStartX;
+  const dy = e.clientY - pStartY;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+    animateNewCard(dx > 0 ? 1 : -1);
+  } else if (!pMoved) {
+    flipped = !flipped;
+    cardEl.classList.toggle('flipped', flipped);
+    hintEl.textContent = flipped ? 'Appuyez pour voir l\'illustration' : 'Glissez pour changer · Appuyez pour révéler';
+  }
+});
+
+flipWrapEl.addEventListener('pointercancel', () => { pMoved = false; });
+
+// ── Arrow key navigation (desktop) ────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft')  animateNewCard(-1);
+  if (e.key === 'ArrowRight') animateNewCard(1);
+});
+
+function animateNewCard(dir) {
+  // Slide current card out
+  flipWrapEl.style.transition = 'transform 0.15s ease-in, opacity 0.15s ease-in';
+  flipWrapEl.style.transform  = `translateX(${dir * 115}%)`;
+  flipWrapEl.style.opacity    = '0';
+
+  setTimeout(() => {
+    // Reset flip instantly
+    cardEl.style.transition = 'none';
+    cardEl.classList.remove('flipped');
+    cardEl.offsetHeight;
+    cardEl.style.transition = '';
+
+    // Load new card content
+    loadCard(navigateTo(dir), false);
+
+    // Place off-screen on the opposite side, no transition
+    flipWrapEl.style.transition = 'none';
+    flipWrapEl.style.transform  = `translateX(${-dir * 115}%)`;
+    flipWrapEl.offsetHeight; // force reflow
+
+    // Slide in
+    flipWrapEl.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
+    flipWrapEl.style.transform  = '';
+    flipWrapEl.style.opacity    = '';
+
+    setTimeout(() => { flipWrapEl.style.transition = ''; }, 200);
+  }, 160);
+}
 
 // Prevent textarea clicks from flipping the card
 noteTA.addEventListener('click', e => e.stopPropagation());
@@ -632,10 +665,11 @@ function closeFavs() { overlay.classList.remove('open'); }
 
 document.getElementById('favs-open-btn').addEventListener('click', openFavs);
 document.getElementById('favs-close-btn').addEventListener('click', closeFavs);
-document.getElementById('new-btn').addEventListener('click', newCard);
 
 // ── Init ───────────────────────────────────────────────────
-newCard();
+order  = [...CARDS].sort(() => Math.random() - 0.5);
+histIdx = 0;
+loadCard(order[0], false);
 </script>
 </body>
 </html>
