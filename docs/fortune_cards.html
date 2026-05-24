@@ -549,14 +549,15 @@ const flipWrapEl = document.getElementById('flip-wrap');
 let pStartX = 0, pStartY = 0, pMoved = false;
 
 flipWrapEl.addEventListener('pointerdown', e => {
+  e.target.releasePointerCapture(e.pointerId);
   pStartX = e.clientX;
   pStartY = e.clientY;
   pMoved  = false;
-});
+}, true);
 
 flipWrapEl.addEventListener('pointermove', e => {
   if (Math.abs(e.clientX - pStartX) > 8) pMoved = true;
-});
+}, true);
 
 flipWrapEl.addEventListener('pointerup', e => {
   const dx = e.clientX - pStartX;
@@ -568,9 +569,9 @@ flipWrapEl.addEventListener('pointerup', e => {
     cardEl.classList.toggle('flipped', flipped);
     hintEl.textContent = flipped ? 'Appuyez pour voir l\'illustration' : 'Glissez pour changer · Appuyez pour révéler';
   }
-});
+}, true);
 
-flipWrapEl.addEventListener('pointercancel', () => { pMoved = false; });
+flipWrapEl.addEventListener('pointercancel', () => { pMoved = false; }, true);
 
 // ── Arrow key navigation (desktop) ────────────────────────
 document.addEventListener('keydown', e => {
@@ -662,7 +663,7 @@ function openFavs() {
   favList.querySelectorAll('.fav-item').forEach(el => {
     el.addEventListener('click', () => {
       const card = CARDS.find(c => c.id === el.dataset.id);
-      if (card) { loadCard(card, true); closeFavs(); }
+      if (card) { loadCard(card, false); closeFavs(); }
     });
   });
 
