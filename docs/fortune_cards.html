@@ -85,6 +85,10 @@
       touch-action: none;
     }
 
+    /* Prevent the hidden face from intercepting pointer events */
+    .card:not(.flipped) .face-back { pointer-events: none; }
+    .card.flipped .face-front      { pointer-events: none; }
+
     .card {
       width: 100%;
       height: 100%;
@@ -549,7 +553,6 @@ const flipWrapEl = document.getElementById('flip-wrap');
 let pStartX = 0, pStartY = 0, pMoved = false;
 
 flipWrapEl.addEventListener('pointerdown', e => {
-  e.target.releasePointerCapture(e.pointerId);
   pStartX = e.clientX;
   pStartY = e.clientY;
   pMoved  = false;
