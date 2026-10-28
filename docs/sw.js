@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mille-sabords-v1';
+const CACHE_NAME = 'mille-sabords-v2';
 
 const ASSETS = [
   './',
