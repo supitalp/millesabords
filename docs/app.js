@@ -122,6 +122,15 @@ function loadSkullIslandEvents() {
 function saveSkullIslandEvents(arr) {
   localStorage.setItem('mille_sabords_si_events', JSON.stringify(arr));
 }
+// Hints are off by default; toggled by long-pressing the header title.
+function loadHintsEnabled() {
+  try { return localStorage.getItem('mille_sabords_hints_enabled') === '1'; }
+  catch { return false; }
+}
+function saveHintsEnabled(on) {
+  try { localStorage.setItem('mille_sabords_hints_enabled', on ? '1' : '0'); }
+  catch { /* storage unavailable — setting just won't persist */ }
+}
 
 // ─── Solver logic (ported from Python) ────────────────────────────────────────
 
@@ -582,6 +591,10 @@ const app = createApp({
     const strategyData = ref(null); // null = not yet computed; cleared when dice/card change
     const strategyOn   = ref(false);  // A4: toggle — controls die highlights + banner
     const modalOpen    = ref(false);  // A4: details modal
+    const hintsEnabled = ref(loadHintsEnabled()); // hidden parental toggle
+    const hintsToast   = ref(null);   // transient "Hints on/off" message
+    let hintsPressTimer = null;
+    let hintsToastTimer = null;
 
     const anySelected = computed(() => selectedDice.value.some(Boolean));
     const selectedCount = computed(() => selectedDice.value.filter(Boolean).length);
@@ -1471,12 +1484,34 @@ const app = createApp({
         modalOpen.value = false;
         return;
       }
+      if (!hintsEnabled.value) return;
       if (!strategyData.value) {
         await _loadStrategy();
       }
       if (strategyData.value && !error.value) {
         strategyOn.value = true;
       }
+    }
+
+    // Hidden toggle: hold the header title for 2s to enable/disable hints.
+    function startHintsPress() {
+      cancelHintsPress();
+      hintsPressTimer = setTimeout(() => {
+        hintsPressTimer = null;
+        hintsEnabled.value = !hintsEnabled.value;
+        saveHintsEnabled(hintsEnabled.value);
+        if (!hintsEnabled.value) {
+          strategyOn.value = false;
+          modalOpen.value = false;
+        }
+        hintsToast.value = hintsEnabled.value ? '💡 Hints on' : '💡 Hints off';
+        clearTimeout(hintsToastTimer);
+        hintsToastTimer = setTimeout(() => { hintsToast.value = null; }, 1500);
+      }, 2000);
+    }
+    function cancelHintsPress() {
+      clearTimeout(hintsPressTimer);
+      hintsPressTimer = null;
     }
 
     function rowMarker(i, s) {
@@ -1512,6 +1547,7 @@ const app = createApp({
     return {
       dice, selectedCard, loading, error,
       strategyData, strategyOn, modalOpen,
+      hintsEnabled, hintsToast, startHintsPress, cancelHintsPress,
       bestStrategyIsStop, bestStrategyRerollIndices, rerollExhausted, hasRerolled,
       FACE_EMOJI, FACE_NAMES, CARD_OPTIONS, FACE_BLANK,
       mode, selectedDice, anySelected, selectedCount, rollInvalidReason, bustProbability,

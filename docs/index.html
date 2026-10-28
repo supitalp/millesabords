@@ -15,7 +15,14 @@
   <div id="app" v-cloak style="display:none">
     <header class="site-header">
       <div class="header-inner">
-        <h1>🏴‍☠️ Mille Sabords!</h1>
+        <h1
+          class="hints-secret"
+          @pointerdown="startHintsPress"
+          @pointerup="cancelHintsPress"
+          @pointerleave="cancelHintsPress"
+          @pointercancel="cancelHintsPress"
+          @contextmenu.prevent
+        >🏴‍☠️ Mille Sabords!</h1>
         <div class="header-right">
           <button class="rules-header-btn" @click="rulesOpen = true" title="Rules">📖</button>
           <div class="mode-toggle-compact">
@@ -28,6 +35,9 @@
         </div>
       </div>
     </header>
+    <transition name="hints-toast">
+      <div v-if="hintsToast" class="hints-toast">{{ hintsToast }}</div>
+    </transition>
 
     <main class="main-content">
 
@@ -170,9 +180,9 @@
             <button
               class="dice-side-btn"
               :class="{ 'dice-side-btn-on': strategyOn }"
-              :disabled="turnPhase !== 'active' || currentScore.busted || rerollExhausted || loading || isAnimating || selectedCard === 'zombie'"
+              :disabled="!hintsEnabled || turnPhase !== 'active' || currentScore.busted || rerollExhausted || loading || isAnimating || selectedCard === 'zombie'"
               @click="toggleStrategy()"
-              :title="selectedCard === 'zombie' ? 'No hints — zombie card has no choices' : (strategyOn ? 'Hide hint' : 'Show optimal play hint')"
+              :title="!hintsEnabled ? 'Hints disabled' : selectedCard === 'zombie' ? 'No hints — zombie card has no choices' : (strategyOn ? 'Hide hint' : 'Show optimal play hint')"
             >
               <span v-if="loading && turnPhase === 'active'" class="spinner-sm"></span>
               <span v-else>💡</span>
